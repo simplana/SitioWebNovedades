@@ -183,7 +183,7 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
               <div className="p-3 bg-blue-100 rounded text-sm text-blue-800">
                 <h4 className="font-medium mb-2">Información técnica:</h4>
                 <ul className="space-y-1 text-xs">
-                  <li><strong>Client ID:</strong> Cx-8qw_ANuu902nqArw1</li>
+                  <li><strong>Client ID:</strong> dCcISKLUxosXUJvjIcSN</li>
                   <li><strong>Scopes:</strong> ITEMS_READ, INVENTORY_READ, CUSTOMERS_READ</li>
                   <li><strong>Problema:</strong> WebContainer no soporta HTTPS con certificados SSL</li>
                 </ul>
