@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAccessToken, hasValidTokens } from '../lib/loyverse/auth';
+import { getAccessToken, hasValidTokens, clearStoredTokens } from '../lib/loyverse/auth';
 import { buildApiUrl } from '../lib/loyverse/url';
 
 export interface LoyverseProduct {
@@ -52,25 +52,28 @@ export const useLoyverseProducts = () => {
     try {
       console.log('🚀 Fetching products from Loyverse API...');
       
-      // Verificar si tenemos tokens válidos
-      if (!hasValidTokens()) {
-        console.log('✅ Using demo products (OAuth requires HTTPS)');
-        const demoProducts = getDemoProducts();
-        setProducts(demoProducts);
-        setPagination({
-          currentPage: 1,
-          totalPages: 1,
-          hasNextPage: false,
-          hasPreviousPage: false
-        });
-        setError(null);
-        return;
+      // Intentar obtener token de acceso
+      let accessToken;
+      try {
+        if (hasValidTokens()) {
+          accessToken = await getAccessToken();
+          console.log('🔑 Using OAuth2 access token');
+        } else {
+          console.log('⚠️ No valid tokens found, attempting direct API call...');
+          // Intentar usar token directo si está disponible
+          const directToken = import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN;
+          if (directToken && directToken !== 'your-loyverse-token-here') {
+            accessToken = directToken;
+            console.log('🔑 Using direct access token from env');
+          } else {
+            throw new Error('No access token available');
+          }
+        }
+      } catch (tokenError) {
+        console.warn('❌ Token error:', tokenError);
+        throw new Error('Authentication failed: No valid access token');
       }
       
-      // Obtener token de acceso (se refresca automáticamente si es necesario)
-      const accessToken = await getAccessToken();
-      console.log('🔑 Using OAuth2 access token');
-
       let url = buildApiUrl('items') + '?limit=50';
       if (cursor) {
         url += `&cursor=${cursor}`;
@@ -94,23 +97,16 @@ export const useLoyverseProducts = () => {
         console.error('❌ API Error:', errorText);
         
         if (response.status === 401) {
-          console.warn('⚠️ Unauthorized - token may be invalid');
-          // Limpiar tokens inválidos y usar productos de demo
-          const { clearStoredTokens } = await import('../lib/loyverse/auth');
+          console.warn('⚠️ Unauthorized - clearing invalid tokens');
           clearStoredTokens();
+          throw new Error('Authentication failed: Invalid or expired token');
+        } else if (response.status === 403) {
+          throw new Error('Access forbidden: Check your API permissions');
+        } else if (response.status === 429) {
+          throw new Error('Rate limit exceeded: Too many requests');
+        } else {
+          throw new Error(`API Error: ${response.status} - ${errorText}`);
         }
-        
-        console.log('✅ Using demo products (fallback mode)');
-        const demoProducts = getDemoProducts();
-        setProducts(demoProducts);
-        setPagination({
-          currentPage: 1,
-          totalPages: 1,
-          hasNextPage: false,
-          hasPreviousPage: false
-        });
-        setError(null);
-        return;
       }
 
       const data = await response.json();
@@ -137,18 +133,7 @@ export const useLoyverseProducts = () => {
       } else {
         console.log('❌ Unrecognized data structure');
         console.log('📦 Available properties:', Object.keys(data));
-        
-        // Use demo products if we can't parse the response
-        const demoProducts = getDemoProducts();
-        setProducts(demoProducts);
-        setPagination({
-          currentPage: 1,
-          totalPages: 1,
-          hasNextPage: false,
-          hasPreviousPage: false
-        });
-        setError('Unrecognized Loyverse data structure. Showing demo products.');
-        return;
+        throw new Error('Unrecognized data structure from Loyverse API');
       }
 
       console.log('📦 Items found:', items.length);
@@ -227,112 +212,19 @@ export const useLoyverseProducts = () => {
 
     } catch (err) {
       console.error('❌ Error connecting to Loyverse:', err);
-      
-      // If connection fails, use demo products (this is expected in WebContainer)
-      console.log('✅ Using demo products (WebContainer environment)');
-      const demoProducts = getDemoProducts();
-      setProducts(demoProducts);
+      setError(err instanceof Error ? err.message : 'Failed to connect to Loyverse API');
+      setProducts([]);
       setPagination({
         currentPage: 1,
         totalPages: 1,
         hasNextPage: false,
         hasPreviousPage: false
       });
-      setError(null); // Don't show error, just use demo products
     } finally {
       setLoading(false);
     }
   };
 
-  // Productos de demostración para cuando falla Loyverse
-  const getDemoProducts = (): LoyverseProduct[] => {
-    return [
-      {
-        id: 'demo-1',
-        name: 'Imagen del Sagrado Corazón de Jesús',
-        price: 25.00,
-        category: 'Imágenes Religiosas',
-        sku: 'IMG-SCJ-001',
-        image: 'https://images.pexels.com/photos/8989574/pexels-photo-8989574.jpeg?auto=compress&cs=tinysrgb&w=800',
-        description: 'Hermosa imagen del Sagrado Corazón de Jesús, perfecta para la decoración de tu hogar cristiano.',
-        availableForSale: true,
-        trackStock: false,
-        isNew: true,
-        isFeatured: true,
-        variants: []
-      },
-      {
-        id: 'demo-2',
-        name: 'Rosario de Cristal Azul',
-        price: 18.50,
-        category: 'Rosarios',
-        sku: 'ROS-CRI-002',
-        image: 'https://images.pexels.com/photos/6546283/pexels-photo-6546283.jpeg?auto=compress&cs=tinysrgb&w=800',
-        description: 'Rosario de cristal azul con crucifijo plateado, ideal para la oración diaria.',
-        availableForSale: true,
-        trackStock: false,
-        isNew: false,
-        isFeatured: true,
-        variants: []
-      },
-      {
-        id: 'demo-3',
-        name: 'Crucifijo de Madera Tallada',
-        price: 35.00,
-        category: 'Crucifijos',
-        sku: 'CRU-MAD-003',
-        image: 'https://images.pexels.com/photos/6985003/pexels-photo-6985003.jpeg?auto=compress&cs=tinysrgb&w=800',
-        description: 'Crucifijo artesanal de madera tallada a mano, una obra de arte religiosa.',
-        availableForSale: true,
-        trackStock: false,
-        isNew: false,
-        isFeatured: true,
-        variants: []
-      },
-      {
-        id: 'demo-4',
-        name: 'Vela Votiva Virgen María',
-        price: 8.00,
-        category: 'Velas',
-        sku: 'VEL-VM-004',
-        image: 'https://images.pexels.com/photos/5206044/pexels-photo-5206044.jpeg?auto=compress&cs=tinysrgb&w=800',
-        description: 'Vela votiva con imagen de la Virgen María, perfecta para momentos de oración.',
-        availableForSale: true,
-        trackStock: false,
-        isNew: true,
-        isFeatured: false,
-        variants: []
-      },
-      {
-        id: 'demo-5',
-        name: 'Libro de Oraciones Diarias',
-        price: 12.00,
-        category: 'Libros',
-        sku: 'LIB-ORD-005',
-        image: 'https://images.pexels.com/photos/8989587/pexels-photo-8989587.jpeg?auto=compress&cs=tinysrgb&w=800',
-        description: 'Libro con oraciones para cada día del año, guía espiritual completa.',
-        availableForSale: true,
-        trackStock: false,
-        isNew: false,
-        isFeatured: false,
-        variants: []
-      },
-      {
-        id: 'demo-6',
-        name: 'Medalla Milagrosa de Plata',
-        price: 22.00,
-        category: 'Medallas',
-        sku: 'MED-MIL-006',
-        image: 'https://images.pexels.com/photos/7045933/pexels-photo-7045933.jpeg?auto=compress&cs=tinysrgb&w=800',
-        description: 'Medalla Milagrosa de plata con cadena, bendecida y consagrada.',
-        availableForSale: true,
-        trackStock: false,
-        isNew: true,
-        isFeatured: true,
-        variants: []
-      }
-    ];
-  };
 
   useEffect(() => {
     fetchProducts();
@@ -383,7 +275,7 @@ export const useLoyverseProducts = () => {
   const getFeaturedProducts = (limit?: number) => {
     if (products.length === 0) return [];
     
-    // Como Loyverse no tiene campo "isFeatured", usamos productos con precio más alto
+    // Usar productos con precio más alto como destacados
     const featuredProducts = [...products]
       .sort((a, b) => (b.price || 0) - (a.price || 0))
       .slice(0, limit || products.length);
@@ -409,6 +301,6 @@ export const useLoyverseProducts = () => {
     getProductsByCategory,
     getFeaturedProducts,
     getCategories,
-    needsAuth: !hasValidTokens()
+    needsAuth: !hasValidTokens() && !import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN
   };
 };

@@ -16,6 +16,10 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
   const hasStoredTokens = hasValidTokens();
   const tokenExpiration = getTokenExpirationTime();
 
+  // Verificar si hay token directo disponible
+  const hasDirectToken = import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN && 
+                        import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN !== 'your-loyverse-token-here';
+
   const handleAuthorize = () => {
     // Mostrar instrucciones para OAuth manual debido a limitaciones de HTTPS en WebContainer
     alert(
@@ -68,16 +72,23 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
     }
   };
 
-  if (hasStoredTokens && hasClientSecret) {
+  if ((hasStoredTokens && hasClientSecret) || hasDirectToken) {
     return (
       <div className={`bg-green-50 border border-green-200 rounded-lg p-6 ${className}`}>
         <div className="flex items-center space-x-3 mb-4">
           <CheckCircle className="h-5 w-5" />
           <div>
-            <span className="font-medium text-green-800">Loyverse OAuth2 Conectado</span>
-            {tokenExpiration && (
+            <span className="font-medium text-green-800">
+              {hasStoredTokens ? 'Loyverse OAuth2 Conectado' : 'Loyverse API Conectado (Token Directo)'}
+            </span>
+            {tokenExpiration && hasStoredTokens && (
               <p className="text-sm text-green-600">
                 Token expira: {tokenExpiration.toLocaleString()}
+              </p>
+            )}
+            {hasDirectToken && !hasStoredTokens && (
+              <p className="text-sm text-green-600">
+                Usando token de acceso directo
               </p>
             )}
           </div>
@@ -93,13 +104,15 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
             <span>{testing ? 'Probando...' : 'Probar API'}</span>
           </button>
           
-          <button
-            onClick={handleDisconnect}
-            className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200"
-          >
-            <LogOut className="h-4 w-4" />
-            <span>Desconectar</span>
-          </button>
+          {hasStoredTokens && (
+            <button
+              onClick={handleDisconnect}
+              className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Desconectar</span>
+            </button>
+          )}
         </div>
         
         {testResult && (
@@ -163,10 +176,15 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
             <div className="bg-green-100 border border-green-300 rounded-lg p-3">
               <div className="flex items-center space-x-2 mb-2">
                 <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium text-green-800">Modo Demo Activo</span>
+                <span className="text-sm font-medium text-green-800">
+                  {hasDirectToken ? 'Token Directo Disponible' : 'Configuración Requerida'}
+                </span>
               </div>
               <p className="text-xs text-green-700">
-                Los productos de demostración están disponibles en <code>/productos</code>
+                {hasDirectToken 
+                  ? 'Los productos reales de Loyverse están disponibles en /productos'
+                  : 'Configura tu token de acceso para ver productos reales'
+                }
               </p>
             </div>
           </div>
@@ -192,7 +210,7 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
               <div className="p-3 bg-yellow-100 border border-yellow-300 rounded text-sm text-yellow-800">
                 <h4 className="font-medium mb-2">💡 Soluciones:</h4>
                 <ul className="space-y-1 text-xs">
-                  <li><strong>Desarrollo:</strong> Usar productos demo (ya activo)</li>
+                  <li><strong>Desarrollo:</strong> Configurar VITE_LOYVERSE_ACCESS_TOKEN en .env</li>
                   <li><strong>Producción:</strong> Desplegar en servidor con HTTPS válido</li>
                   <li><strong>Testing:</strong> Usar ngrok o similar para túnel HTTPS</li>
                 </ul>
@@ -201,7 +219,10 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
           )}
           
           <p className="text-xs text-blue-600 mt-3">
-            ✅ Productos de demostración disponibles en /productos
+            {hasDirectToken 
+              ? '✅ Productos reales de Loyverse disponibles en /productos'
+              : '⚠️ Configura tu token para acceder a productos reales'
+            }
           </p>
         </div>
       </div>

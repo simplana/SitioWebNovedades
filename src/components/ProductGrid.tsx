@@ -38,9 +38,23 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, loading, error }) =
   if (error) {
     return (
       <div className="text-center py-16">
-        <div className="bg-rose-prayer text-navy-devotion p-6 rounded-2xl shadow-sacred max-w-md mx-auto backdrop-blur-divine">
-          <p className="text-xl font-semibold mb-2">No pudimos cargar los artículos religiosos</p>
-          <p className="text-sm mt-2">{error}</p>
+        <div className="bg-rose-prayer text-navy-devotion p-6 rounded-2xl shadow-sacred max-w-lg mx-auto backdrop-blur-divine">
+          <div className="bg-red-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <BookOpen className="h-8 w-8 text-red-600" />
+          </div>
+          <h3 className="text-xl font-semibold mb-4">Error al cargar productos</h3>
+          <p className="text-sm mb-4 text-red-700 bg-red-50 p-3 rounded-lg">{error}</p>
+          
+          {error.includes('Authentication') && (
+            <div className="bg-blue-50 p-4 rounded-lg text-left">
+              <h4 className="font-semibold text-blue-800 mb-2">💡 Soluciones:</h4>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• Configura tu <code>VITE_LOYVERSE_ACCESS_TOKEN</code> en el archivo .env</li>
+                <li>• O completa el proceso OAuth2 en el panel de Admin</li>
+                <li>• Verifica que tu token tenga permisos ITEMS_READ</li>
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     );
