@@ -65,6 +65,16 @@ const Header: React.FC<HeaderProps> = ({ onAuthModalOpen }) => {
                 {item.name}
               </Link>
             ))}
+            <Link
+              to="/oauth2-tester"
+              className={`font-medium transition-colors duration-200 text-xs lg:text-sm xl:text-base whitespace-nowrap px-1 lg:px-2 ${
+                isActive('/oauth2-tester')
+                  ? 'text-divine-gold border-b-2 border-divine-gold pb-1 text-shadow-sacred'
+                  : 'text-stone-prayer hover:text-divine-gold'
+              }`}
+            >
+              OAuth2 Tester
+            </Link>
           </nav>
 
           {/* Cart and Mobile Menu */}
