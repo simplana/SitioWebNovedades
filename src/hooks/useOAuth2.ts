@@ -6,8 +6,8 @@ const STORAGE_KEY = 'loyverse_oauth2_connections';
 
 // Default Loyverse configuration
 const DEFAULT_LOYVERSE_CONFIG: OAuth2Config = {
-  clientId: 'dCcISKLUxosXUJvjIcSN',
-  clientSecret: '0gimBKgOZ0JgKKK1v_9caB48vpNMz6qp-yMum46iliXspzF-CTTLCg==',
+  clientId: 'Cx-8qw_ANuu902nqArw1',
+  clientSecret: 'SBKNSqVkzKvJ4jIsJ4fXTnXwBVT8era4B-K2Qg5uYPuD5xT9h_ObMA==',
   authUrl: 'https://api.loyverse.com/oauth/authorize',
   tokenUrl: 'https://api.loyverse.com/oauth/token',
   scope: 'ITEMS_READ CUSTOMERS_READ RECEIPTS_READ OPENID',

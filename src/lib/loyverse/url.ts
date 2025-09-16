@@ -2,7 +2,7 @@
 
 export function buildAuthorizeUrl(state?: string): string {
   const base = "https://api.loyverse.com/oauth/authorize";
-  const client_id = "dCcISKLUxosXUJvjIcSN";
+  const client_id = "Cx-8qw_ANuu902nqArw1";
   
   // Para desarrollo local con HTTPS
   const currentOrigin = typeof window !== 'undefined' 
