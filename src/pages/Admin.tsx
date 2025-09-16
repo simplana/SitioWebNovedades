@@ -19,7 +19,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import PagueloFacilTestButton from '../components/PagueloFacilTestButton';
-import LoyverseAuthButton from '../components/LoyverseAuthButton';
+import LoyverseOAuth2Panel from '../components/LoyverseOAuth2Panel';
 
 interface QuoteRequest {
   id: string;
@@ -282,7 +282,7 @@ const Admin = () => {
                 </div>
                 
                 {/* Estado de Loyverse */}
-                <LoyverseAuthButton />
+                <LoyverseOAuth2Panel />
               </div>
             </div>
 

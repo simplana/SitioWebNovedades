@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAccessToken, hasValidTokens } from '../lib/loyverse/auth';
-import { buildApiUrl } from '../lib/loyverse/url';
+import { useOAuth2Enhanced } from './useOAuth2Enhanced';
 
 export interface LoyverseProduct {
   id: string;
@@ -40,6 +39,7 @@ export const useLoyverseProducts = () => {
   const [products, setProducts] = useState<LoyverseProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, getAuthenticatedConnection, testApiEndpoint } = useOAuth2Enhanced();
   const [pagination, setPagination] = useState<PaginationInfo>({
     currentPage: 1,
     totalPages: 1,
@@ -52,8 +52,8 @@ export const useLoyverseProducts = () => {
     try {
       console.log('🚀 Fetching products from Loyverse API...');
       
-      // Verificar si tenemos tokens válidos
-      if (!hasValidTokens()) {
+      // Verificar si estamos autenticados con OAuth2
+      if (!isAuthenticated) {
         console.log('✅ Using demo products (OAuth requires HTTPS)');
         const demoProducts = getDemoProducts();
         setProducts(demoProducts);
@@ -67,11 +67,24 @@ export const useLoyverseProducts = () => {
         return;
       }
       
-      // Obtener token de acceso (se refresca automáticamente si es necesario)
-      const accessToken = await getAccessToken();
-      console.log('🔑 Using OAuth2 access token');
+      const authenticatedConnection = getAuthenticatedConnection();
+      if (!authenticatedConnection || !authenticatedConnection.accessToken) {
+        console.log('❌ No authenticated connection found');
+        const demoProducts = getDemoProducts();
+        setProducts(demoProducts);
+        setPagination({
+          currentPage: 1,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false
+        });
+        setError(null);
+        return;
+      }
 
-      let url = buildApiUrl('items') + '?limit=50';
+      console.log('🔑 Using OAuth2 access token');
+      
+      let url = 'https://api.loyverse.com/v1.0/items?limit=50';
       if (cursor) {
         url += `&cursor=${cursor}`;
       }
@@ -81,7 +94,7 @@ export const useLoyverseProducts = () => {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${authenticatedConnection.accessToken}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         }
@@ -95,12 +108,10 @@ export const useLoyverseProducts = () => {
         
         if (response.status === 401) {
           console.warn('⚠️ Unauthorized - token may be invalid');
-          // Limpiar tokens inválidos y usar productos de demo
-          const { clearStoredTokens } = await import('../lib/loyverse/auth');
-          clearStoredTokens();
+          // Token inválido, usar productos de demo
+          console.log('✅ Using demo products (invalid token)');
         }
         
-        console.log('✅ Using demo products (fallback mode)');
         const demoProducts = getDemoProducts();
         setProducts(demoProducts);
         setPagination({
@@ -410,5 +421,6 @@ export const useLoyverseProducts = () => {
     getFeaturedProducts,
     getCategories,
     needsAuth: !hasValidTokens()
+    needsAuth: !isAuthenticated
   };
 };

@@ -8,32 +8,55 @@ const OAuthCallback: React.FC = () => {
     const state = urlParams.get('state');
     const error = urlParams.get('error');
 
-    console.log('OAuth Callback received:', { code: !!code, state, error });
+    console.log('🔄 Enhanced OAuth Callback received:', { 
+      path: window.location.pathname,
+      code: !!code, 
+      state, 
+      error,
+      timestamp: new Date().toISOString()
+    });
 
     if (error) {
-      // Send error to parent window
+      // Enviar error a la ventana padre con más detalles
       if (window.opener) {
         window.opener.postMessage({
           type: 'OAUTH_ERROR',
           error: error,
-          error_description: urlParams.get('error_description')
+          error_description: urlParams.get('error_description'),
+          state: state,
+          timestamp: new Date().toISOString()
         }, window.location.origin);
+        console.log('❌ Enhanced OAuth error sent to parent window');
       }
     } else if (code && state) {
-      // Send success to parent window
+      // Enviar éxito a la ventana padre con más detalles
       if (window.opener) {
         window.opener.postMessage({
           type: 'OAUTH_SUCCESS',
           code: code,
-          state: state
+          state: state,
+          timestamp: new Date().toISOString(),
+          provider: 'loyverse'
+        }, window.location.origin);
+        console.log('✅ Enhanced OAuth success sent to parent window');
+      }
+    } else {
+      console.log('⚠️ OAuth callback received without code or error');
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'OAUTH_ERROR',
+          error: 'invalid_callback',
+          error_description: 'No authorization code or error received',
+          timestamp: new Date().toISOString()
         }, window.location.origin);
       }
     }
 
-    // Close popup after a short delay
+    // Cerrar popup después de un breve delay
     setTimeout(() => {
+      console.log('🔒 Closing enhanced OAuth popup window');
       window.close();
-    }, 2000);
+    }, 1500);
   }, []);
 
   const urlParams = new URLSearchParams(window.location.search);
