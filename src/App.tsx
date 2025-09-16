@@ -185,9 +185,3 @@ function App() {
 }
 
 export default App;
-      </div>
-    </Router>
-  );
-}
-
-export default App;
