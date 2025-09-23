@@ -2,15 +2,10 @@
 
 export function buildAuthorizeUrl(state?: string): string {
   const base = "https://api.loyverse.com/oauth/authorize";
-  const client_id = "dCcISKLUxosXUJvjIcSN";
+  const client_id = import.meta.env.VITE_LOYVERSE_CLIENT_ID || "dCcISKLUxosXUJvjIcSN";
   
-  // Para desarrollo local con HTTPS
-  const currentOrigin = typeof window !== 'undefined' 
-    ? (window.location.protocol === 'https:' ? window.location.origin : 'https://localhost:5173')
-    : 'https://localhost:5173';
-    
   const redirect_uri = encodeURIComponent(
-    `${currentOrigin}/auth/loyverse/callback`
+    import.meta.env.VITE_LOYVERSE_REDIRECT_URL || `${window.location.origin}/auth/loyverse/callback`
   );
   
   // Scopes ya autorizados

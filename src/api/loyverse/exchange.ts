@@ -16,9 +16,9 @@ export async function exchangeCodeForTokens(code: string): Promise<{
     const body = {
       grant_type: "authorization_code",
       code,
-      redirect_uri: process.env.LOYVERSE_REDIRECT_URI ?? `${process.env.VITE_APP_URL || 'https://zp1v56uxy8rdx5ypatb0ockcb9tr6a-oci3--5173--96435430.local-credentialless.webcontainer-api.io'}/auth/loyverse/callback`,
-      client_id: import.meta.env.LOYVERSE_CLIENT_ID ?? "dCcISKLUxosXUJvjIcSN",
-      client_secret: import.meta.env.LOYVERSE_CLIENT_SECRET
+      redirect_uri: process.env.LOYVERSE_REDIRECT_URI,
+      client_id: process.env.LOYVERSE_CLIENT_ID ?? "dCcISKLUxosXUJvjIcSN",
+      client_secret: process.env.LOYVERSE_CLIENT_SECRET
     };
 
     console.log('🔄 Exchanging code for tokens with Loyverse...');
