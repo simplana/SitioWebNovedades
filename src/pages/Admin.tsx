@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import PagueloFacilTestButton from '../components/PagueloFacilTestButton';
 import LoyverseAuthButton from '../components/LoyverseAuthButton';
+import DevTools from './Admin/DevTools';
 
 interface QuoteRequest {
   id: string;
@@ -54,6 +55,7 @@ interface Order {
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'quotes' | 'orders'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'quotes' | 'orders' | 'dev'>('overview');
   const [quoteRequests, setQuoteRequests] = useState<QuoteRequest[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -225,6 +227,16 @@ const Admin = () => {
               }`}
             >
               Pedidos ({activeOrders})
+            </button>
+            <button
+              onClick={() => setActiveTab('dev')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'dev'
+                  ? 'border-gold text-gold'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Herramientas Dev
             </button>
           </nav>
         </div>
@@ -591,6 +603,11 @@ const Admin = () => {
               ))}
             </div>
           </div>
+        )}
+
+        {/* Dev Tools Tab */}
+        {activeTab === 'dev' && (
+          <DevTools />
         )}
       </div>
     </div>
