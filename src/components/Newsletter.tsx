@@ -50,7 +50,6 @@ const Newsletter = () => {
             <div className="flex flex-col sm:flex-row gap-4">
               <input
                 type="email"
-                placeholder="Tu correo para recibir bendiciones"
                 placeholder="Tu correo para recibir novedades"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

@@ -42,20 +42,19 @@ export const useOAuth2 = () => {
 
     const clientId = import.meta.env.VITE_LOYVERSE_CLIENT_ID || 'na0tlm2Whq22j3jTPV_l';
     
-    // Usar la URL de redirect configurada en .env o fallback al origen actual
-    const configuredRedirectUri = import.meta.env.VITE_LOYVERSE_REDIRECT_URL || 
-                                  import.meta.env.VITE_AUTH_REDIRECT_URL ||
-                                  `${window.location.origin}/auth/loyverse/callback`;
+    // Usar la URL de redirect configurada en .env
+    const configuredRedirectUri = import.meta.env.VITE_LOYVERSE_REDIRECT_URL;
     const redirectUri = encodeURIComponent(configuredRedirectUri);
     
     const scopes = 'ITEMS_READ%20CUSTOMERS_READ%20RECEIPTS_READ%20OPENID';
-    const state = `loyverse-${Date.now()}`;
+    const state = `loyverse-oauth-${Date.now()}`; // Estado único para esta sesión
 
     const authUrl = `https://api.loyverse.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=${state}`;
 
     console.log('🚀 OAuth2 Configuration:');
     console.log('  - Client ID:', clientId);
     console.log('  - Redirect URI:', decodeURIComponent(redirectUri));
+    console.log('  - State:', state);
     console.log('  - Auth URL:', authUrl);
 
     // Open popup window
@@ -69,46 +68,60 @@ export const useOAuth2 = () => {
       setState(prev => ({ 
         ...prev, 
         loading: false, 
-        error: 'Popup blocked. Please allow popups for this site.' 
+        error: 'Popup bloqueado. Por favor permite popups para este sitio.' 
       }));
       return;
     }
 
+    console.log('✅ Popup opened successfully');
+
     // Listen for callback message
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
+      console.log('🔥 MESSAGE RECEIVED in main window:', event);
+      console.log('🔥 EVENT DATA:', event.data);
+      console.log('🔥 EVENT ORIGIN:', event.origin);
+      console.log('🔥 WINDOW ORIGIN:', window.location.origin);
+      
+      if (event.origin !== window.location.origin) {
+        console.log('❌ ORIGIN MISMATCH:', event.origin, 'vs', window.location.origin);
+        return;
+      }
 
-      if (event.data.type === 'LOYVERSE_OAUTH_SUCCESS') {
-        console.log('✅ OAuth2 success received:', event.data);
-        console.log('✅ OAuth2 success:', event.data);
+      if (event.data && typeof event.data === 'object') {
+        console.log('🔥 MESSAGE TYPE:', event.data.type);
         
-        // Store tokens
-        localStorage.setItem('lv_access_token', event.data.accessToken);
-        localStorage.setItem('lv_refresh_token', event.data.refreshToken);
-        localStorage.setItem('lv_access_token_exp', event.data.tokenExpiry.toString());
+        if (event.data.type === 'LOYVERSE_OAUTH_SUCCESS') {
+          console.log('✅ OAuth2 success received:', event.data);
+          
+          // Store tokens
+          localStorage.setItem('lv_access_token', event.data.accessToken);
+          localStorage.setItem('lv_refresh_token', event.data.refreshToken);
+          localStorage.setItem('lv_access_token_exp', event.data.tokenExpiry.toString());
 
-        setState(prev => ({
-          ...prev,
-          isConnected: true,
-          loading: false,
-          error: null,
-          accessToken: event.data.accessToken,
-          refreshToken: event.data.refreshToken,
-          tokenExpiry: event.data.tokenExpiry
-        }));
+          setState(prev => ({
+            ...prev,
+            isConnected: true,
+            loading: false,
+            error: null,
+            accessToken: event.data.accessToken,
+            refreshToken: event.data.refreshToken,
+            tokenExpiry: event.data.tokenExpiry
+          }));
 
-        popup.close();
-        window.removeEventListener('message', handleMessage);
-      } else if (event.data.type === 'LOYVERSE_OAUTH_ERROR') {
-        console.error('❌ OAuth2 error received:', event.data);
-        console.error('❌ OAuth2 error:', event.data.error);
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: event.data.error 
-        }));
-        popup.close();
-        window.removeEventListener('message', handleMessage);
+          popup.close();
+          window.removeEventListener('message', handleMessage);
+          
+        } else if (event.data.type === 'LOYVERSE_OAUTH_ERROR') {
+          console.error('❌ OAuth2 error received:', event.data);
+          console.error('❌ OAuth2 error:', event.data.error);
+          setState(prev => ({ 
+            ...prev, 
+            loading: false, 
+            error: event.data.error 
+          }));
+          popup.close();
+          window.removeEventListener('message', handleMessage);
+        }
       }
     };
 
@@ -119,12 +132,12 @@ export const useOAuth2 = () => {
       if (popup.closed) {
         clearInterval(checkClosed);
         window.removeEventListener('message', handleMessage);
-        if (state.loading) { // Solo mostrar error si estaba cargando
+        if (state.loading) {
           setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: 'Authorization cancelled by user' 
-        }));
+            ...prev, 
+            loading: false, 
+            error: 'Autorización cancelada por el usuario' 
+          }));
         }
       }
     }, 1000);
