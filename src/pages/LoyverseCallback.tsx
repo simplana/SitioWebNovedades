@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader } from 'lucide-react';
 import { exchangeCodeForTokens } from '../api/loyverse/exchange';
 
 const LoyverseCallback: React.FC = () => {
-  const [message, setMessage] = useState("Procesando autorización…");
+  const [message, setMessage] = useState("Procesando autorización...");
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const navigate = useNavigate();
 
   useEffect(() => {
     const processCallback = async () => {
@@ -19,12 +17,26 @@ const LoyverseCallback: React.FC = () => {
         if (error) {
           setStatus('error');
           setMessage(`Error de autorización: ${error}`);
+          // Send error to parent window
+          if (window.opener) {
+            window.opener.postMessage({
+              type: 'LOYVERSE_OAUTH_ERROR',
+              error: `Authorization error: ${error}`
+            }, window.location.origin);
+          }
           return;
         }
 
         if (!code) {
           setStatus('error');
           setMessage("No se recibió el código de autorización en la URL.");
+          // Send error to parent window
+          if (window.opener) {
+            window.opener.postMessage({
+              type: 'LOYVERSE_OAUTH_ERROR',
+              error: 'No authorization code received'
+            }, window.location.origin);
+          }
           return;
         }
 
@@ -33,32 +45,44 @@ const LoyverseCallback: React.FC = () => {
         // Intercambiar código por tokens
         const tokenData = await exchangeCodeForTokens(code);
         
-        // Guardar tokens en localStorage
-        localStorage.setItem("lv_refresh_token", tokenData.refresh_token);
-        localStorage.setItem("lv_access_token", tokenData.access_token);
-        localStorage.setItem(
-          "lv_access_token_exp",
-          String(Date.now() + (tokenData.expires_in - 30) * 1000)
-        );
+        const tokenExpiry = Date.now() + (tokenData.expires_in - 30) * 1000;
 
         console.log('✅ Loyverse tokens saved successfully');
         setStatus('success');
-        setMessage("¡Autorización exitosa! Redirigiendo…");
+        setMessage("¡Autorización exitosa! Cerrando ventana...");
         
-        // Redirigir después de 2 segundos
+        // Send success to parent window
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'LOYVERSE_OAUTH_SUCCESS',
+            accessToken: tokenData.access_token,
+            refreshToken: tokenData.refresh_token,
+            tokenExpiry: tokenExpiry
+          }, window.location.origin);
+        }
+        
+        // Close popup after 2 seconds
         setTimeout(() => {
-          navigate('/admin');
+          window.close();
         }, 2000);
 
       } catch (error) {
         console.error('❌ Loyverse callback error:', error);
         setStatus('error');
         setMessage(`Error en el intercambio de tokens: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+        
+        // Send error to parent window
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'LOYVERSE_OAUTH_ERROR',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          }, window.location.origin);
+        }
       }
     };
 
     processCallback();
-  }, [navigate]);
+  }, []);
 
   const getIcon = () => {
     switch (status) {
@@ -101,10 +125,10 @@ const LoyverseCallback: React.FC = () => {
           {status === 'error' && (
             <div className="space-y-3">
               <button
-                onClick={() => navigate('/admin')}
+                onClick={() => window.close()}
                 className="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
               >
-                Volver al Admin
+                Cerrar Ventana
               </button>
               <button
                 onClick={() => window.location.reload()}
