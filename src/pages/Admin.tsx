@@ -54,7 +54,6 @@ interface Order {
 }
 
 const Admin = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'quotes' | 'orders'>('overview');
   const [activeTab, setActiveTab] = useState<'overview' | 'quotes' | 'orders' | 'dev'>('overview');
   const [quoteRequests, setQuoteRequests] = useState<QuoteRequest[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
