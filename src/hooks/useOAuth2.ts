@@ -40,20 +40,29 @@ export const useOAuth2 = () => {
   const initiateOAuth2Flow = () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
-    const clientId = import.meta.env.VITE_LOYVERSE_CLIENT_ID;
-    const redirectUri = encodeURIComponent(`${window.location.origin}/auth/loyverse/callback`);
+    const clientId = import.meta.env.VITE_LOYVERSE_CLIENT_ID || 'na0tlm2Whq22j3jTPV_l';
+    
+    // Usar la URL de redirect configurada en .env o fallback al origen actual
+    const configuredRedirectUri = import.meta.env.VITE_LOYVERSE_REDIRECT_URL || 
+                                  import.meta.env.VITE_AUTH_REDIRECT_URL ||
+                                  `${window.location.origin}/auth/loyverse/callback`;
+    const redirectUri = encodeURIComponent(configuredRedirectUri);
+    
     const scopes = 'ITEMS_READ%20CUSTOMERS_READ%20RECEIPTS_READ%20OPENID';
     const state = `loyverse-${Date.now()}`;
 
     const authUrl = `https://api.loyverse.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=${state}`;
 
-    console.log('🚀 Opening OAuth2 popup:', authUrl);
+    console.log('🚀 OAuth2 Configuration:');
+    console.log('  - Client ID:', clientId);
+    console.log('  - Redirect URI:', decodeURIComponent(redirectUri));
+    console.log('  - Auth URL:', authUrl);
 
     // Open popup window
     const popup = window.open(
       authUrl,
       'loyverse-oauth',
-      'width=500,height=600,scrollbars=yes,resizable=yes'
+      'width=600,height=700,scrollbars=yes,resizable=yes,location=yes'
     );
 
     if (!popup) {
@@ -70,6 +79,7 @@ export const useOAuth2 = () => {
       if (event.origin !== window.location.origin) return;
 
       if (event.data.type === 'LOYVERSE_OAUTH_SUCCESS') {
+        console.log('✅ OAuth2 success received:', event.data);
         console.log('✅ OAuth2 success:', event.data);
         
         // Store tokens
@@ -90,6 +100,7 @@ export const useOAuth2 = () => {
         popup.close();
         window.removeEventListener('message', handleMessage);
       } else if (event.data.type === 'LOYVERSE_OAUTH_ERROR') {
+        console.error('❌ OAuth2 error received:', event.data);
         console.error('❌ OAuth2 error:', event.data.error);
         setState(prev => ({ 
           ...prev, 
@@ -108,11 +119,13 @@ export const useOAuth2 = () => {
       if (popup.closed) {
         clearInterval(checkClosed);
         window.removeEventListener('message', handleMessage);
-        setState(prev => ({ 
+        if (state.loading) { // Solo mostrar error si estaba cargando
+          setState(prev => ({ 
           ...prev, 
           loading: false, 
           error: 'Authorization cancelled by user' 
         }));
+        }
       }
     }, 1000);
   };
