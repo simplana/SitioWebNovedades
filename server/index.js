@@ -96,6 +96,6 @@
 +
 +// Iniciar el servidor
 +app.listen(port, () => {
-+  console.log(`🚀 Loyverse OAuth proxy server running on port ${port}`);
++  console.log(\`🚀 Loyverse OAuth proxy server running on port ${port}`);
 +});
 ```
