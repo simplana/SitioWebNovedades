@@ -16,13 +16,18 @@ export async function exchangeCodeForTokens(code: string): Promise<{
     const body = {
       grant_type: "authorization_code",
       code,
-      redirect_uri: process.env.LOYVERSE_REDIRECT_URI,
-      client_id: process.env.LOYVERSE_CLIENT_ID ?? "dCcISKLUxosXUJvjIcSN",
-      client_secret: process.env.LOYVERSE_CLIENT_SECRET
+      redirect_uri: import.meta.env.VITE_LOYVERSE_REDIRECT_URL || "https://question-birmingham-assistant-amy.trycloudflare.com/auth/loyverse/callback",
+      client_id: import.meta.env.VITE_LOYVERSE_CLIENT_ID || "na0tlm2Whq22j3jTPV_l",
+      client_secret: import.meta.env.VITE_LOYVERSE_CLIENT_SECRET || "G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw===="
     };
 
     console.log('🔄 Exchanging code for tokens with Loyverse...');
-    console.log('📋 Request body:', { ...body, client_secret: '[HIDDEN]' });
+    console.log('📋 Request body:', { 
+      ...body, 
+      client_secret: body.client_secret ? '[PRESENT]' : '[MISSING]',
+      redirect_uri: body.redirect_uri,
+      client_id: body.client_id
+    });
 
     const resp = await fetch("https://api.loyverse.com/oauth/token", {
       method: "POST",

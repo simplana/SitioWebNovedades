@@ -13,8 +13,8 @@ export async function refreshAccessToken(refresh_token: string): Promise<{
     const body = {
       grant_type: "refresh_token",
       refresh_token,
-      client_id: import.meta.env.LOYVERSE_CLIENT_ID ?? "dCcISKLUxosXUJvjIcSN",
-      client_secret: import.meta.env.LOYVERSE_CLIENT_SECRET
+      client_id: import.meta.env.VITE_LOYVERSE_CLIENT_ID || "na0tlm2Whq22j3jTPV_l",
+      client_secret: import.meta.env.VITE_LOYVERSE_CLIENT_SECRET || "G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw===="
     };
 
     console.log('🔄 Refreshing access token with Loyverse...');
