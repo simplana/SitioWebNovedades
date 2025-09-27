@@ -87,16 +87,32 @@ const LoyverseCallback: React.FC = () => {
         console.log('📡 Token exchange response status:', tokenResponse.status);
 
         if (!tokenResponse.ok) {
-          const errorData = await tokenResponse.json().catch(() => ({ error: 'Unknown error' }));
+          const errorText = await tokenResponse.text();
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = { error: errorText };
+          }
           console.error('❌ Token exchange failed:', errorData);
+          
+          // Show detailed error information
+          const detailedError = {
+            status: tokenResponse.status,
+            statusText: tokenResponse.statusText,
+            errorData,
+            rawResponse: errorText
+          };
+          
           setStatus('error');
-          setMessage(`Error en intercambio de tokens: ${errorData.error || 'Unknown error'}`);
+          setMessage(`Error en intercambio de tokens (${tokenResponse.status}): ${errorData.error || errorText}`);
+          setDebugInfo(prev => ({ ...prev, tokenExchangeError: detailedError }));
           
           // Send error to parent window
           if (window.opener) {
             window.opener.postMessage({
               type: 'LOYVERSE_OAUTH_ERROR',
-              error: errorData.error || 'Token exchange failed via proxy',
+              error: `Token exchange failed via proxy: ${errorData.error || errorText}`,
               connectionId: state
             }, window.location.origin);
           }
