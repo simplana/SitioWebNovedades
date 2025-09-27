@@ -10,33 +10,24 @@ export async function refreshAccessToken(refresh_token: string): Promise<{
       throw new Error("Missing refresh_token");
     }
 
-    const body = {
-      grant_type: "refresh_token",
-      refresh_token,
-      client_id: import.meta.env.VITE_LOYVERSE_CLIENT_ID || "na0tlm2Whq22j3jTPV_l",
-      client_secret: import.meta.env.VITE_LOYVERSE_CLIENT_SECRET || "G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw===="
-    };
-
-    console.log('🔄 Refreshing access token with Loyverse...');
-
-    const resp = await fetch("https://api.loyverse.com/oauth/token", {
+    // Enviar la solicitud a nuestro propio servidor proxy
+    const proxyResponse = await fetch("/api/loyverse/refresh-token", {
       method: "POST",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify({ refresh_token })
     });
 
-    if (!resp.ok) {
-      const text = await resp.text();
-      console.error('❌ Token refresh failed:', text);
-      throw new Error(text || "Refresh failed");
+    if (!proxyResponse.ok) {
+      const errorData = await proxyResponse.json();
+      console.error('❌ Client: Token refresh failed via proxy:', errorData);
+      throw new Error(errorData.error || "Token refresh failed via proxy");
     }
 
-    const data = await resp.json();
-    console.log('✅ Token refresh successful');
-    
+    const data = await proxyResponse.json();
+    console.log('✅ Client: Token refresh successful via proxy');
     // Podría llegar un refresh_token nuevo
     return {
       access_token: data.access_token,
