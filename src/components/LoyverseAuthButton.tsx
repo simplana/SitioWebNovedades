@@ -165,25 +165,34 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
           </p>
           
           <div className="space-y-3 mb-4">
-            <button
-              onClick={handleAuthorize}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
-            >
-              <LogIn className="h-4 w-4" />
-              <span>Ver Instrucciones OAuth</span>
-            </button>
+            <div className="bg-red-100 border border-red-300 rounded-lg p-4 mb-4">
+              <div className="flex items-center space-x-2 mb-2">
+                <AlertTriangle className="h-4 w-4 text-red-600" />
+                <span className="text-sm font-medium text-red-800">
+                  Supabase Requerido
+                </span>
+              </div>
+              <p className="text-xs text-red-700 mb-3">
+                Para usar OAuth2 con Loyverse, primero necesitas configurar Supabase.
+              </p>
+              <div className="bg-red-200 rounded p-2 text-xs text-red-800">
+                <strong>Paso 1:</strong> Haz clic en el botón "Supabase" en la parte superior derecha<br/>
+                <strong>Paso 2:</strong> Configura tu proyecto de Supabase<br/>
+                <strong>Paso 3:</strong> Vuelve aquí para conectar con Loyverse
+              </div>
+            </div>
             
             <div className="bg-green-100 border border-green-300 rounded-lg p-3">
               <div className="flex items-center space-x-2 mb-2">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <span className="text-sm font-medium text-green-800">
-                  {hasDirectToken ? 'Token Directo Disponible' : 'Configuración Requerida'}
+                  {hasDirectToken ? 'Token Directo Disponible' : 'Alternativa: Token Directo'}
                 </span>
               </div>
               <p className="text-xs text-green-700">
                 {hasDirectToken 
-                  ? 'Los productos reales de Loyverse están disponibles en /productos'
-                  : 'Configura tu token de acceso para ver productos reales'
+                  ? 'Los productos reales de Loyverse ya están disponibles en /productos'
+                  : 'O configura VITE_LOYVERSE_ACCESS_TOKEN en .env para acceso directo'
                 }
               </p>
             </div>
