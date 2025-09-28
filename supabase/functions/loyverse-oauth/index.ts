@@ -99,17 +99,19 @@ async function handleTokenExchange(req: Request) {
     const tokenRequestBody = {
       grant_type: "authorization_code",
       code,
-      redirect_uri: defaultRedirectUri,
+      redirect_uri: defaultRedirectUri, // Usar siempre la URI por defecto para consistencia
       client_id: clientId,
       client_secret: clientSecret
     }
 
-    console.log('🚀 Making token exchange request to Loyverse...')
-    console.log('📋 Request body:', {
+    console.log('🚀 Making token exchange request to Loyverse API...')
+    console.log('📋 EXACT request body being sent:', {
       ...tokenRequestBody,
-      client_secret: '[HIDDEN]',
-      code: code ? `${code.substring(0, 10)}...` : 'MISSING'
+      client_secret: clientSecret ? `${clientSecret.substring(0, 10)}...[${clientSecret.length} chars]` : 'MISSING',
+      code: code ? `${code.substring(0, 15)}...[${code.length} chars]` : 'MISSING',
+      redirect_uri_length: defaultRedirectUri.length
     })
+    console.log('🔗 Full redirect URI being sent:', defaultRedirectUri)
 
     const loyverseResponse = await fetch("https://api.loyverse.com/oauth/token", {
       method: "POST",
@@ -125,16 +127,27 @@ async function handleTokenExchange(req: Request) {
 
     if (!loyverseResponse.ok) {
       const errorText = await loyverseResponse.text()
-      console.error('❌ Loyverse token exchange failed:')
-      console.error('   Status:', loyverseResponse.status)
-      console.error('   Status Text:', loyverseResponse.statusText)
-      console.error('   Response:', errorText)
-      console.error('   Request was:', {
-        grant_type: tokenRequestBody.grant_type,
-        client_id: tokenRequestBody.client_id,
-        redirect_uri: tokenRequestBody.redirect_uri,
-        code_length: code ? code.length : 0
-      })
+      console.error('❌ LOYVERSE API ERROR DETAILS:')
+      console.error('   🔴 Status:', loyverseResponse.status)
+      console.error('   🔴 Status Text:', loyverseResponse.statusText)
+      console.error('   🔴 Response Body:', errorText)
+      console.error('   🔴 Request Headers:', Object.fromEntries(loyverseResponse.headers.entries()))
+      
+      // Intentar parsear la respuesta de error
+      let parsedError
+      try {
+        parsedError = JSON.parse(errorText)
+        console.error('   🔴 Parsed Error:', parsedError)
+      } catch {
+        console.error('   🔴 Raw Error (not JSON):', errorText)
+      }
+      
+      console.error('   📋 Our request details:')
+      console.error('     - Grant Type:', tokenRequestBody.grant_type)
+      console.error('     - Client ID:', tokenRequestBody.client_id)
+      console.error('     - Redirect URI:', tokenRequestBody.redirect_uri)
+      console.error('     - Code Length:', code ? code.length : 0)
+      console.error('     - Client Secret Length:', clientSecret ? clientSecret.length : 0)
       
       let errorData
       try {
@@ -145,16 +158,24 @@ async function handleTokenExchange(req: Request) {
 
       return new Response(
         JSON.stringify({ 
-          error: `Loyverse API error: ${loyverseResponse.status} - ${loyverseResponse.statusText}`,
-          details: errorData,
+          error: `Loyverse API error: ${loyverseResponse.status}`,
+          details: {
+            status: loyverseResponse.status,
+            statusText: loyverseResponse.statusText,
+            loyverseError: errorData,
+            rawResponse: errorText,
+            requestSent: {
+              grant_type: tokenRequestBody.grant_type,
+              client_id: tokenRequestBody.client_id,
+              redirect_uri: tokenRequestBody.redirect_uri,
+              code_present: !!code,
+              code_length: code ? code.length : 0,
+              client_secret_present: !!clientSecret,
+              client_secret_length: clientSecret ? clientSecret.length : 0
+            }
+          },
           loyverseStatus: loyverseResponse.status,
-          loyverseResponse: errorText,
-          requestDetails: {
-            client_id: clientId,
-            redirect_uri: redirect_uri,
-            code_present: !!code,
-            code_length: code ? code.length : 0
-          }
+          loyverseResponse: errorText
         }),
         {
           status: loyverseResponse.status,
