@@ -41,11 +41,10 @@ export const useOAuth2 = () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     const clientId = import.meta.env.VITE_LOYVERSE_CLIENT_ID || 'na0tlm2Whq22j3jTPV_l';
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     
-    // Usar la URL de redirect basada en el origen actual
-    const configuredRedirectUri = import.meta.env.VITE_LOYVERSE_REDIRECT_URL || 
-      `${window.location.origin}/auth/loyverse/callback`;
-    const redirectUri = encodeURIComponent(configuredRedirectUri);
+    // Usar Supabase Edge Function como redirect URI
+    const redirectUri = encodeURIComponent(`${supabaseUrl}/functions/v1/loyverse-oauth/callback`);
     
     const scopes = 'ITEMS_READ%20CUSTOMERS_READ%20RECEIPTS_READ%20OPENID';
     const state = `loyverse-oauth-${Date.now()}`; // Estado único para esta sesión
@@ -54,7 +53,7 @@ export const useOAuth2 = () => {
 
     console.log('🚀 OAuth2 Configuration:');
     console.log('  - Client ID:', clientId);
-    console.log('  - Redirect URI:', decodeURIComponent(redirectUri));
+    console.log('  - Redirect URI (Supabase):', decodeURIComponent(redirectUri));
     console.log('  - Current Origin:', window.location.origin);
     console.log('  - Current Path:', window.location.pathname);
     console.log('  - State:', state);

@@ -21,7 +21,9 @@ serve(async (req: Request) => {
 
     console.log('🔄 Loyverse OAuth Edge Function called:', path)
 
-    if (path.endsWith('/exchange-token') && req.method === 'POST') {
+    if (path.endsWith('/callback') && req.method === 'GET') {
+      return await handleOAuthCallback(req)
+    } else if (path.endsWith('/exchange-token') && req.method === 'POST') {
       return await handleTokenExchange(req)
     } else if (path.endsWith('/refresh-token') && req.method === 'POST') {
       return await handleTokenRefresh(req)
@@ -49,6 +51,187 @@ serve(async (req: Request) => {
   }
 })
 
+async function handleOAuthCallback(req: Request) {
+  try {
+    const url = new URL(req.url)
+    const code = url.searchParams.get('code')
+    const state = url.searchParams.get('state')
+    const error = url.searchParams.get('error')
+    
+    console.log('🔄 OAuth callback received:', { code: code ? 'PRESENT' : 'MISSING', state, error })
+    
+    if (error) {
+      console.error('❌ OAuth error from Loyverse:', error)
+      return new Response(
+        `<html><body><script>
+          window.opener?.postMessage({
+            type: 'LOYVERSE_OAUTH_ERROR',
+            error: '${error}',
+            connectionId: '${state}'
+          }, '*');
+          window.close();
+        </script></body></html>`,
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'text/html' }
+        }
+      )
+    }
+    
+    if (!code) {
+      console.error('❌ No authorization code received')
+      return new Response(
+        `<html><body><script>
+          window.opener?.postMessage({
+            type: 'LOYVERSE_OAUTH_ERROR',
+            error: 'No authorization code received',
+            connectionId: '${state}'
+          }, '*');
+          window.close();
+        </script></body></html>`,
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'text/html' }
+        }
+      )
+    }
+    
+    // Exchange code for tokens
+    const tokenResult = await exchangeCodeForTokens(code)
+    
+    if (!tokenResult.success) {
+      return new Response(
+        `<html><body><script>
+          window.opener?.postMessage({
+            type: 'LOYVERSE_OAUTH_ERROR',
+            error: '${tokenResult.error}',
+            connectionId: '${state}'
+          }, '*');
+          window.close();
+        </script></body></html>`,
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'text/html' }
+        }
+      )
+    }
+    
+    // Success - send tokens to parent window
+    const tokenExpiry = Date.now() + (tokenResult.data.expires_in - 30) * 1000
+    
+    return new Response(
+      `<html><body><script>
+        window.opener?.postMessage({
+          type: 'LOYVERSE_OAUTH_SUCCESS',
+          accessToken: '${tokenResult.data.access_token}',
+          refreshToken: '${tokenResult.data.refresh_token}',
+          tokenExpiry: ${tokenExpiry},
+          connectionId: '${state}'
+        }, '*');
+        setTimeout(() => window.close(), 1000);
+      </script></body></html>`,
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'text/html' }
+      }
+    )
+    
+  } catch (error) {
+    console.error('❌ OAuth callback error:', error)
+    return new Response(
+      `<html><body><script>
+        window.opener?.postMessage({
+          type: 'LOYVERSE_OAUTH_ERROR',
+          error: 'Callback processing failed: ${error instanceof Error ? error.message : 'Unknown error'}',
+          connectionId: 'unknown'
+        }, '*');
+        window.close();
+      </script></body></html>`,
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'text/html' }
+      }
+    )
+  }
+}
+
+async function exchangeCodeForTokens(code: string): Promise<{
+  success: boolean;
+  data?: any;
+  error?: string;
+}> {
+  try {
+    const clientId = 'na0tlm2Whq22j3jTPV_l'
+    const clientSecret = 'G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw===='
+    const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/loyverse-oauth/callback`
+    
+    const tokenRequestBody = {
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: redirectUri,
+      client_id: clientId,
+      client_secret: clientSecret
+    }
+
+    console.log('🚀 EXACT TOKEN REQUEST TO LOYVERSE:')
+    console.log('📋 grant_type:', tokenRequestBody.grant_type)
+    console.log('📋 client_id:', tokenRequestBody.client_id)
+    console.log('📋 client_secret length:', clientSecret.length)
+    console.log('📋 client_secret preview:', `${clientSecret.substring(0, 20)}...`)
+    console.log('📋 redirect_uri:', tokenRequestBody.redirect_uri)
+    console.log('📋 code length:', code.length)
+    console.log('📋 code preview:', `${code.substring(0, 30)}...`)
+
+    const loyverseResponse = await fetch("https://api.loyverse.com/oauth/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(tokenRequestBody)
+    })
+
+    console.log('📡 LOYVERSE RESPONSE:')
+    console.log('📡 Status:', loyverseResponse.status)
+    console.log('📡 Status Text:', loyverseResponse.statusText)
+    console.log('📡 Headers:', Object.fromEntries(loyverseResponse.headers.entries()))
+
+    if (!loyverseResponse.ok) {
+      const errorText = await loyverseResponse.text()
+      console.error('❌ LOYVERSE ERROR DETAILS:')
+      console.error('❌ Raw response:', errorText)
+      
+      let parsedError = null
+      try {
+        parsedError = JSON.parse(errorText)
+        console.error('❌ Parsed error:', parsedError)
+      } catch {
+        console.error('❌ Error is not JSON')
+      }
+      
+      return {
+        success: false,
+        error: `Loyverse API error: ${loyverseResponse.status} - ${errorText}`
+      }
+    }
+
+    const tokenData = await loyverseResponse.json()
+    console.log('✅ Token exchange successful!')
+    console.log('📋 Token data keys:', Object.keys(tokenData))
+
+    return {
+      success: true,
+      data: tokenData
+    }
+
+  } catch (error) {
+    console.error('❌ Token exchange error:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }
+  }
+}
 async function handleTokenExchange(req: Request) {
   try {
     const { code, redirect_uri } = await req.json()
