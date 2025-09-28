@@ -70,6 +70,7 @@ async function handleTokenExchange(req: Request) {
     // Get environment variables
     const clientId = Deno.env.get('LOYVERSE_CLIENT_ID') || 'na0tlm2Whq22j3jTPV_l'
     const clientSecret = Deno.env.get('LOYVERSE_CLIENT_SECRET') || 'G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw===='
+    const defaultRedirectUri = 'https://citizen-archive-prescription-valves.trycloudflare.com/auth/loyverse/callback'
     
     console.log('🔑 Environment check:')
     console.log('  - Client ID:', clientId ? `${clientId.substring(0, 10)}...` : 'MISSING')
@@ -97,7 +98,7 @@ async function handleTokenExchange(req: Request) {
     const tokenRequestBody = {
       grant_type: "authorization_code",
       code,
-      redirect_uri: redirect_uri,
+      redirect_uri: redirect_uri || defaultRedirectUri,
       client_id: clientId,
       client_secret: clientSecret
     }
