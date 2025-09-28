@@ -74,6 +74,7 @@ async function handleTokenExchange(req: Request) {
     console.log('🔑 Environment check:')
     console.log('  - Client ID:', clientId ? `${clientId.substring(0, 10)}...` : 'MISSING')
     console.log('  - Client Secret:', clientSecret ? 'PRESENT' : 'MISSING')
+    console.log('  - Redirect URI:', redirect_uri)
 
     if (!clientId || !clientSecret) {
       return new Response(
@@ -104,7 +105,8 @@ async function handleTokenExchange(req: Request) {
     console.log('🚀 Making token exchange request to Loyverse...')
     console.log('📋 Request body:', {
       ...tokenRequestBody,
-      client_secret: '[HIDDEN]'
+      client_secret: '[HIDDEN]',
+      code: code ? `${code.substring(0, 10)}...` : 'MISSING'
     })
 
     const loyverseResponse = await fetch("https://api.loyverse.com/oauth/token", {
@@ -123,7 +125,14 @@ async function handleTokenExchange(req: Request) {
       const errorText = await loyverseResponse.text()
       console.error('❌ Loyverse token exchange failed:')
       console.error('   Status:', loyverseResponse.status)
+      console.error('   Status Text:', loyverseResponse.statusText)
       console.error('   Response:', errorText)
+      console.error('   Request was:', {
+        grant_type: tokenRequestBody.grant_type,
+        client_id: tokenRequestBody.client_id,
+        redirect_uri: tokenRequestBody.redirect_uri,
+        code_length: code ? code.length : 0
+      })
       
       let errorData
       try {
@@ -134,10 +143,16 @@ async function handleTokenExchange(req: Request) {
 
       return new Response(
         JSON.stringify({ 
-          error: `Loyverse API error: ${loyverseResponse.status}`,
+          error: `Loyverse API error: ${loyverseResponse.status} - ${loyverseResponse.statusText}`,
           details: errorData,
           loyverseStatus: loyverseResponse.status,
-          loyverseResponse: errorText
+          loyverseResponse: errorText,
+          requestDetails: {
+            client_id: clientId,
+            redirect_uri: redirect_uri,
+            code_present: !!code,
+            code_length: code ? code.length : 0
+          }
         }),
         {
           status: loyverseResponse.status,
