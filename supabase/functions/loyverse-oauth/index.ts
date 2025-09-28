@@ -68,8 +68,8 @@ async function handleTokenExchange(req: Request) {
     }
 
     // Get environment variables
-    const clientId = Deno.env.get('VITE_LOYVERSE_CLIENT_ID')
-    const clientSecret = Deno.env.get('VITE_LOYVERSE_CLIENT_SECRET')
+    const clientId = Deno.env.get('LOYVERSE_CLIENT_ID') || 'na0tlm2Whq22j3jTPV_l'
+    const clientSecret = Deno.env.get('LOYVERSE_CLIENT_SECRET') || 'G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw===='
     
     console.log('🔑 Environment check:')
     console.log('  - Client ID:', clientId ? `${clientId.substring(0, 10)}...` : 'MISSING')
@@ -78,10 +78,11 @@ async function handleTokenExchange(req: Request) {
     if (!clientId || !clientSecret) {
       return new Response(
         JSON.stringify({ 
-          error: 'Missing Loyverse credentials in environment variables',
+          error: 'Missing Loyverse credentials in environment variables', 
           details: {
             clientId: !!clientId,
-            clientSecret: !!clientSecret
+            clientSecret: !!clientSecret,
+            fallbackUsed: true
           }
         }),
         {
@@ -193,7 +194,13 @@ async function handleTokenRefresh(req: Request) {
 
     if (!clientId || !clientSecret) {
       return new Response(
-        JSON.stringify({ error: 'Missing Loyverse credentials' }),
+        JSON.stringify({ 
+          error: 'Missing Loyverse credentials',
+          details: {
+            clientId: !!clientId,
+            clientSecret: !!clientSecret
+          }
+        }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
