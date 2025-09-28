@@ -356,8 +356,8 @@ async function handleTokenRefresh(req: Request) {
     return new Response(
       JSON.stringify(tokenData),
       {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
 
