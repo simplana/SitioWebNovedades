@@ -20,6 +20,8 @@ serve(async (req: Request) => {
     const path = url.pathname
 
     console.log('🔄 Loyverse OAuth Edge Function called:', path)
+    console.log('🔄 Request method:', req.method)
+    console.log('🔄 Request headers:', Object.fromEntries(req.headers.entries()))
 
     if (path.endsWith('/callback') && req.method === 'GET') {
       return await handleOAuthCallback(req)
@@ -234,6 +236,13 @@ async function exchangeCodeForTokens(code: string): Promise<{
 }
 async function handleTokenExchange(req: Request) {
   try {
+    console.log('🔄 Token exchange - checking authorization header...')
+    const authHeader = req.headers.get('Authorization')
+    console.log('🔑 Auth header present:', !!authHeader)
+    
+    // Para OAuth callback, no requerimos autorización de Supabase
+    // porque viene directamente de Loyverse
+    
     const { code, redirect_uri } = await req.json()
     
     console.log('🔄 Token exchange request received')
