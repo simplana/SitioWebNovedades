@@ -10,12 +10,14 @@ export async function refreshAccessToken(refresh_token: string): Promise<{
       throw new Error("Missing refresh_token");
     }
 
-    // Enviar la solicitud a nuestro propio servidor proxy
-    const proxyResponse = await fetch("/api/loyverse/refresh-token", {
+    // Enviar la solicitud a la Supabase Edge Function
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const proxyResponse = await fetch(`${supabaseUrl}/functions/v1/loyverse-oauth/refresh-token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Accept": "application/json"
+        "Accept": "application/json",
+        "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
       },
       body: JSON.stringify({ refresh_token })
     });

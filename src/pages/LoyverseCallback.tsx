@@ -71,12 +71,14 @@ const LoyverseCallback: React.FC = () => {
         console.log('🔄 Processing Loyverse callback with code:', code.substring(0, 20) + '...');
         setMessage("Intercambiando código por tokens...");
         
-        // Exchange code for tokens using our proxy
-        const tokenResponse = await fetch('/api/loyverse/exchange-token', {
+        // Exchange code for tokens using Supabase Edge Function
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const tokenResponse = await fetch(`${supabaseUrl}/functions/v1/loyverse-oauth/exchange-token`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
           },
           body: JSON.stringify({
             code,
