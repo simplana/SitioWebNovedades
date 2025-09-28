@@ -70,7 +70,7 @@ async function handleTokenExchange(req: Request) {
     // Get environment variables
     const clientId = Deno.env.get('LOYVERSE_CLIENT_ID') || 'na0tlm2Whq22j3jTPV_l'
     const clientSecret = Deno.env.get('LOYVERSE_CLIENT_SECRET') || 'G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw===='
-    const defaultRedirectUri = redirect_uri || 'https://question-birmingham-assistant-amy.trycloudflare.com/auth/loyverse/callback'
+    const defaultRedirectUri = redirect_uri || 'https://citizen-archive-prescription-valves.trycloudflare.com/auth/loyverse/callback'
     
     console.log('🔑 Environment check:')
     console.log('  - Client ID:', clientId ? `${clientId.substring(0, 10)}...` : 'MISSING')
@@ -127,27 +127,37 @@ async function handleTokenExchange(req: Request) {
 
     if (!loyverseResponse.ok) {
       const errorText = await loyverseResponse.text()
-      console.error('❌ LOYVERSE API ERROR DETAILS:')
-      console.error('   🔴 Status:', loyverseResponse.status)
-      console.error('   🔴 Status Text:', loyverseResponse.statusText)
-      console.error('   🔴 Response Body:', errorText)
-      console.error('   🔴 Request Headers:', Object.fromEntries(loyverseResponse.headers.entries()))
+      console.error('❌ LOYVERSE API ERROR - FULL DETAILS:')
+      console.error('   🔴 HTTP Status:', loyverseResponse.status)
+      console.error('   🔴 HTTP Status Text:', loyverseResponse.statusText)
+      console.error('   🔴 Response Headers:', Object.fromEntries(loyverseResponse.headers.entries()))
+      console.error('   🔴 Raw Response Body:', errorText)
       
       // Intentar parsear la respuesta de error
-      let parsedError
+      let parsedError = null
       try {
         parsedError = JSON.parse(errorText)
-        console.error('   🔴 Parsed Error:', parsedError)
+        console.error('   🔴 Parsed Error Object:', parsedError)
+        console.error('   🔴 Error Message:', parsedError.error || parsedError.message)
+        console.error('   🔴 Error Description:', parsedError.error_description)
       } catch {
-        console.error('   🔴 Raw Error (not JSON):', errorText)
+        console.error('   🔴 Error is not valid JSON, raw text:', errorText)
       }
       
-      console.error('   📋 Our request details:')
-      console.error('     - Grant Type:', tokenRequestBody.grant_type)
-      console.error('     - Client ID:', tokenRequestBody.client_id)
-      console.error('     - Redirect URI:', tokenRequestBody.redirect_uri)
-      console.error('     - Code Length:', code ? code.length : 0)
-      console.error('     - Client Secret Length:', clientSecret ? clientSecret.length : 0)
+      console.error('   📋 WHAT WE SENT TO LOYVERSE:')
+      console.error('     - grant_type:', tokenRequestBody.grant_type)
+      console.error('     - client_id:', tokenRequestBody.client_id)
+      console.error('     - client_secret length:', clientSecret ? clientSecret.length : 0)
+      console.error('     - redirect_uri:', tokenRequestBody.redirect_uri)
+      console.error('     - code length:', code ? code.length : 0)
+      console.error('     - code preview:', code ? `${code.substring(0, 30)}...` : 'MISSING')
+      
+      console.error('   🔍 POSSIBLE CAUSES OF 401:')
+      console.error('     1. Client Secret incorrect')
+      console.error('     2. Client ID incorrect') 
+      console.error('     3. Redirect URI mismatch')
+      console.error('     4. Authorization code expired/invalid')
+      console.error('     5. Authorization code already used')
       
       let errorData
       try {
