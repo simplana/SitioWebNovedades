@@ -44,7 +44,7 @@ export const useOAuth2 = () => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     
     // Usar Supabase Edge Function como redirect URI
-    const redirectUri = encodeURIComponent(`${supabaseUrl}/functions/v1/loyverse-oauth/callback`);
+    const redirectUri = encodeURIComponent(`${supabaseUrl}/functions/v1/loyverse-public-oauth/callback`);
     
     const scopes = 'ITEMS_READ%20CUSTOMERS_READ%20RECEIPTS_READ%20OPENID';
     const state = `loyverse-oauth-${Date.now()}`; // Estado único para esta sesión

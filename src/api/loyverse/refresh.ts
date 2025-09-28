@@ -12,12 +12,12 @@ export async function refreshAccessToken(refresh_token: string): Promise<{
 
     // Enviar la solicitud a la Supabase Edge Function
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const proxyResponse = await fetch(`${supabaseUrl}/functions/v1/loyverse-oauth/refresh-token`, {
+    const proxyResponse = await fetch(`${supabaseUrl}/functions/v1/loyverse-public-oauth/refresh-token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        // No authorization header needed for public function
       },
       body: JSON.stringify({ refresh_token })
     });
