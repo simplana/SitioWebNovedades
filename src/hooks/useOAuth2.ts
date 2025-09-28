@@ -42,8 +42,9 @@ export const useOAuth2 = () => {
 
     const clientId = import.meta.env.VITE_LOYVERSE_CLIENT_ID || 'na0tlm2Whq22j3jTPV_l';
     
-    // Usar la URL de redirect configurada en .env
-    const configuredRedirectUri = import.meta.env.VITE_LOYVERSE_REDIRECT_URL;
+    // Usar la URL de redirect basada en el origen actual
+    const configuredRedirectUri = import.meta.env.VITE_LOYVERSE_REDIRECT_URL || 
+      `${window.location.origin}/auth/loyverse/callback`;
     const redirectUri = encodeURIComponent(configuredRedirectUri);
     
     const scopes = 'ITEMS_READ%20CUSTOMERS_READ%20RECEIPTS_READ%20OPENID';
@@ -54,6 +55,8 @@ export const useOAuth2 = () => {
     console.log('🚀 OAuth2 Configuration:');
     console.log('  - Client ID:', clientId);
     console.log('  - Redirect URI:', decodeURIComponent(redirectUri));
+    console.log('  - Current Origin:', window.location.origin);
+    console.log('  - Current Path:', window.location.pathname);
     console.log('  - State:', state);
     console.log('  - Auth URL:', authUrl);
 
