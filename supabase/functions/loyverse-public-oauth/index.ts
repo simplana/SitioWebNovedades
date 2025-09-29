@@ -152,9 +152,7 @@ Deno.serve(async (req: Request) => {
     // Enviar tokens al parent window
     return new Response(
       `<html><body><script>
-        console.log('✅ OAuth2 success, sending tokens to parent');
-        console.log('🔍 Window opener available:', !!window.opener);
-        console.log('🔍 Sending to origin:', '*');
+        console.log('OAuth2 success, sending tokens to parent');
         if (window.opener) {
           window.opener.postMessage({
             type: 'LOYVERSE_OAUTH_SUCCESS',
@@ -163,21 +161,26 @@ Deno.serve(async (req: Request) => {
             tokenExpiry: ${tokenExpiry},
             connectionId: '${state}'
           }, '*');
-          console.log('✅ Message sent to parent');
+          console.log('Message sent to parent');
         }
         setTimeout(() => {
-          console.log('🔄 Attempting to close popup...');
           try {
             window.close();
           } catch (e) {
-            console.log('❌ Could not close popup:', e);
+            console.log('Could not close popup:', e);
           }
-        }, 2000);
+        }, 1000);
       </script>
-      <div style="text-align: center; padding: 50px; font-family: Arial;">
-        <h2>✅ ¡Autorización Exitosa!</h2>
+      <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif; background: #f0f9ff; color: #1e40af;">
+        <h2 style="color: #059669; margin-bottom: 20px;">✅ ¡Autorización Exitosa!</h2>
         <p>Conectado con Loyverse correctamente</p>
-        <p>Esta ventana se cerrará automáticamente...</p>
+        <p style="color: #6b7280; font-size: 14px;">Esta ventana se cerrará automáticamente en 1 segundo...</p>
+        <div style="margin-top: 20px; padding: 10px; background: #ecfdf5; border-radius: 8px; border-left: 4px solid #10b981;">
+          <p style="margin: 0; font-size: 12px; color: #065f46;">
+            <strong>Token recibido:</strong> ${tokenData.access_token.substring(0, 20)}...<br>
+            <strong>Expira:</strong> ${new Date(tokenExpiry).toLocaleString()}
+          </p>
+        </div>
       </div>
       </body></html>`,
       {

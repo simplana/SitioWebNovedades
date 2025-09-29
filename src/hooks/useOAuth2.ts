@@ -147,30 +147,26 @@ export const useOAuth2 = () => {
 
     // Listen for callback message from popup
     const handleMessage = (event: MessageEvent) => {
-      console.log('🔥 MESSAGE RECEIVED from popup:', event.data);
-      console.log('🔍 Event origin:', event.origin);
-      console.log('🔍 Window origin:', window.location.origin);
+      console.log('MESSAGE RECEIVED from popup:', event.data);
+      console.log('Event origin:', event.origin);
       
       // Allow messages from Supabase Edge Function domain
-      const allowedOrigins = [
-        window.location.origin,
-        'https://iabrhkvwhmliemgioxce.supabase.co'
-      ];
-      
-      if (!allowedOrigins.some(origin => event.origin.includes(origin.split('//')[1]))) {
-        console.log('❌ ORIGIN NOT ALLOWED:', event.origin);
+      if (!event.origin.includes('supabase.co') && event.origin !== window.location.origin) {
+        console.log('ORIGIN NOT ALLOWED:', event.origin);
         return;
       }
 
       if (event.data && typeof event.data === 'object') {
         if (event.data.type === 'LOYVERSE_OAUTH_SUCCESS') {
-          console.log('✅ OAuth2 success received:', event.data);
+          console.log('OAuth2 success received, storing tokens...');
           
           // Store tokens
           localStorage.setItem('lv_access_token', event.data.accessToken);
           localStorage.setItem('lv_refresh_token', event.data.refreshToken);
           localStorage.setItem('lv_access_token_exp', event.data.tokenExpiry.toString());
 
+          console.log('Tokens stored successfully');
+          
           setState(prev => ({
             ...prev,
             isConnected: true,
@@ -181,18 +177,35 @@ export const useOAuth2 = () => {
             tokenExpiry: event.data.tokenExpiry
           }));
 
-          popup.close();
+          // Force close popup
+          try {
+            popup.close();
+          } catch (e) {
+            console.log('Could not close popup manually');
+          }
+          
           window.removeEventListener('message', handleMessage);
+          clearInterval(checkClosed);
+          
+          // Reload page to refresh products
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
           
         } else if (event.data.type === 'LOYVERSE_OAUTH_ERROR') {
-          console.error('❌ OAuth2 error received:', event.data.error);
+          console.error('OAuth2 error received:', event.data.error);
           setState(prev => ({ 
             ...prev, 
             loading: false, 
             error: event.data.error 
           }));
-          popup.close();
+          try {
+            popup.close();
+          } catch (e) {
+            console.log('Could not close popup on error');
+          }
           window.removeEventListener('message', handleMessage);
+          clearInterval(checkClosed);
         }
       }
     };

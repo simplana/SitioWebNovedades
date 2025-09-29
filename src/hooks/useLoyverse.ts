@@ -50,27 +50,27 @@ export const useLoyverseProducts = () => {
 
   const fetchProducts = async (cursor?: string, page: number = 1) => {
     try {
-      console.log('🚀 Fetching products from Loyverse API...');
+      console.log('Fetching products from Loyverse API...');
       
       // Intentar obtener token de acceso
       let accessToken;
       try {
         if (hasValidTokens()) {
           accessToken = await getAccessToken();
-          console.log('🔑 Using OAuth2 access token');
+          console.log('Using OAuth2 access token:', accessToken.substring(0, 20) + '...');
         } else {
-          console.log('⚠️ No valid tokens found, attempting direct API call...');
+          console.log('No valid tokens found, attempting direct API call...');
           // Intentar usar token directo si está disponible
           const directToken = import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN;
           if (directToken && directToken !== 'your-loyverse-token-here') {
             accessToken = directToken;
-            console.log('🔑 Using direct access token from env');
+            console.log('Using direct access token from env');
           } else {
             throw new Error('No access token available');
           }
         }
       } catch (tokenError) {
-        console.warn('❌ Token error:', tokenError);
+        console.warn('Token error:', tokenError);
         throw new Error('Authentication failed: No valid access token');
       }
       
@@ -79,7 +79,7 @@ export const useLoyverseProducts = () => {
         url += `&cursor=${cursor}`;
       }
 
-      console.log('📡 Making request to:', url);
+      console.log('Making request to:', url);
 
       const response = await fetch(url, {
         method: 'GET',
@@ -90,14 +90,14 @@ export const useLoyverseProducts = () => {
         }
       });
 
-      console.log('📡 Response received:', response.status, response.statusText);
+      console.log('Response received:', response.status, response.statusText);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ API Error:', errorText);
+        console.error('API Error:', errorText);
         
         if (response.status === 401) {
-          console.warn('⚠️ Unauthorized - clearing invalid tokens');
+          console.warn('Unauthorized - clearing invalid tokens');
           clearStoredTokens();
           throw new Error('Authentication failed: Invalid or expired token');
         } else if (response.status === 403) {
@@ -110,49 +110,33 @@ export const useLoyverseProducts = () => {
       }
 
       const data = await response.json();
-      console.log('📦 Data received from Loyverse API:');
-      console.log('📦 Data type:', typeof data);
-      console.log('📦 Is array?:', Array.isArray(data));
-      console.log('📦 Data keys:', Object.keys(data));
+      console.log('Data received from Loyverse API, items found:', Array.isArray(data) ? data.length : (data.items?.length || 0));
 
       // Intentar diferentes estructuras de respuesta de Loyverse
       let items: any[] = [];
       
       if (Array.isArray(data)) {
-        console.log('✅ Data es un array directo');
+        console.log('Data is direct array');
         items = data;
       } else if (data.items && Array.isArray(data.items)) {
-        console.log('✅ Data tiene propiedad items');
+        console.log('Data has items property');
         items = data.items;
       } else if (data.data && Array.isArray(data.data)) {
-        console.log('✅ Data tiene propiedad data');
+        console.log('Data has data property');
         items = data.data;
       } else if (data.results && Array.isArray(data.results)) {
-        console.log('✅ Data tiene propiedad results');
+        console.log('Data has results property');
         items = data.results;
       } else {
-        console.log('❌ Unrecognized data structure');
-        console.log('📦 Available properties:', Object.keys(data));
+        console.log('Unrecognized data structure, available properties:', Object.keys(data));
         throw new Error('Unrecognized data structure from Loyverse API');
       }
 
-      console.log('📦 Items found:', items.length);
-      if (items.length > 0) {
-        console.log('📦 First item:', items[0]);
-      }
+      console.log('Items found:', items.length);
 
       const loyverseProducts: LoyverseProduct[] = items.map((item: any, index: number) => {
-        console.log(`📦 Processing item ${index + 1}:`, {
-          id: item.id,
-          item_name: item.item_name,
-          name: item.name,
-          variants: item.variants?.length || 0,
-          category: item.category
-        });
-        
         // Obtener el primer variant para precio y disponibilidad
         const firstVariant = item.variants?.[0];
-        console.log(`📦 First variant of item ${index + 1}:`, firstVariant);
         
         return {
           id: item.id,
@@ -179,10 +163,7 @@ export const useLoyverseProducts = () => {
         };
       });
 
-      console.log('✅ Products processed:', loyverseProducts.length);
-      if (loyverseProducts.length > 0) {
-        console.log('📋 First few products:', loyverseProducts.slice(0, 2));
-      }
+      console.log('Products processed successfully:', loyverseProducts.length);
 
       setProducts(loyverseProducts);
       
@@ -211,7 +192,7 @@ export const useLoyverseProducts = () => {
       setError(null);
 
     } catch (err) {
-      console.error('❌ Error connecting to Loyverse:', err);
+      console.error('Error connecting to Loyverse:', err);
       setError(err instanceof Error ? err.message : 'Failed to connect to Loyverse API');
       setProducts([]);
       setPagination({
