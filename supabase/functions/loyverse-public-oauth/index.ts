@@ -153,6 +153,8 @@ Deno.serve(async (req: Request) => {
     return new Response(
       `<html><body><script>
         console.log('✅ OAuth2 success, sending tokens to parent');
+        console.log('🔍 Window opener available:', !!window.opener);
+        console.log('🔍 Sending to origin:', '*');
         if (window.opener) {
           window.opener.postMessage({
             type: 'LOYVERSE_OAUTH_SUCCESS',
@@ -161,8 +163,16 @@ Deno.serve(async (req: Request) => {
             tokenExpiry: ${tokenExpiry},
             connectionId: '${state}'
           }, '*');
+          console.log('✅ Message sent to parent');
         }
-        setTimeout(() => window.close(), 1000);
+        setTimeout(() => {
+          console.log('🔄 Attempting to close popup...');
+          try {
+            window.close();
+          } catch (e) {
+            console.log('❌ Could not close popup:', e);
+          }
+        }, 2000);
       </script>
       <div style="text-align: center; padding: 50px; font-family: Arial;">
         <h2>✅ ¡Autorización Exitosa!</h2>
