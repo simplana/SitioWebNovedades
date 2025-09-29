@@ -36,26 +36,94 @@ export const useOAuth2 = () => {
     }
   }, []);
 
+  // Direct token exchange with Loyverse API
+  const exchangeCodeForTokens = async (code: string): Promise<{
+    success: boolean;
+    data?: any;
+    error?: string;
+  }> => {
+    try {
+      const clientId = 'na0tlm2Whq22j3jTPV_l';
+      const clientSecret = 'G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw====';
+      const redirectUri = `${window.location.origin}/auth/loyverse/callback`;
+      
+      console.log('🚀 DIRECT TOKEN EXCHANGE:');
+      console.log('📋 client_id:', clientId);
+      console.log('📋 client_secret length:', clientSecret.length);
+      console.log('📋 redirect_uri:', redirectUri);
+      console.log('📋 code:', code);
+
+      // Usar application/x-www-form-urlencoded según documentación
+      const formData = new URLSearchParams();
+      formData.append('grant_type', 'authorization_code');
+      formData.append('client_id', clientId);
+      formData.append('client_secret', clientSecret);
+      formData.append('redirect_uri', redirectUri);
+      formData.append('code', code);
+
+      console.log('📋 Form data:', formData.toString());
+
+      const response = await fetch('https://api.loyverse.com/oauth/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json'
+        },
+        body: formData.toString()
+      });
+
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Loyverse error:', errorText);
+        
+        let parsedError;
+        try {
+          parsedError = JSON.parse(errorText);
+        } catch {
+          parsedError = { error: errorText };
+        }
+        
+        return {
+          success: false,
+          error: `Loyverse API error: ${response.status} - ${parsedError.error || errorText}`
+        };
+      }
+
+      const tokenData = await response.json();
+      console.log('✅ Token exchange successful!');
+      console.log('📋 Token data keys:', Object.keys(tokenData));
+
+      return {
+        success: true,
+        data: tokenData
+      };
+
+    } catch (error) {
+      console.error('❌ Token exchange error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  };
+
   // Initiate OAuth2 flow with popup
   const initiateOAuth2Flow = () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
-    const clientId = import.meta.env.VITE_LOYVERSE_CLIENT_ID || 'na0tlm2Whq22j3jTPV_l';
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    
-    // Usar Supabase Edge Function como redirect URI
-    const redirectUri = encodeURIComponent(`${supabaseUrl}/functions/v1/loyverse-public-oauth/callback?auth=${import.meta.env.VITE_SUPABASE_ANON_KEY}`);
-    
+    const clientId = 'na0tlm2Whq22j3jTPV_l';
+    const redirectUri = encodeURIComponent(`${window.location.origin}/auth/loyverse/callback`);
     const scopes = 'ITEMS_READ%20CUSTOMERS_READ%20RECEIPTS_READ%20OPENID';
-    const state = `loyverse-oauth-${Date.now()}`; // Estado único para esta sesión
+    const state = `loyverse-oauth-${Date.now()}`;
 
     const authUrl = `https://api.loyverse.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=${state}`;
 
     console.log('🚀 OAuth2 Configuration:');
     console.log('  - Client ID:', clientId);
-    console.log('  - Redirect URI (Supabase):', decodeURIComponent(redirectUri));
-    console.log('  - Current Origin:', window.location.origin);
-    console.log('  - Current Path:', window.location.pathname);
+    console.log('  - Redirect URI:', decodeURIComponent(redirectUri));
     console.log('  - State:', state);
     console.log('  - Auth URL:', authUrl);
 
@@ -77,12 +145,9 @@ export const useOAuth2 = () => {
 
     console.log('✅ Popup opened successfully');
 
-    // Listen for callback message
+    // Listen for callback message from popup
     const handleMessage = (event: MessageEvent) => {
-      console.log('🔥 MESSAGE RECEIVED in main window:', event);
-      console.log('🔥 EVENT DATA:', event.data);
-      console.log('🔥 EVENT ORIGIN:', event.origin);
-      console.log('🔥 WINDOW ORIGIN:', window.location.origin);
+      console.log('🔥 MESSAGE RECEIVED:', event.data);
       
       if (event.origin !== window.location.origin) {
         console.log('❌ ORIGIN MISMATCH:', event.origin, 'vs', window.location.origin);
@@ -90,8 +155,6 @@ export const useOAuth2 = () => {
       }
 
       if (event.data && typeof event.data === 'object') {
-        console.log('🔥 MESSAGE TYPE:', event.data.type);
-        
         if (event.data.type === 'LOYVERSE_OAUTH_SUCCESS') {
           console.log('✅ OAuth2 success received:', event.data);
           
@@ -114,8 +177,7 @@ export const useOAuth2 = () => {
           window.removeEventListener('message', handleMessage);
           
         } else if (event.data.type === 'LOYVERSE_OAUTH_ERROR') {
-          console.error('❌ OAuth2 error received:', event.data);
-          console.error('❌ OAuth2 error:', event.data.error);
+          console.error('❌ OAuth2 error received:', event.data.error);
           setState(prev => ({ 
             ...prev, 
             loading: false, 
@@ -164,6 +226,7 @@ export const useOAuth2 = () => {
   return {
     ...state,
     initiateOAuth2Flow,
-    disconnect
+    disconnect,
+    exchangeCodeForTokens
   };
 };
