@@ -53,6 +53,37 @@ Deno.serve(async (req: Request) => {
 
 async function handleOAuthCallback(req: Request) {
   try {
+    // Verificar si tenemos el anon key en la URL para autenticación
+    const url = new URL(req.url)
+    const authKey = url.searchParams.get('auth')
+    
+    if (!authKey) {
+      console.error('❌ Missing auth key in callback URL')
+      return new Response(
+        `<html><body><script>
+          console.log('❌ Missing auth key');
+          if (window.opener) {
+            window.opener.postMessage({
+              type: 'LOYVERSE_OAUTH_ERROR',
+              error: 'Missing authentication key in callback URL',
+              connectionId: 'unknown'
+            }, '*');
+          }
+          setTimeout(() => window.close(), 2000);
+        </script>
+        <div style="text-align: center; padding: 50px; font-family: Arial;">
+          <h2>❌ Error de Autenticación</h2>
+          <p>Falta clave de autenticación en la URL</p>
+          <p>Esta ventana se cerrará automáticamente...</p>
+        </div>
+        </body></html>`,
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'text/html' }
+        }
+      )
+    }
+    
     const url = new URL(req.url)
     const code = url.searchParams.get('code')
     const state = url.searchParams.get('state')
