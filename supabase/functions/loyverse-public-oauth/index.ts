@@ -148,6 +148,8 @@ Deno.serve(async (req: Request) => {
     console.log('✅ Token exchange successful!')
     
     const tokenExpiry = Date.now() + (tokenData.expires_in - 30) * 1000
+    
+    return new Response(
       `<!DOCTYPE html>
 <html lang="es">
 <head>

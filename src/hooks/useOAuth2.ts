@@ -145,6 +145,7 @@ export const useOAuth2 = () => {
 
     console.log('✅ Popup opened successfully');
 
+    const handleMessage = (event: MessageEvent) => {
       // Allow messages from any origin for OAuth callback
       console.log('✅ Processing message from:', event.origin);
 
