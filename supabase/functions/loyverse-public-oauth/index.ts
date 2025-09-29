@@ -5,7 +5,6 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req: Request) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 200,
@@ -19,49 +18,18 @@ Deno.serve(async (req: Request) => {
     const state = url.searchParams.get('state')
     const error = url.searchParams.get('error')
     
-    console.log('🔄 Loyverse OAuth callback received:', { 
-      code: code ? `${code.substring(0, 10)}...` : 'MISSING', 
-      state, 
-      error
-    })
-    
-    // Si hay error de OAuth
-    if (error) {
-      console.error('❌ OAuth error from Loyverse:', error)
+    if (error || !code) {
       return new Response(
         `<script>
           if (window.opener) {
             window.opener.postMessage({
               type: 'LOYVERSE_OAUTH_ERROR',
-              error: '${error}',
+              error: '${error || 'No code received'}',
               connectionId: '${state}'
             }, '*');
           }
           window.close();
-        </script>
-        <div>Error: ${error}</div>`,
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'text/html' }
-        }
-      )
-    }
-    
-    // Si no hay código
-    if (!code) {
-      console.error('❌ No authorization code received')
-      return new Response(
-        `<script>
-          if (window.opener) {
-            window.opener.postMessage({
-              type: 'LOYVERSE_OAUTH_ERROR',
-              error: 'No authorization code received',
-              connectionId: '${state}'
-            }, '*');
-          }
-          window.close();
-        </script>
-        <div>Error: No code received</div>`,
+        </script>`,
         {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'text/html' }
@@ -70,8 +38,6 @@ Deno.serve(async (req: Request) => {
     }
     
     // Intercambiar código por tokens
-    console.log('🔄 Starting token exchange with Loyverse...')
-    
     const clientId = 'na0tlm2Whq22j3jTPV_l'
     const clientSecret = 'G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw=='
     const redirectUri = 'https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback'
@@ -94,8 +60,6 @@ Deno.serve(async (req: Request) => {
 
     if (!loyverseResponse.ok) {
       const errorText = await loyverseResponse.text()
-      console.error('❌ Loyverse token exchange failed:', errorText)
-      
       return new Response(
         `<script>
           if (window.opener) {
@@ -106,8 +70,7 @@ Deno.serve(async (req: Request) => {
             }, '*');
           }
           window.close();
-        </script>
-        <div>Error: ${errorText}</div>`,
+        </script>`,
         {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'text/html' }
@@ -116,13 +79,11 @@ Deno.serve(async (req: Request) => {
     }
 
     const tokenData = await loyverseResponse.json()
-    console.log('✅ Token exchange successful!')
-    
     const tokenExpiry = Date.now() + (tokenData.expires_in - 30) * 1000
     
+    // Respuesta mínima que envía tokens y cierra inmediatamente
     return new Response(
       `<script>
-        console.log('✅ OAuth2 success, sending tokens to parent');
         if (window.opener) {
           window.opener.postMessage({
             type: 'LOYVERSE_OAUTH_SUCCESS',
@@ -131,28 +92,9 @@ Deno.serve(async (req: Request) => {
             tokenExpiry: ${tokenExpiry},
             connectionId: '${state}'
           }, '*');
-          console.log('✅ Message sent to parent');
         }
-        
-        // Cerrar inmediatamente con múltiples métodos
-        setTimeout(() => {
-          try {
-            window.close();
-          } catch (e) {
-            console.log('Method 1 failed, trying method 2...');
-            try {
-              window.open('', '_self').close();
-            } catch (e2) {
-              console.log('Method 2 failed, trying method 3...');
-              window.location.href = 'about:blank';
-            }
-          }
-        }, 100);
-      </script>
-      <div style="text-align: center; padding: 20px;">
-        <h2>✅ ¡Conectado!</h2>
-        <p>Cerrando...</p>
-      </div>`,
+        window.close();
+      </script>`,
       {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'text/html' }
@@ -160,21 +102,17 @@ Deno.serve(async (req: Request) => {
     )
 
   } catch (error) {
-    console.error('❌ Edge Function error:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    
     return new Response(
       `<script>
         if (window.opener) {
           window.opener.postMessage({
             type: 'LOYVERSE_OAUTH_ERROR',
-            error: 'Processing failed: ${errorMessage}',
+            error: 'Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}',
             connectionId: 'unknown'
           }, '*');
         }
         window.close();
-      </script>
-      <div>Error: ${errorMessage}</div>`,
+      </script>`,
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'text/html' }

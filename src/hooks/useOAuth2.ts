@@ -36,7 +36,6 @@ export const useOAuth2 = () => {
     }
   }, []);
 
-  // Initiate OAuth2 flow with popup
   const initiateOAuth2Flow = () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
@@ -49,89 +48,82 @@ export const useOAuth2 = () => {
 
     console.log('🚀 Opening OAuth popup...');
 
-    // Open popup window
-    const popup = window.open(
-      authUrl,
-      'loyverse-oauth',
-      'width=600,height=700,scrollbars=yes,resizable=yes,location=yes'
-    );
+    const popup = window.open(authUrl, 'loyverse-oauth', 'width=600,height=700');
 
     if (!popup) {
       setState(prev => ({ 
         ...prev,
         loading: false, 
-        error: 'No se pudo abrir la ventana emergente. Verifica que no esté bloqueada por el navegador.' 
+        error: 'No se pudo abrir la ventana emergente.' 
       }));
       return;
     }
 
-    // Message handler
+    // Message handler - GUARDAR TOKENS INMEDIATAMENTE
     const handleMessage = (event: MessageEvent) => {
       console.log('📨 Message received:', event.data);
       
-      if (event.data && typeof event.data === 'object') {
-        if (event.data.type === 'LOYVERSE_OAUTH_SUCCESS') {
-          console.log('✅ OAuth success! Storing tokens...');
-          
-          // Store tokens immediately
-          localStorage.setItem('lv_access_token', event.data.accessToken);
-          localStorage.setItem('lv_refresh_token', event.data.refreshToken);
-          localStorage.setItem('lv_access_token_exp', event.data.tokenExpiry.toString());
+      if (event.data?.type === 'LOYVERSE_OAUTH_SUCCESS') {
+        console.log('✅ OAuth success! Guardando tokens...');
+        
+        // GUARDAR TOKENS EN LOCALSTORAGE
+        localStorage.setItem('lv_access_token', event.data.accessToken);
+        localStorage.setItem('lv_refresh_token', event.data.refreshToken);
+        localStorage.setItem('lv_access_token_exp', event.data.tokenExpiry.toString());
 
-          setState(prev => ({
-            ...prev,
-            isConnected: true,
-            loading: false,
-            error: null,
-            accessToken: event.data.accessToken,
-            refreshToken: event.data.refreshToken,
-            tokenExpiry: event.data.tokenExpiry
-          }));
+        // ACTUALIZAR ESTADO
+        setState({
+          isConnected: true,
+          loading: false,
+          error: null,
+          accessToken: event.data.accessToken,
+          refreshToken: event.data.refreshToken,
+          tokenExpiry: event.data.tokenExpiry
+        });
 
-          // Force close popup
-          try {
-            popup.close();
-          } catch (e) {
-            console.log('Could not close popup:', e);
-          }
-          
-          // Cleanup
-          window.removeEventListener('message', handleMessage);
-          clearInterval(checkClosed);
-          
-          // Reload page to use new tokens
-          console.log('🔄 Reloading page to load products...');
-          setTimeout(() => {
-            window.location.reload();
-          }, 500);
-          
-        } else if (event.data.type === 'LOYVERSE_OAUTH_ERROR') {
-          console.error('❌ OAuth error:', event.data.error);
-          setState(prev => ({ 
-            ...prev, 
-            loading: false, 
-            error: event.data.error 
-          }));
-          
-          try {
-            popup.close();
-          } catch (e) {
-            console.log('Could not close popup on error');
-          }
-          
-          // Cleanup
-          window.removeEventListener('message', handleMessage);
-          clearInterval(checkClosed);
+        console.log('✅ Tokens guardados exitosamente');
+        
+        // CERRAR POPUP FORZADAMENTE
+        try {
+          popup.close();
+        } catch (e) {
+          console.log('Popup ya cerrado');
         }
+        
+        // LIMPIAR LISTENERS
+        window.removeEventListener('message', handleMessage);
+        clearInterval(checkClosed);
+        
+        // RECARGAR PÁGINA PARA USAR TOKENS
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+        
+      } else if (event.data?.type === 'LOYVERSE_OAUTH_ERROR') {
+        console.error('❌ OAuth error:', event.data.error);
+        setState(prev => ({ 
+          ...prev, 
+          loading: false, 
+          error: event.data.error 
+        }));
+        
+        try {
+          popup.close();
+        } catch (e) {
+          console.log('Popup ya cerrado');
+        }
+        
+        window.removeEventListener('message', handleMessage);
+        clearInterval(checkClosed);
       }
     };
 
     window.addEventListener('message', handleMessage);
 
-    // Check if popup was closed manually
+    // Check if popup closed manually
     const checkClosed = setInterval(() => {
       if (popup.closed) {
-        console.log('🔄 Popup was closed manually');
+        console.log('🔄 Popup cerrado manualmente');
         window.removeEventListener('message', handleMessage);
         clearInterval(checkClosed);
         setState(prev => ({ 
@@ -142,14 +134,13 @@ export const useOAuth2 = () => {
       }
     }, 1000);
 
-    // Timeout after 2 minutes
+    // Timeout después de 2 minutos
     setTimeout(() => {
       if (!popup.closed) {
-        console.log('⏰ OAuth timeout, closing popup');
         try {
           popup.close();
         } catch (e) {
-          console.log('Could not close popup on timeout');
+          console.log('No se pudo cerrar popup');
         }
         window.removeEventListener('message', handleMessage);
         clearInterval(checkClosed);
@@ -162,7 +153,6 @@ export const useOAuth2 = () => {
     }, 120000);
   };
 
-  // Disconnect OAuth2
   const disconnect = () => {
     localStorage.removeItem('lv_access_token');
     localStorage.removeItem('lv_refresh_token');
@@ -177,7 +167,6 @@ export const useOAuth2 = () => {
       tokenExpiry: null
     });
     
-    // Reload to clear products
     window.location.reload();
   };
 
