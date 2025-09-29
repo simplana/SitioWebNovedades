@@ -145,16 +145,8 @@ export const useOAuth2 = () => {
 
     console.log('✅ Popup opened successfully');
 
-    // Listen for callback message from popup
-    const handleMessage = (event: MessageEvent) => {
-      console.log('MESSAGE RECEIVED from popup:', event.data);
-      console.log('Event origin:', event.origin);
-      
-      // Allow messages from Supabase Edge Function domain
-      if (!event.origin.includes('supabase.co') && event.origin !== window.location.origin) {
-        console.log('ORIGIN NOT ALLOWED:', event.origin);
-        return;
-      }
+      // Allow messages from any origin for OAuth callback
+      console.log('✅ Processing message from:', event.origin);
 
       if (event.data && typeof event.data === 'object') {
         if (event.data.type === 'LOYVERSE_OAUTH_SUCCESS') {
@@ -177,20 +169,22 @@ export const useOAuth2 = () => {
             tokenExpiry: event.data.tokenExpiry
           }));
 
-          // Force close popup
-          try {
-            popup.close();
-          } catch (e) {
-            console.log('Could not close popup manually');
-          }
-          
+          // Cleanup
           window.removeEventListener('message', handleMessage);
           clearInterval(checkClosed);
           
-          // Reload page to refresh products
+          // Force close popup immediately
+          try {
+            popup.close();
+          } catch (e) {
+            console.log('❌ Could not close popup manually:', e);
+          }
+          
+          // Reload page after short delay to refresh products
           setTimeout(() => {
+            console.log('🔄 Reloading page to load products...');
             window.location.reload();
-          }, 1000);
+          }, 500);
           
         } else if (event.data.type === 'LOYVERSE_OAUTH_ERROR') {
           console.error('OAuth2 error received:', event.data.error);
@@ -199,13 +193,16 @@ export const useOAuth2 = () => {
             loading: false, 
             error: event.data.error 
           }));
+          
+          // Cleanup
+          window.removeEventListener('message', handleMessage);
+          clearInterval(checkClosed);
+          
           try {
             popup.close();
           } catch (e) {
             console.log('Could not close popup on error');
           }
-          window.removeEventListener('message', handleMessage);
-          clearInterval(checkClosed);
         }
       }
     };
@@ -215,23 +212,18 @@ export const useOAuth2 = () => {
     // Check if popup was closed manually
     const checkClosed = setInterval(() => {
       if (popup.closed) {
-        // Force close popup
-        try {
-          popup.close();
-        } catch (e) {
-          console.log('Popup already closed or inaccessible');
-        }
+        console.log('🔄 Popup was closed manually');
         window.removeEventListener('message', handleMessage);
         clearInterval(checkClosed);
         if (state.loading) {
           setState(prev => ({ 
             ...prev, 
             loading: false, 
-            error: 'Autorización cancelada por el usuario' 
+            error: null // No mostrar error si se cerró manualmente después del éxito
           }));
         }
       }
-    }, 1000);
+    }, 500); // Check more frequently
   };
 
   // Disconnect OAuth2

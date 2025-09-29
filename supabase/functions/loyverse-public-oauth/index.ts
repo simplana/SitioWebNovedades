@@ -148,41 +148,106 @@ Deno.serve(async (req: Request) => {
     console.log('✅ Token exchange successful!')
     
     const tokenExpiry = Date.now() + (tokenData.expires_in - 30) * 1000
+      `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loyverse OAuth - Éxito</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      margin: 0;
+      padding: 50px;
+      text-align: center;
+      color: #1e40af;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .success-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+    .token-info {
+      background: #ecfdf5;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 20px;
+      border-left: 4px solid #10b981;
+      text-align: left;
+    }
+    .countdown {
+      color: #6b7280;
+      font-size: 14px;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="success-icon">✅</div>
+    <h2 style="color: #059669; margin-bottom: 20px;">¡Autorización Exitosa!</h2>
+    <p>Conectado con Loyverse correctamente</p>
     
-    // Enviar tokens al parent window
-    return new Response(
-      `<html><body><script>
-        console.log('OAuth2 success, sending tokens to parent');
-        if (window.opener) {
-          window.opener.postMessage({
-            type: 'LOYVERSE_OAUTH_SUCCESS',
-            accessToken: '${tokenData.access_token}',
-            refreshToken: '${tokenData.refresh_token}',
-            tokenExpiry: ${tokenExpiry},
-            connectionId: '${state}'
-          }, '*');
-          console.log('Message sent to parent');
+    <div class="token-info">
+      <p style="margin: 0; font-size: 12px; color: #065f46;">
+        <strong>Token recibido:</strong> ${tokenData.access_token.substring(0, 20)}...<br>
+        <strong>Expira:</strong> ${new Date(tokenExpiry).toLocaleString()}<br>
+        <strong>Estado:</strong> Conectado exitosamente
+      </p>
+    </div>
+    
+    <p class="countdown">Esta ventana se cerrará automáticamente en <span id="countdown">3</span> segundos...</p>
+  </div>
+
+  <script>
+    console.log('✅ OAuth2 success, sending tokens to parent');
+    console.log('🔍 Window opener available:', !!window.opener);
+    
+    // Enviar mensaje al parent window
+    if (window.opener) {
+      window.opener.postMessage({
+        type: 'LOYVERSE_OAUTH_SUCCESS',
+        accessToken: '${tokenData.access_token}',
+        refreshToken: '${tokenData.refresh_token}',
+        tokenExpiry: ${tokenExpiry},
+        connectionId: '${state}'
+      }, '*');
+      console.log('✅ Message sent to parent');
+    }
+    
+    // Countdown y cierre automático
+    let seconds = 3;
+    const countdownElement = document.getElementById('countdown');
+    
+    const countdown = setInterval(() => {
+      seconds--;
+      if (countdownElement) {
+        countdownElement.textContent = seconds.toString();
+      }
+      
+      if (seconds <= 0) {
+        clearInterval(countdown);
+        console.log('🔄 Closing popup now...');
+        try {
+          window.close();
+        } catch (e) {
+          console.log('❌ Could not close popup:', e);
+          // Fallback: redirect to close
+          window.location.href = 'about:blank';
         }
-        setTimeout(() => {
-          try {
-            window.close();
-          } catch (e) {
-            console.log('Could not close popup:', e);
-          }
-        }, 1000);
-      </script>
-      <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif; background: #f0f9ff; color: #1e40af;">
-        <h2 style="color: #059669; margin-bottom: 20px;">✅ ¡Autorización Exitosa!</h2>
-        <p>Conectado con Loyverse correctamente</p>
-        <p style="color: #6b7280; font-size: 14px;">Esta ventana se cerrará automáticamente en 1 segundo...</p>
-        <div style="margin-top: 20px; padding: 10px; background: #ecfdf5; border-radius: 8px; border-left: 4px solid #10b981;">
-          <p style="margin: 0; font-size: 12px; color: #065f46;">
-            <strong>Token recibido:</strong> ${tokenData.access_token.substring(0, 20)}...<br>
-            <strong>Expira:</strong> ${new Date(tokenExpiry).toLocaleString()}
-          </p>
-        </div>
-      </div>
-      </body></html>`,
+      }
+    }, 1000);
+  </script>
+</body>
+</html>`,
       {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'text/html' }
