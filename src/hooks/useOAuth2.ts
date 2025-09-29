@@ -117,14 +117,14 @@ export const useOAuth2 = () => {
     const clientId = 'na0tlm2Whq22j3jTPV_l';
     const redirectUri = encodeURIComponent('https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback');
     const scopes = 'ITEMS_READ%20CUSTOMERS_READ%20RECEIPTS_READ%20OPENID';
-      if (state.loading) {
+    const randomState = Math.random().toString(36).substring(2, 15);
 
-    const authUrl = `https://api.loyverse.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=${state}`;
+    const authUrl = `https://api.loyverse.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=${randomState}`;
 
     console.log('🚀 OAuth2 Configuration:');
     console.log('  - Client ID:', clientId);
     console.log('  - Redirect URI:', decodeURIComponent(redirectUri));
-    console.log('  - State:', state);
+    console.log('  - State:', randomState);
     console.log('  - Auth URL:', authUrl);
 
     // Open popup window
@@ -136,18 +136,10 @@ export const useOAuth2 = () => {
 
     if (!popup) {
       setState(prev => ({ 
-    console.log('🔥 MESSAGE RECEIVED from popup:', event.data);
-    console.log('🔍 Event origin:', event.origin);
-    console.log('🔍 Window origin:', window.location.origin);
+        ...prev,
         loading: false, 
-    // Allow messages from Supabase Edge Function domain
-    const allowedOrigins = [
-      window.location.origin,
-      'https://iabrhkvwhmliemgioxce.supabase.co'
-    ];
-    
-    if (!allowedOrigins.some(origin => event.origin.includes(origin.split('//')[1]))) {
-      console.log('❌ ORIGIN NOT ALLOWED:', event.origin);
+        error: 'No se pudo abrir la ventana emergente. Verifica que no esté bloqueada por el navegador.' 
+      }));
       return;
     }
 
@@ -155,10 +147,18 @@ export const useOAuth2 = () => {
 
     // Listen for callback message from popup
     const handleMessage = (event: MessageEvent) => {
-      console.log('🔥 MESSAGE RECEIVED:', event.data);
+      console.log('🔥 MESSAGE RECEIVED from popup:', event.data);
+      console.log('🔍 Event origin:', event.origin);
+      console.log('🔍 Window origin:', window.location.origin);
       
-      if (event.origin !== window.location.origin) {
-        console.log('❌ ORIGIN MISMATCH:', event.origin, 'vs', window.location.origin);
+      // Allow messages from Supabase Edge Function domain
+      const allowedOrigins = [
+        window.location.origin,
+        'https://iabrhkvwhmliemgioxce.supabase.co'
+      ];
+      
+      if (!allowedOrigins.some(origin => event.origin.includes(origin.split('//')[1]))) {
+        console.log('❌ ORIGIN NOT ALLOWED:', event.origin);
         return;
       }
 
@@ -215,13 +215,8 @@ export const useOAuth2 = () => {
             ...prev, 
             loading: false, 
             error: 'Autorización cancelada por el usuario' 
-        try {
-          popup.close();
-        } catch (e) {
-          console.log('Popup already closed or inaccessible');
+          }));
         }
-        }
-        clearInterval(checkClosed);
       }
     }, 1000);
   };
