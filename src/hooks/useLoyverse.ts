@@ -208,6 +208,9 @@ export const useLoyverseProducts = () => {
 
 
   useEffect(() => {
+    console.log('🔄 useLoyverse: Component mounted, checking tokens...');
+    console.log('🔍 Has valid tokens:', hasValidTokens());
+    console.log('🔍 Direct token available:', !!import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN);
     fetchProducts();
   }, []);
 

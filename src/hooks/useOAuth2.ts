@@ -174,18 +174,18 @@ export const useOAuth2 = () => {
           window.removeEventListener('message', handleMessage);
           clearInterval(checkClosed);
           
-          // Force close popup immediately
+          // Forzar cierre del popup inmediatamente
           try {
             popup.close();
           } catch (e) {
             console.log('❌ Could not close popup manually:', e);
           }
           
-          // Reload page after short delay to refresh products
+          // Recargar página inmediatamente para usar tokens
           setTimeout(() => {
             console.log('🔄 Reloading page to load products...');
             window.location.reload();
-          }, 500);
+          }, 200);
           
         } else if (event.data.type === 'LOYVERSE_OAUTH_ERROR') {
           console.error('OAuth2 error received:', event.data.error);
