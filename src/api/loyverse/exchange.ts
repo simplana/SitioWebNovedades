@@ -1,5 +1,4 @@
-// API endpoint para intercambio de código por tokens (server-side simulation)
-export const runtime = "nodejs";
+// API endpoint para intercambio de código por tokens (direct to Loyverse)
 
 export async function exchangeCodeForTokens(code: string): Promise<{
   access_token: string;
@@ -11,36 +10,50 @@ export async function exchangeCodeForTokens(code: string): Promise<{
       throw new Error("Missing code");
     }
 
-    // Enviar la solicitud a nuestro propio servidor proxy
-    const proxyResponse = await fetch("/api/loyverse/exchange-token", {
+    console.log('🚀 DIRECT TOKEN EXCHANGE WITH LOYVERSE:');
+    console.log('📋 Code:', code);
+    
+    const clientId = 'na0tlm2Whq22j3jTPV_l';
+    const clientSecret = 'G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw====';
+    const redirectUri = `${window.location.origin}/auth/loyverse/callback`;
+
+    // Usar application/x-www-form-urlencoded según documentación
+    const formData = new URLSearchParams();
+    formData.append('grant_type', 'authorization_code');
+    formData.append('client_id', clientId);
+    formData.append('client_secret', clientSecret);
+    formData.append('redirect_uri', redirectUri);
+    formData.append('code', code);
+
+    console.log('📋 Form data:', formData.toString());
+
+    const loyverseResponse = await fetch("https://api.loyverse.com/oauth/token", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
         "Accept": "application/json"
       },
-      body: JSON.stringify({
-      code,
-      redirect_uri: import.meta.env.VITE_LOYVERSE_REDIRECT_URL
-      })
+      body: formData.toString()
     });
 
-    if (!proxyResponse.ok) {
-      const errorData = await proxyResponse.json();
-      console.error('❌ Client: Token exchange failed via proxy:', errorData);
-      throw new Error(errorData.error || "Token exchange failed via proxy");
+    console.log('📡 Loyverse response status:', loyverseResponse.status);
+
+    if (!loyverseResponse.ok) {
+      const errorText = await loyverseResponse.text();
+      console.error('❌ Loyverse token exchange failed:', errorText);
+      throw new Error(`Loyverse API error: ${loyverseResponse.status} - ${errorText}`);
     }
 
-    const data = await proxyResponse.json();
-    console.log('✅ Client: Token exchange successful via proxy');
+    const data = await loyverseResponse.json();
+    console.log('✅ Token exchange successful with Loyverse!');
     
-    // Devuelve solo lo necesario al cliente
     return {
       access_token: data.access_token,
       refresh_token: data.refresh_token,
       expires_in: data.expires_in
     };
   } catch (e: any) {
-    console.error('❌ Error in token exchange:', e);
+    console.error('❌ Error in direct token exchange:', e);
     throw new Error(e?.message || "Token exchange error");
   }
 }

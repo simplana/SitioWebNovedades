@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle, XCircle, Loader } from 'lucide-react';
+import { exchangeCodeForTokens } from '../api/loyverse/exchange';
 
 const LoyverseCallback: React.FC = () => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -69,85 +70,10 @@ const LoyverseCallback: React.FC = () => {
         }
 
         console.log('🔄 Processing Loyverse callback with code:', code.substring(0, 20) + '...');
-        setMessage("Intercambiando código por tokens...");
+        setMessage("Intercambiando código por tokens directamente...");
         
-        // Exchange code for tokens using Supabase Edge Function
-        // Check if Supabase is configured
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        
-        if (!supabaseUrl || !supabaseKey) {
-          console.error('❌ Supabase not configured');
-          setStatus('error');
-          setMessage("Supabase no está configurado. Haz clic en 'Supabase' en la configuración para conectar.");
-          setDebugInfo(prev => ({ 
-            ...prev, 
-            supabaseConfig: { 
-              url: !!supabaseUrl, 
-              key: !!supabaseKey 
-            } 
-          }));
-          
-          // Send error to parent window
-          if (window.opener) {
-            window.opener.postMessage({
-              type: 'LOYVERSE_OAUTH_ERROR',
-              error: 'Supabase no está configurado. Por favor configura Supabase primero.',
-              connectionId: state
-            }, window.location.origin);
-          }
-          return;
-        }
-        
-        const tokenResponse = await fetch(`${supabaseUrl}/functions/v1/loyverse-oauth/exchange-token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseKey}`
-          },
-          body: JSON.stringify({
-            code,
-            redirect_uri: import.meta.env.VITE_LOYVERSE_REDIRECT_URL
-          })
-        });
-
-        console.log('📡 Token exchange response status:', tokenResponse.status);
-
-        if (!tokenResponse.ok) {
-          const errorText = await tokenResponse.text();
-          let errorData;
-          try {
-            errorData = JSON.parse(errorText);
-          } catch {
-            errorData = { error: errorText };
-          }
-          console.error('❌ Token exchange failed:', errorData);
-          
-          // Show detailed error information
-          const detailedError = {
-            status: tokenResponse.status,
-            statusText: tokenResponse.statusText,
-            errorData,
-            rawResponse: errorText
-          };
-          
-          setStatus('error');
-          setMessage(`Error en intercambio de tokens (${tokenResponse.status}): ${errorData.error || errorText}`);
-          setDebugInfo(prev => ({ ...prev, tokenExchangeError: detailedError }));
-          
-          // Send error to parent window
-          if (window.opener) {
-            window.opener.postMessage({
-              type: 'LOYVERSE_OAUTH_ERROR',
-              error: `Token exchange failed via proxy: ${errorData.error || errorText}`,
-              connectionId: state
-            }, window.location.origin);
-          }
-          return;
-        }
-
-        const tokenData = await tokenResponse.json();
+        // Exchange code for tokens directly from frontend
+        const tokenData = await exchangeCodeForTokens(code);
         console.log('✅ Token exchange successful');
         
         const tokenExpiry = Date.now() + (tokenData.expires_in - 30) * 1000;
