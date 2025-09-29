@@ -84,9 +84,15 @@ Deno.serve(async (req: Request) => {
     // Intercambiar código por tokens
     console.log('🔄 Starting token exchange with Loyverse...')
     
-    const clientId = 'na0tlm2Whq22j3jTPV_l'
-    const clientSecret = 'G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw===='
-    const redirectUri = 'https://ceo-signing-samba-advertisements.trycloudflare.com/auth/loyverse/callback'
+    // En Edge Functions, las variables de entorno se acceden con Deno.env.get()
+    const clientId = Deno.env.get('LOYVERSE_CLIENT_ID') || 'na0tlm2Whq22j3jTPV_l'
+    const clientSecret = Deno.env.get('LOYVERSE_CLIENT_SECRET') || 'G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw===='
+    const redirectUri = Deno.env.get('LOYVERSE_REDIRECT_URL') || 'https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback'
+    
+    console.log('🔑 Using credentials:')
+    console.log('  - Client ID:', clientId)
+    console.log('  - Client Secret:', clientSecret ? `${clientSecret.substring(0, 10)}...` : 'MISSING')
+    console.log('  - Redirect URI:', redirectUri)
 
     // Usar application/x-www-form-urlencoded según documentación
     const formData = new URLSearchParams()
