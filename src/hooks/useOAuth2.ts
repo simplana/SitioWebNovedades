@@ -36,80 +36,6 @@ export const useOAuth2 = () => {
     }
   }, []);
 
-  // Direct token exchange with Loyverse API
-  const exchangeCodeForTokens = async (code: string): Promise<{
-    success: boolean;
-    data?: any;
-    error?: string;
-  }> => {
-    try {
-      const clientId = 'na0tlm2Whq22j3jTPV_l';
-      const clientSecret = 'G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw====';
-      const redirectUri = `${window.location.origin}/auth/loyverse/callback`;
-      
-      console.log('🚀 DIRECT TOKEN EXCHANGE:');
-      console.log('📋 client_id:', clientId);
-      console.log('📋 client_secret length:', clientSecret.length);
-      console.log('📋 redirect_uri:', redirectUri);
-      console.log('📋 code:', code);
-
-      // Usar application/x-www-form-urlencoded según documentación
-      const formData = new URLSearchParams();
-      formData.append('grant_type', 'authorization_code');
-      formData.append('client_id', clientId);
-      formData.append('client_secret', clientSecret);
-      formData.append('redirect_uri', redirectUri);
-      formData.append('code', code);
-
-      console.log('📋 Form data:', formData.toString());
-
-      const response = await fetch('https://api.loyverse.com/oauth/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json'
-        },
-        body: formData.toString()
-      });
-
-      console.log('📡 Response status:', response.status);
-      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Loyverse error:', errorText);
-        
-        let parsedError;
-        try {
-          parsedError = JSON.parse(errorText);
-        } catch {
-          parsedError = { error: errorText };
-        }
-        
-        return {
-          success: false,
-          error: `Loyverse API error: ${response.status} - ${parsedError.error || errorText}`
-        };
-      }
-
-      const tokenData = await response.json();
-      console.log('✅ Token exchange successful!');
-      console.log('📋 Token data keys:', Object.keys(tokenData));
-
-      return {
-        success: true,
-        data: tokenData
-      };
-
-    } catch (error) {
-      console.error('❌ Token exchange error:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
-  };
-
   // Initiate OAuth2 flow with popup
   const initiateOAuth2Flow = () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
@@ -121,11 +47,7 @@ export const useOAuth2 = () => {
 
     const authUrl = `https://api.loyverse.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=${randomState}`;
 
-    console.log('🚀 OAuth2 Configuration:');
-    console.log('  - Client ID:', clientId);
-    console.log('  - Redirect URI:', decodeURIComponent(redirectUri));
-    console.log('  - State:', randomState);
-    console.log('  - Auth URL:', authUrl);
+    console.log('🚀 Opening OAuth popup...');
 
     // Open popup window
     const popup = window.open(
@@ -143,23 +65,19 @@ export const useOAuth2 = () => {
       return;
     }
 
-    console.log('✅ Popup opened successfully');
-
+    // Message handler
     const handleMessage = (event: MessageEvent) => {
-      // Allow messages from any origin for OAuth callback
-      console.log('✅ Processing message from:', event.origin);
-
+      console.log('📨 Message received:', event.data);
+      
       if (event.data && typeof event.data === 'object') {
         if (event.data.type === 'LOYVERSE_OAUTH_SUCCESS') {
-          console.log('OAuth2 success received, storing tokens...');
+          console.log('✅ OAuth success! Storing tokens...');
           
-          // Store tokens
+          // Store tokens immediately
           localStorage.setItem('lv_access_token', event.data.accessToken);
           localStorage.setItem('lv_refresh_token', event.data.refreshToken);
           localStorage.setItem('lv_access_token_exp', event.data.tokenExpiry.toString());
 
-          console.log('Tokens stored successfully');
-          
           setState(prev => ({
             ...prev,
             isConnected: true,
@@ -170,40 +88,40 @@ export const useOAuth2 = () => {
             tokenExpiry: event.data.tokenExpiry
           }));
 
+          // Force close popup
+          try {
+            popup.close();
+          } catch (e) {
+            console.log('Could not close popup:', e);
+          }
+          
           // Cleanup
           window.removeEventListener('message', handleMessage);
           clearInterval(checkClosed);
           
-          // Forzar cierre del popup inmediatamente
-          try {
-            popup.close();
-          } catch (e) {
-            console.log('❌ Could not close popup manually:', e);
-          }
-          
-          // Recargar página inmediatamente para usar tokens
+          // Reload page to use new tokens
+          console.log('🔄 Reloading page to load products...');
           setTimeout(() => {
-            console.log('🔄 Reloading page to load products...');
             window.location.reload();
-          }, 200);
+          }, 500);
           
         } else if (event.data.type === 'LOYVERSE_OAUTH_ERROR') {
-          console.error('OAuth2 error received:', event.data.error);
+          console.error('❌ OAuth error:', event.data.error);
           setState(prev => ({ 
             ...prev, 
             loading: false, 
             error: event.data.error 
           }));
           
-          // Cleanup
-          window.removeEventListener('message', handleMessage);
-          clearInterval(checkClosed);
-          
           try {
             popup.close();
           } catch (e) {
             console.log('Could not close popup on error');
           }
+          
+          // Cleanup
+          window.removeEventListener('message', handleMessage);
+          clearInterval(checkClosed);
         }
       }
     };
@@ -216,15 +134,32 @@ export const useOAuth2 = () => {
         console.log('🔄 Popup was closed manually');
         window.removeEventListener('message', handleMessage);
         clearInterval(checkClosed);
-        if (state.loading) {
-          setState(prev => ({ 
-            ...prev, 
-            loading: false, 
-            error: null // No mostrar error si se cerró manualmente después del éxito
-          }));
-        }
+        setState(prev => ({ 
+          ...prev, 
+          loading: false,
+          error: null
+        }));
       }
-    }, 500); // Check more frequently
+    }, 1000);
+
+    // Timeout after 2 minutes
+    setTimeout(() => {
+      if (!popup.closed) {
+        console.log('⏰ OAuth timeout, closing popup');
+        try {
+          popup.close();
+        } catch (e) {
+          console.log('Could not close popup on timeout');
+        }
+        window.removeEventListener('message', handleMessage);
+        clearInterval(checkClosed);
+        setState(prev => ({ 
+          ...prev, 
+          loading: false, 
+          error: 'Timeout: La autorización tomó demasiado tiempo' 
+        }));
+      }
+    }, 120000);
   };
 
   // Disconnect OAuth2
@@ -241,12 +176,14 @@ export const useOAuth2 = () => {
       refreshToken: null,
       tokenExpiry: null
     });
+    
+    // Reload to clear products
+    window.location.reload();
   };
 
   return {
     ...state,
     initiateOAuth2Flow,
-    disconnect,
-    exchangeCodeForTokens
+    disconnect
   };
 };
