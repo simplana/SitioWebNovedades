@@ -105,19 +105,15 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
   };
 
   const handleUseCurrentTokens = () => {
-    // Usar los tokens que vimos en el popup - VALORES REALES
-    try {
-      localStorage.setItem('lv_access_token', '8h1TdLJkO73C8cpjOw0Gvjl0qXM');
-      localStorage.setItem('lv_refresh_token', 'inIXIS1k3aPxUO69Z1olW5pMJX0');
-      localStorage.setItem('lv_access_token_exp', '1761791893996');
-      
-      console.log('✅ Tokens guardados directamente desde el popup');
-      alert('¡Tokens guardados exitosamente! Recargando página...');
-      window.location.reload();
-    } catch (error) {
-      console.error('Error guardando tokens:', error);
-      alert('Error guardando tokens');
-    }
+    // Usar los tokens que vimos en el popup
+    const tokens = {
+      accessToken: '8h1TdLJkO73C8cpjOw0Gvjl0qXM',
+      refreshToken: 'inIXIS1k3aPxUO69Z1olW5pMJX0',
+      tokenExpiry: '1761791893996'
+    };
+    
+    setManualTokens(tokens);
+    handleManualTokenSave();
   };
 
   if ((hasStoredTokens && hasClientSecret) || hasDirectToken) {
