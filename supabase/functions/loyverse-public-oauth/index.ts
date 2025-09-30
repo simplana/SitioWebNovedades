@@ -21,6 +21,7 @@ Deno.serve(async (req: Request) => {
     if (error || !code) {
       return new Response(
         `<script>
+          console.log('❌ OAuth error or no code');
           if (window.opener) {
             window.opener.postMessage({
               type: 'LOYVERSE_OAUTH_ERROR',
@@ -37,7 +38,7 @@ Deno.serve(async (req: Request) => {
       )
     }
     
-    // Intercambiar código por tokens
+    // Exchange code for tokens
     const clientId = 'na0tlm2Whq22j3jTPV_l'
     const clientSecret = 'G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw=='
     const redirectUri = 'https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback'
@@ -62,6 +63,7 @@ Deno.serve(async (req: Request) => {
       const errorText = await loyverseResponse.text()
       return new Response(
         `<script>
+          console.log('❌ Token exchange failed');
           if (window.opener) {
             window.opener.postMessage({
               type: 'LOYVERSE_OAUTH_ERROR',
@@ -81,9 +83,10 @@ Deno.serve(async (req: Request) => {
     const tokenData = await loyverseResponse.json()
     const tokenExpiry = Date.now() + (tokenData.expires_in - 30) * 1000
     
-    // Respuesta mínima que envía tokens y cierra inmediatamente
+    // MINIMAL RESPONSE - Just send tokens and close
     return new Response(
       `<script>
+        console.log('✅ Sending tokens to parent...');
         if (window.opener) {
           window.opener.postMessage({
             type: 'LOYVERSE_OAUTH_SUCCESS',
@@ -92,8 +95,13 @@ Deno.serve(async (req: Request) => {
             tokenExpiry: ${tokenExpiry},
             connectionId: '${state}'
           }, '*');
+          console.log('✅ Message sent');
         }
-        window.close();
+        
+        // Force close immediately
+        setTimeout(() => {
+          window.close();
+        }, 100);
       </script>`,
       {
         status: 200,
@@ -104,6 +112,7 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     return new Response(
       `<script>
+        console.log('❌ Processing error');
         if (window.opener) {
           window.opener.postMessage({
             type: 'LOYVERSE_OAUTH_ERROR',
