@@ -45,35 +45,36 @@ export const useOAuth2 = () => {
     console.log('🎧 Setting up message listener for OAuth popup...');
     
     const handleMessage = (event: MessageEvent) => {
-      console.log('📨 Message received from popup:', event.data);
-      console.log('📨 Event origin:', event.origin);
-      console.log('📨 Window origin:', window.location.origin);
+      console.log('📨 RAW MESSAGE RECEIVED:', event.data);
+      console.log('📨 Message type:', event.data?.type);
       
-      // Allow messages from Supabase domain or same origin
-      const allowedOrigins = [
-        window.location.origin,
-        'https://iabrhkvwhmliemgioxce.supabase.co'
-      ];
-      
-      if (!allowedOrigins.some(origin => event.origin.includes(origin.split('//')[1]))) {
-        console.log('❌ Message from unauthorized origin, ignoring');
+      // Accept messages from any origin for OAuth (less restrictive)
+      if (!event.data || typeof event.data !== 'object') {
+        console.log('❌ Invalid message format');
         return;
       }
       
       if (event.data?.type === 'LOYVERSE_OAUTH_SUCCESS') {
-        console.log('✅ OAuth success! Processing tokens...');
-        console.log('🔑 Access Token:', event.data.accessToken?.substring(0, 20) + '...');
-        console.log('🔄 Refresh Token:', event.data.refreshToken?.substring(0, 20) + '...');
-        console.log('⏰ Token Expiry:', new Date(event.data.tokenExpiry).toLocaleString());
+        console.log('🎉 OAUTH SUCCESS! SAVING TOKENS NOW...');
+        console.log('🔑 Access Token:', event.data.accessToken);
+        console.log('🔄 Refresh Token:', event.data.refreshToken);
+        console.log('⏰ Token Expiry:', event.data.tokenExpiry);
         
-        // Save tokens immediately
-        localStorage.setItem('lv_access_token', event.data.accessToken);
-        localStorage.setItem('lv_refresh_token', event.data.refreshToken);
-        localStorage.setItem('lv_access_token_exp', event.data.tokenExpiry.toString());
+        try {
+          // Save tokens immediately
+          localStorage.setItem('lv_access_token', event.data.accessToken);
+          localStorage.setItem('lv_refresh_token', event.data.refreshToken);
+          localStorage.setItem('lv_access_token_exp', event.data.tokenExpiry.toString());
+          
+          console.log('💾 TOKENS SAVED TO LOCALSTORAGE!');
+          console.log('💾 Saved access token:', localStorage.getItem('lv_access_token'));
+          console.log('💾 Saved refresh token:', localStorage.getItem('lv_refresh_token'));
+          console.log('💾 Saved expiry:', localStorage.getItem('lv_access_token_exp'));
+        } catch (error) {
+          console.error('❌ Error saving tokens:', error);
+        }
         
-        console.log('💾 Tokens saved to localStorage');
-        
-        // Update state
+        // Update state immediately
         setState({
           isConnected: true,
           loading: false,
@@ -83,12 +84,13 @@ export const useOAuth2 = () => {
           tokenExpiry: event.data.tokenExpiry
         });
         
-        console.log('🔄 State updated, reloading page to use new tokens...');
+        console.log('🔄 STATE UPDATED! Reloading page in 1 second...');
         
-        // Reload page to use new tokens
+        // Reload page to use new tokens - give it a moment
         setTimeout(() => {
+          console.log('🔄 RELOADING PAGE NOW...');
           window.location.reload();
-        }, 500);
+        }, 1000);
         
       } else if (event.data?.type === 'LOYVERSE_OAUTH_ERROR') {
         console.error('❌ OAuth error received:', event.data.error);
@@ -102,11 +104,11 @@ export const useOAuth2 = () => {
 
     // Add the listener
     window.addEventListener('message', handleMessage);
-    console.log('✅ Message listener added');
+    console.log('✅ MESSAGE LISTENER ADDED AND READY');
     
     // Cleanup
     return () => {
-      console.log('🧹 Removing message listener');
+      console.log('🧹 REMOVING MESSAGE LISTENER');
       window.removeEventListener('message', handleMessage);
     };
   }, []);

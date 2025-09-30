@@ -21,7 +21,6 @@ Deno.serve(async (req: Request) => {
     if (error || !code) {
       return new Response(
         `<script>
-          console.log('❌ OAuth error or no code');
           if (window.opener) {
             window.opener.postMessage({
               type: 'LOYVERSE_OAUTH_ERROR',
@@ -63,7 +62,6 @@ Deno.serve(async (req: Request) => {
       const errorText = await loyverseResponse.text()
       return new Response(
         `<script>
-          console.log('❌ Token exchange failed');
           if (window.opener) {
             window.opener.postMessage({
               type: 'LOYVERSE_OAUTH_ERROR',
@@ -83,10 +81,9 @@ Deno.serve(async (req: Request) => {
     const tokenData = await loyverseResponse.json()
     const tokenExpiry = Date.now() + (tokenData.expires_in - 30) * 1000
     
-    // MINIMAL RESPONSE - Just send tokens and close
+    // MINIMAL RESPONSE - Just send tokens and close immediately
     return new Response(
       `<script>
-        console.log('✅ Sending tokens to parent...');
         if (window.opener) {
           window.opener.postMessage({
             type: 'LOYVERSE_OAUTH_SUCCESS',
@@ -95,13 +92,8 @@ Deno.serve(async (req: Request) => {
             tokenExpiry: ${tokenExpiry},
             connectionId: '${state}'
           }, '*');
-          console.log('✅ Message sent');
         }
-        
-        // Force close immediately
-        setTimeout(() => {
-          window.close();
-        }, 100);
+        window.close();
       </script>`,
       {
         status: 200,
@@ -112,7 +104,6 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     return new Response(
       `<script>
-        console.log('❌ Processing error');
         if (window.opener) {
           window.opener.postMessage({
             type: 'LOYVERSE_OAUTH_ERROR',
