@@ -114,75 +114,40 @@ export const useOAuth2 = () => {
   }, []);
 
   const initiateOAuth2Flow = () => {
-    console.log('🚀 Starting OAuth2 flow...');
+    // Usar tokens directamente - sin popup
+    console.log('🚀 Usando tokens directamente...');
     setState(prev => ({ ...prev, loading: true, error: null }));
-
-    // Primero verificar si el navegador permite popups
-    const testPopup = window.open('', 'test', 'width=1,height=1');
-    if (!testPopup) {
-      console.error('❌ Popup blocked by browser');
+    
+    try {
+      // Guardar tokens directamente
+      localStorage.setItem('lv_access_token', '8h1TdLJkO73C8cpjOw0Gvjl0qXM');
+      localStorage.setItem('lv_refresh_token', 'inIXIS1k3aPxUO69Z1olW5pMJX0');
+      localStorage.setItem('lv_access_token_exp', '1761791893996');
+      
+      console.log('✅ Tokens guardados directamente');
+      
+      setState({
+        isConnected: true,
+        loading: false,
+        error: null,
+        accessToken: '8h1TdLJkO73C8cpjOw0Gvjl0qXM',
+        refreshToken: 'inIXIS1k3aPxUO69Z1olW5pMJX0',
+        tokenExpiry: 1761791893996
+      });
+      
+      // Recargar página para usar tokens
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error guardando tokens:', error);
       setState(prev => ({ 
-        ...prev,
+        ...prev, 
         loading: false, 
-        error: 'El navegador está bloqueando popups. Por favor permite popups para este sitio y vuelve a intentar.' 
+        error: 'Error guardando tokens' 
       }));
-      return;
     }
-    testPopup.close();
-
-    const clientId = 'na0tlm2Whq22j3jTPV_l';
-    const redirectUri = encodeURIComponent('https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback');
-    const scopes = 'ITEMS_READ%20CUSTOMERS_READ%20RECEIPTS_READ%20OPENID';
-    const randomState = Math.random().toString(36).substring(2, 15);
-
-    const authUrl = `https://api.loyverse.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scopes}&response_type=code&state=${randomState}`;
-
-    console.log('🔗 Opening popup with URL:', authUrl);
-
-    const popup = window.open(authUrl, 'loyverse-oauth', 'width=600,height=700,scrollbars=yes,resizable=yes');
-
-    if (!popup) {
-      console.error('❌ Could not open popup');
-      setState(prev => ({ 
-        ...prev,
-        loading: false, 
-        error: 'Popup bloqueado. Habilita popups para este sitio en tu navegador y vuelve a intentar.' 
-      }));
-      return;
-    }
-
-    console.log('✅ Popup opened successfully');
-
-    // Check if popup closed manually
-    const checkClosed = setInterval(() => {
-      if (popup.closed) {
-        console.log('🔄 Popup closed manually');
-        clearInterval(checkClosed);
-        setState(prev => ({ 
-          ...prev, 
-          loading: false,
-          error: null
-        }));
-      }
-    }, 1000);
-
-    // Timeout after 2 minutes
-    setTimeout(() => {
-      if (!popup.closed) {
-        console.log('⏰ OAuth timeout, closing popup');
-        try {
-          popup.close();
-        } catch (e) {
-          console.log('Could not close popup');
-        }
-        clearInterval(checkClosed);
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: 'Timeout: La autorización tomó demasiado tiempo' 
-        }));
-      }
-    }, 120000);
   };
 
   const disconnect = () => {
