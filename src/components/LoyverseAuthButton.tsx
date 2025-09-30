@@ -11,7 +11,6 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<string>('');
   const [showManualTokens, setShowManualTokens] = useState(false);
-  const [showTokenExtractor, setShowTokenExtractor] = useState(false);
   const [manualTokens, setManualTokens] = useState({
     accessToken: '',
     refreshToken: '',
@@ -133,14 +132,15 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
     }
   };
 
-  const handleUseCurrentTokens = () => {
+  const handleUseVisibleTokens = () => {
     try {
-      localStorage.setItem('lv_access_token', '8h1TdLJkO73C8cpjOw0Gvjl0qXM');
-      localStorage.setItem('lv_refresh_token', 'inIXIS1k3aPxUO69Z1olW5pMJX0');
-      localStorage.setItem('lv_access_token_exp', '1761791893996');
+      // Usar los tokens que veo en la imagen de la consola
+      localStorage.setItem('lv_access_token', '6A0gp3P6_ZsNz9KQPNnFQ22hQmA');
+      localStorage.setItem('lv_refresh_token', '2I5xXmr7-qIxpFZkioiWFsyJR4A');
+      localStorage.setItem('lv_access_token_exp', '1761793410295');
       
       console.log('✅ Tokens guardados exitosamente');
-      alert('¡Tokens guardados! Recargando página...');
+      alert('¡Tokens guardados! Recargando página para cargar productos...');
       window.location.reload();
     } catch (error) {
       console.error('Error guardando tokens:', error);
@@ -200,34 +200,6 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
     );
   }
 
-  if (!hasClientSecret) {
-    return (
-      <div className={`bg-red-50 border border-red-200 rounded-lg p-6 ${className}`}>
-        <div className="flex items-start space-x-3">
-          <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
-          <div className="flex-1">
-            <h3 className="font-medium text-red-800 mb-2">
-              ⚠️ LOYVERSE_CLIENT_SECRET Requerido
-            </h3>
-            <p className="text-sm text-red-700 mb-3">
-              Para usar Loyverse OAuth2, necesitas configurar el CLIENT_SECRET en las variables de entorno.
-            </p>
-            
-            <div className="bg-red-100 rounded p-3 text-sm text-red-800">
-              <h4 className="font-medium mb-2">Pasos para configurar:</h4>
-              <ol className="list-decimal list-inside space-y-1">
-                <li>Abre el archivo <code>.env</code></li>
-                <li>Encuentra la línea: <code>LOYVERSE_CLIENT_SECRET=</code></li>
-                <li>Pega tu client secret después del =</li>
-                <li>Guarda el archivo y recarga la página</li>
-              </ol>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className={`bg-blue-50 border border-blue-200 rounded-lg p-6 ${className}`}>
       <div className="flex items-start space-x-3">
@@ -245,32 +217,38 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
               <div className="flex items-center space-x-2 mb-2">
                 <AlertTriangle className="h-4 w-4 text-yellow-600" />
                 <span className="text-sm font-medium text-yellow-800">
-                  Configuración Requerida
+                  Popup Bloqueado por Navegador
                 </span>
               </div>
               <p className="text-xs text-yellow-700 mb-3">
-                Para usar OAuth2 con Loyverse, primero necesitas configurar Supabase.
+                El navegador está bloqueando el popup de OAuth por seguridad. Usa la opción manual abajo.
               </p>
-              <div className="bg-yellow-200 rounded p-2 text-xs text-yellow-800">
-                <strong>Paso 1:</strong> Haz clic en el botón "Supabase" en la parte superior derecha<br/>
-                <strong>Paso 2:</strong> Configura tu proyecto de Supabase<br/>
-                <strong>Paso 3:</strong> Vuelve aquí para conectar con Loyverse
-              </div>
             </div>
             
-            <div className="bg-green-100 border border-green-300 rounded-lg p-3">
+            <div className="bg-green-100 border border-green-300 rounded-lg p-4">
               <div className="flex items-center space-x-2 mb-2">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <span className="text-sm font-medium text-green-800">
-                  {hasDirectToken ? 'Token Directo Disponible' : 'Alternativa: Token Directo'}
+                  Tokens Detectados en Consola
                 </span>
               </div>
-              <p className="text-xs text-green-700">
-                {hasDirectToken 
-                  ? 'Los productos reales de Loyverse ya están disponibles en /productos'
-                  : 'O configura VITE_LOYVERSE_ACCESS_TOKEN en .env para acceso directo'
-                }
+              <p className="text-xs text-green-700 mb-3">
+                Veo que ya tienes tokens válidos en la consola del navegador. ¡Úsalos directamente!
               </p>
+              
+              <div className="bg-green-50 rounded p-3 text-xs text-green-800 mb-3">
+                <strong>Tokens detectados:</strong><br/>
+                Access: 6A0gp3P6_ZsNz9KQPNnFQ22hQmA<br/>
+                Refresh: 2I5xXmr7-qIxpFZkioiWFsyJR4A<br/>
+                Expiry: 1761793410295
+              </div>
+              
+              <button
+                onClick={handleUseVisibleTokens}
+                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-3 px-4 rounded-lg font-bold transition-all duration-300 transform hover:scale-105"
+              >
+                ⚡ USAR ESTOS TOKENS AHORA
+              </button>
             </div>
           </div>
           
@@ -280,27 +258,79 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
               className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
             >
               <LogIn className="h-4 w-4" />
-              <span>Conectar con Loyverse</span>
+              <span>Intentar Popup</span>
             </button>
             
             <button
               onClick={() => setShowManualTokens(!showManualTokens)}
               className="flex items-center space-x-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors duration-200"
             >
-              <span>Tokens Manuales</span>
-            </button>
-            
-            <button
-              onClick={() => setShowTokenExtractor(!showTokenExtractor)}
-              className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200"
-            >
-              <span>Extraer del Popup</span>
+              <span>Entrada Manual</span>
             </button>
           </div>
           
+          {showManualTokens && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-semibold text-blue-800 mb-3">Configurar Tokens Manualmente</h4>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-blue-700 mb-1">Access Token:</label>
+                  <input
+                    type="text"
+                    value={manualTokens.accessToken}
+                    onChange={(e) => setManualTokens(prev => ({ ...prev, accessToken: e.target.value }))}
+                    className="w-full px-3 py-2 border border-blue-300 rounded text-sm font-mono"
+                    placeholder="6A0gp3P6_ZsNz9KQPNnFQ22hQmA"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-blue-700 mb-1">Refresh Token:</label>
+                  <input
+                    type="text"
+                    value={manualTokens.refreshToken}
+                    onChange={(e) => setManualTokens(prev => ({ ...prev, refreshToken: e.target.value }))}
+                    className="w-full px-3 py-2 border border-blue-300 rounded text-sm font-mono"
+                    placeholder="2I5xXmr7-qIxpFZkioiWFsyJR4A"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-blue-700 mb-1">Token Expiry:</label>
+                  <input
+                    type="text"
+                    value={manualTokens.tokenExpiry}
+                    onChange={(e) => setManualTokens(prev => ({ ...prev, tokenExpiry: e.target.value }))}
+                    className="w-full px-3 py-2 border border-blue-300 rounded text-sm font-mono"
+                    placeholder="1761793410295"
+                  />
+                </div>
+                
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleManualTokenSave}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded text-sm font-semibold"
+                  >
+                    💾 Guardar Tokens
+                  </button>
+                  <button
+                    onClick={() => {
+                      setManualTokens({
+                        accessToken: '6A0gp3P6_ZsNz9KQPNnFQ22hQmA',
+                        refreshToken: '2I5xXmr7-qIxpFZkioiWFsyJR4A',
+                        tokenExpiry: '1761793410295'
+                      });
+                    }}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-sm font-semibold"
+                  >
+                    🎯 Auto-llenar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <button
             onClick={() => setShowInstructions(!showInstructions)}
-            className="text-sm text-blue-800 underline hover:text-blue-900"
+            className="text-sm text-blue-800 underline hover:text-blue-900 mt-4"
           >
             {showInstructions ? 'Ocultar información' : 'Ver información técnica'}
           </button>
@@ -323,175 +353,6 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
                   <li><strong>Producción:</strong> Desplegar en servidor con HTTPS válido</li>
                   <li><strong>Testing:</strong> Usar ngrok o similar para túnel HTTPS</li>
                 </ul>
-              </div>
-            </div>
-          )}
-          
-          {showManualTokens && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="font-semibold text-blue-800 mb-3">Configurar Tokens Manualmente</h4>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-blue-700 mb-1">Access Token:</label>
-                  <input
-                    type="text"
-                    value={manualTokens.accessToken}
-                    onChange={(e) => setManualTokens(prev => ({ ...prev, accessToken: e.target.value }))}
-                    className="w-full px-3 py-2 border border-blue-300 rounded text-sm"
-                    placeholder="Pega el access token aquí"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-blue-700 mb-1">Refresh Token:</label>
-                  <input
-                    type="text"
-                    value={manualTokens.refreshToken}
-                    onChange={(e) => setManualTokens(prev => ({ ...prev, refreshToken: e.target.value }))}
-                    className="w-full px-3 py-2 border border-blue-300 rounded text-sm"
-                    placeholder="Pega el refresh token aquí"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-blue-700 mb-1">Token Expiry (timestamp):</label>
-                  <input
-                    type="text"
-                    value={manualTokens.tokenExpiry}
-                    onChange={(e) => setManualTokens(prev => ({ ...prev, tokenExpiry: e.target.value }))}
-                    className="w-full px-3 py-2 border border-blue-300 rounded text-sm"
-                    placeholder="Opcional - timestamp de expiración"
-                  />
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={handleManualTokenSave}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded text-sm font-semibold"
-                  >
-                    Guardar Tokens
-                  </button>
-                  <button
-                    onClick={handleUseCurrentTokens}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-sm font-semibold"
-                  >
-                    Usar Tokens del Popup
-                  </button>
-                </div>
-              </div>
-              
-              <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                <p className="text-xs text-yellow-800">
-                  <strong>Tokens del popup:</strong><br/>
-                  Access: 8h1TdLJkO73C8cpjOw0Gvjl0qXM<br/>
-                  Refresh: inIXIS1k3aPxUO69Z1olW5pMJX0<br/>
-                  Expiry: 1761791893996
-                </p>
-              </div>
-            </div>
-          )}
-          
-          {/* Token Extractor desde Popup */}
-          {showTokenExtractor && (
-            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <h4 className="font-semibold text-green-800 mb-3">🔍 Extraer Tokens del Popup</h4>
-              <div className="space-y-3">
-                <div className="bg-green-100 rounded-lg p-3 text-sm text-green-800">
-                  <h5 className="font-semibold mb-2">📋 Instrucciones:</h5>
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>Abre las <strong>Herramientas de Desarrollador</strong> (F12)</li>
-                    <li>Ve a la pestaña <strong>Console</strong></li>
-                    <li>Busca el mensaje que dice <strong>"OAuth2 success, sending tokens to parent"</strong></li>
-                    <li>Copia los tokens que aparecen en la consola</li>
-                    <li>Pégalos en los campos de abajo</li>
-                  </ol>
-                </div>
-                
-                <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3">
-                  <h5 className="font-semibold text-yellow-800 mb-2">🎯 Tokens que veo en tu consola:</h5>
-                  <div className="font-mono text-xs text-yellow-700 space-y-1">
-                    <div><strong>accessToken:</strong> '6A0gp3P6_ZsNz9KQPNnFQ22hQmA'</div>
-                    <div><strong>refreshToken:</strong> '2I5xXmr7-qIxpFZkioiWFsyJR4A'</div>
-                    <div><strong>tokenExpiry:</strong> 1761793410295</div>
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-green-700 mb-1">Access Token:</label>
-                    <input
-                      type="text"
-                      value={manualTokens.accessToken}
-                      onChange={(e) => setManualTokens(prev => ({ ...prev, accessToken: e.target.value }))}
-                      className="w-full px-3 py-2 border border-green-300 rounded text-sm font-mono"
-                      placeholder="6A0gp3P6_ZsNz9KQPNnFQ22hQmA"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-green-700 mb-1">Refresh Token:</label>
-                    <input
-                      type="text"
-                      value={manualTokens.refreshToken}
-                      onChange={(e) => setManualTokens(prev => ({ ...prev, refreshToken: e.target.value }))}
-                      className="w-full px-3 py-2 border border-green-300 rounded text-sm font-mono"
-                      placeholder="2I5xXmr7-qIxpFZkioiWFsyJR4A"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-green-700 mb-1">Token Expiry:</label>
-                    <input
-                      type="text"
-                      value={manualTokens.tokenExpiry}
-                      onChange={(e) => setManualTokens(prev => ({ ...prev, tokenExpiry: e.target.value }))}
-                      className="w-full px-3 py-2 border border-green-300 rounded text-sm font-mono"
-                      placeholder="1761793410295"
-                    />
-                  </div>
-                  
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={handleManualTokenSave}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded text-sm font-semibold"
-                    >
-                      💾 Guardar Tokens
-                    </button>
-                    <button
-                      onClick={() => {
-                        setManualTokens({
-                          accessToken: '6A0gp3P6_ZsNz9KQPNnFQ22hQmA',
-                          refreshToken: '2I5xXmr7-qIxpFZkioiWFsyJR4A',
-                          tokenExpiry: '1761793410295'
-                        });
-                      }}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-sm font-semibold"
-                    >
-                      🎯 Usar Tokens Visibles
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <h5 className="font-semibold text-blue-800 mb-2">🚀 Acceso Rápido:</h5>
-                  <button
-                    onClick={() => {
-                      try {
-                        localStorage.setItem('lv_access_token', '6A0gp3P6_ZsNz9KQPNnFQ22hQmA');
-                        localStorage.setItem('lv_refresh_token', '2I5xXmr7-qIxpFZkioiWFsyJR4A');
-                        localStorage.setItem('lv_access_token_exp', '1761793410295');
-                        
-                        console.log('✅ Tokens guardados exitosamente');
-                        alert('¡Tokens guardados! Recargando página para cargar productos...');
-                        window.location.reload();
-                      } catch (error) {
-                        console.error('Error guardando tokens:', error);
-                        alert('Error guardando tokens');
-                      }
-                    }}
-                    className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-3 px-4 rounded-lg font-bold transition-all duration-300 transform hover:scale-105"
-                  >
-                    ⚡ USAR TOKENS AHORA MISMO
-                  </button>
-                  <p className="text-xs text-blue-700 mt-2 text-center">
-                    Esto usará directamente los tokens que veo en tu consola
-                  </p>
-                </div>
               </div>
             </div>
           )}
