@@ -37,7 +37,7 @@ export async function getAccessToken(): Promise<string> {
   
   // Si el token existe y no ha expirado, devolverlo
   if (tok && Date.now() < exp) {
-    console.log('✅ Using cached access token');
+    console.log('✅ Using cached access token:', tok.substring(0, 20) + '...');
     return tok;
   }
 

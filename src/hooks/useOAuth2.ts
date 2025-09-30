@@ -26,6 +26,7 @@ export const useOAuth2 = () => {
     const tokenExpiry = localStorage.getItem('lv_access_token_exp');
 
     if (accessToken && refreshToken) {
+      console.log('✅ Found existing tokens in localStorage');
       setState(prev => ({
         ...prev,
         isConnected: true,
@@ -34,6 +35,59 @@ export const useOAuth2 = () => {
         tokenExpiry: tokenExpiry ? parseInt(tokenExpiry) : null
       }));
     }
+  }, []);
+
+  // Add message listener for OAuth popup
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      console.log('📨 Message received from popup:', event.data);
+      
+      // Security check - allow Supabase domain
+      if (event.origin.includes('supabase.co') || event.origin === window.location.origin) {
+        
+        if (event.data?.type === 'LOYVERSE_OAUTH_SUCCESS') {
+          console.log('✅ OAuth success! Saving tokens...');
+          
+          // Save tokens immediately
+          localStorage.setItem('lv_access_token', event.data.accessToken);
+          localStorage.setItem('lv_refresh_token', event.data.refreshToken);
+          localStorage.setItem('lv_access_token_exp', event.data.tokenExpiry.toString());
+          
+          // Update state
+          setState({
+            isConnected: true,
+            loading: false,
+            error: null,
+            accessToken: event.data.accessToken,
+            refreshToken: event.data.refreshToken,
+            tokenExpiry: event.data.tokenExpiry
+          });
+          
+          console.log('✅ Tokens saved successfully');
+          
+          // Reload page to use new tokens
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+          
+        } else if (event.data?.type === 'LOYVERSE_OAUTH_ERROR') {
+          console.error('❌ OAuth error:', event.data.error);
+          setState(prev => ({ 
+            ...prev, 
+            loading: false, 
+            error: event.data.error 
+          }));
+        }
+      }
+    };
+
+    // Add the listener
+    window.addEventListener('message', handleMessage);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
   }, []);
 
   const initiateOAuth2Flow = () => {
@@ -59,72 +113,10 @@ export const useOAuth2 = () => {
       return;
     }
 
-    // Message handler - GUARDAR TOKENS INMEDIATAMENTE
-    const handleMessage = (event: MessageEvent) => {
-      console.log('📨 Message received:', event.data);
-      
-      if (event.data?.type === 'LOYVERSE_OAUTH_SUCCESS') {
-        console.log('✅ OAuth success! Guardando tokens...');
-        
-        // GUARDAR TOKENS EN LOCALSTORAGE
-        localStorage.setItem('lv_access_token', event.data.accessToken);
-        localStorage.setItem('lv_refresh_token', event.data.refreshToken);
-        localStorage.setItem('lv_access_token_exp', event.data.tokenExpiry.toString());
-
-        // ACTUALIZAR ESTADO
-        setState({
-          isConnected: true,
-          loading: false,
-          error: null,
-          accessToken: event.data.accessToken,
-          refreshToken: event.data.refreshToken,
-          tokenExpiry: event.data.tokenExpiry
-        });
-
-        console.log('✅ Tokens guardados exitosamente');
-        
-        // CERRAR POPUP FORZADAMENTE
-        try {
-          popup.close();
-        } catch (e) {
-          console.log('Popup ya cerrado');
-        }
-        
-        // LIMPIAR LISTENERS
-        window.removeEventListener('message', handleMessage);
-        clearInterval(checkClosed);
-        
-        // RECARGAR PÁGINA PARA USAR TOKENS
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-        
-      } else if (event.data?.type === 'LOYVERSE_OAUTH_ERROR') {
-        console.error('❌ OAuth error:', event.data.error);
-        setState(prev => ({ 
-          ...prev, 
-          loading: false, 
-          error: event.data.error 
-        }));
-        
-        try {
-          popup.close();
-        } catch (e) {
-          console.log('Popup ya cerrado');
-        }
-        
-        window.removeEventListener('message', handleMessage);
-        clearInterval(checkClosed);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-
     // Check if popup closed manually
     const checkClosed = setInterval(() => {
       if (popup.closed) {
-        console.log('🔄 Popup cerrado manualmente');
-        window.removeEventListener('message', handleMessage);
+        console.log('🔄 Popup closed manually');
         clearInterval(checkClosed);
         setState(prev => ({ 
           ...prev, 
@@ -134,15 +126,14 @@ export const useOAuth2 = () => {
       }
     }, 1000);
 
-    // Timeout después de 2 minutos
+    // Timeout after 2 minutes
     setTimeout(() => {
       if (!popup.closed) {
         try {
           popup.close();
         } catch (e) {
-          console.log('No se pudo cerrar popup');
+          console.log('Could not close popup');
         }
-        window.removeEventListener('message', handleMessage);
         clearInterval(checkClosed);
         setState(prev => ({ 
           ...prev, 
