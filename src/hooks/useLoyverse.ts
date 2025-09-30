@@ -211,13 +211,6 @@ export const useLoyverseProducts = () => {
     console.log('🔄 useLoyverse: Component mounted, checking tokens...');
     console.log('🔍 Has valid tokens:', hasValidTokens());
     console.log('🔍 Direct token available:', !!import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN);
-    
-    // Verificar si hay tokens en localStorage
-    const storedToken = localStorage.getItem('lv_access_token');
-    if (storedToken) {
-      console.log('✅ Found stored OAuth token:', storedToken.substring(0, 20) + '...');
-    }
-    
     fetchProducts();
   }, []);
 
