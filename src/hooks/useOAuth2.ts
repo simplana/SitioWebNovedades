@@ -117,6 +117,19 @@ export const useOAuth2 = () => {
     console.log('🚀 Starting OAuth2 flow...');
     setState(prev => ({ ...prev, loading: true, error: null }));
 
+    // Primero verificar si el navegador permite popups
+    const testPopup = window.open('', 'test', 'width=1,height=1');
+    if (!testPopup) {
+      console.error('❌ Popup blocked by browser');
+      setState(prev => ({ 
+        ...prev,
+        loading: false, 
+        error: 'El navegador está bloqueando popups. Por favor permite popups para este sitio y vuelve a intentar.' 
+      }));
+      return;
+    }
+    testPopup.close();
+
     const clientId = 'na0tlm2Whq22j3jTPV_l';
     const redirectUri = encodeURIComponent('https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback');
     const scopes = 'ITEMS_READ%20CUSTOMERS_READ%20RECEIPTS_READ%20OPENID';
@@ -133,7 +146,7 @@ export const useOAuth2 = () => {
       setState(prev => ({ 
         ...prev,
         loading: false, 
-        error: 'No se pudo abrir la ventana emergente. Verifica que no esté bloqueada por el navegador.' 
+        error: 'Popup bloqueado. Habilita popups para este sitio en tu navegador y vuelve a intentar.' 
       }));
       return;
     }
