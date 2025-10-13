@@ -76,12 +76,14 @@ export const useLoyverseProducts = () => {
         throw new Error('Authentication failed: No valid access token');
       }
       
-      let url = buildApiUrl('items') + '?limit=50';
+      // Use edge function proxy to avoid CORS issues
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      let url = `${supabaseUrl}/functions/v1/loyverse-api-proxy?endpoint=items&limit=50`;
       if (cursor) {
         url += `&cursor=${cursor}`;
       }
 
-      console.log('Making request to:', url);
+      console.log('Making request to proxy:', url);
 
       const response = await fetch(url, {
         method: 'GET',
