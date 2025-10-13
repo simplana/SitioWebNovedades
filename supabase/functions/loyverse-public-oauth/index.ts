@@ -86,7 +86,7 @@ Deno.serve(async (req: Request) => {
     
     // En Edge Functions, las variables de entorno se acceden con Deno.env.get()
     const clientId = Deno.env.get('LOYVERSE_CLIENT_ID') || 'dCcISKLUxosXUJvjIcSN'
-    const clientSecret = Deno.env.get('LOYVERSE_CLIENT_SECRET') || 'G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw===='
+    const clientSecret = Deno.env.get('LOYVERSE_CLIENT_SECRET') || '0gimBKgOZ0JgKKK1v_9caB48vpNMz6qp-yMum46iliXspzF-CTTLCg=='
     const redirectUri = Deno.env.get('LOYVERSE_REDIRECT_URL') || 'https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback'
     
     console.log('🔑 Using credentials:')
