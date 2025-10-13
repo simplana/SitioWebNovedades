@@ -52,28 +52,29 @@ export const useLoyverseProducts = () => {
 
   const fetchProducts = async (cursor?: string, page: number = 1, retryCount: number = 0) => {
     try {
-      console.log('Fetching products from Loyverse API...');
+      console.log('📦 Fetching products from Loyverse API...');
 
-      // Intentar obtener token de acceso
-      let accessToken;
-      try {
-        if (hasValidTokens()) {
+      // Get access token - priority: OAuth tokens > env token
+      let accessToken: string;
+
+      if (hasValidTokens()) {
+        // Use OAuth tokens from localStorage (managed by useOAuth2)
+        try {
           accessToken = await getAccessToken();
-          console.log('Using OAuth2 access token:', accessToken.substring(0, 20) + '...');
-        } else {
-          console.log('No valid tokens found, attempting direct API call...');
-          // Intentar usar token directo si está disponible
-          const directToken = import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN;
-          if (directToken && directToken !== 'your-loyverse-token-here') {
-            accessToken = directToken;
-            console.log('Using direct access token from env');
-          } else {
-            throw new Error('No access token available');
-          }
+          console.log('✅ Using OAuth2 access token');
+        } catch (tokenError) {
+          console.error('❌ OAuth token error:', tokenError);
+          throw new Error('Authentication failed: Invalid OAuth tokens');
         }
-      } catch (tokenError) {
-        console.warn('Token error:', tokenError);
-        throw new Error('Authentication failed: No valid access token');
+      } else {
+        // Fallback to env token only if no OAuth tokens exist
+        const directToken = import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN;
+        if (directToken && directToken !== 'your-loyverse-token-here') {
+          accessToken = directToken;
+          console.log('⚠️ Using fallback access token from .env (OAuth recommended)');
+        } else {
+          throw new Error('No access token available. Please complete OAuth2 setup in Admin panel.');
+        }
       }
       
       // Use edge function proxy to avoid CORS issues
@@ -222,11 +223,21 @@ export const useLoyverseProducts = () => {
 
 
   useEffect(() => {
-    console.log('🔄 useLoyverse: Component mounted, checking tokens...');
-    console.log('🔍 Has valid tokens:', hasValidTokens());
-    console.log('🔍 Direct token available:', !!import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN);
-    console.log('🔍 OAuth Access Token:', oauthAccessToken ? oauthAccessToken.substring(0, 20) + '...' : 'None');
-    fetchProducts();
+    console.log('🔄 useLoyverse: Initializing product fetch...');
+    console.log('🔍 OAuth tokens available:', hasValidTokens());
+    console.log('🔍 OAuth access token from hook:', oauthAccessToken ? '✅ Present' : '❌ None');
+
+    // Only fetch if we have tokens (either OAuth or env)
+    const hasAuth = hasValidTokens() ||
+      (import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN &&
+       import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN !== 'your-loyverse-token-here');
+
+    if (hasAuth) {
+      fetchProducts();
+    } else {
+      setLoading(false);
+      setError('Authentication required: Please complete OAuth2 setup in Admin panel');
+    }
   }, [oauthAccessToken]);
 
   const goToPage = async (page: number) => {
