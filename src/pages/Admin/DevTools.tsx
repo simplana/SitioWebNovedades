@@ -18,6 +18,7 @@ const DevTools = () => {
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualAccessToken, setManualAccessToken] = useState('');
   const [manualRefreshToken, setManualRefreshToken] = useState('');
+  const [manualExpiresIn, setManualExpiresIn] = useState('3600');
 
   const isTokenExpired = tokenExpiry ? Date.now() >= tokenExpiry : false;
 
@@ -172,11 +173,31 @@ const DevTools = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Expires In (segundos)
+                  </label>
+                  <input
+                    type="number"
+                    value={manualExpiresIn}
+                    onChange={(e) => setManualExpiresIn(e.target.value)}
+                    placeholder="3600"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Tiempo en segundos hasta que expire el token (por defecto: 3600 = 1 hora)
+                  </p>
+                </div>
                 <button
                   onClick={() => {
-                    setTokensManually(manualAccessToken, manualRefreshToken);
+                    setTokensManually(
+                      manualAccessToken,
+                      manualRefreshToken,
+                      parseInt(manualExpiresIn) || 3600
+                    );
                     setManualAccessToken('');
                     setManualRefreshToken('');
+                    setManualExpiresIn('3600');
                     setShowManualInput(false);
                   }}
                   disabled={!manualAccessToken || !manualRefreshToken}

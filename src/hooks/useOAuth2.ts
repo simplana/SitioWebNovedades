@@ -244,7 +244,7 @@ export const useOAuth2 = () => {
   };
 
   // Set tokens manually
-  const setTokensManually = (accessToken: string, refreshToken: string) => {
+  const setTokensManually = (accessToken: string, refreshToken: string, expiresIn?: number) => {
     if (!accessToken || !refreshToken) {
       setState(prev => ({
         ...prev,
@@ -253,8 +253,10 @@ export const useOAuth2 = () => {
       return;
     }
 
-    // Store tokens (set expiry to 1 year from now)
-    const tokenExpiry = Date.now() + (365 * 24 * 60 * 60 * 1000);
+    // Calculate token expiry: if expiresIn provided, use it (subtract 30 seconds for safety), otherwise set to 1 hour
+    const expirySeconds = expiresIn ? expiresIn - 30 : 3600;
+    const tokenExpiry = Date.now() + (expirySeconds * 1000);
+
     localStorage.setItem('lv_access_token', accessToken);
     localStorage.setItem('lv_refresh_token', refreshToken);
     localStorage.setItem('lv_access_token_exp', tokenExpiry.toString());
@@ -269,6 +271,7 @@ export const useOAuth2 = () => {
     });
 
     console.log('✅ Tokens manuales guardados exitosamente');
+    console.log(`   - Expira en: ${expirySeconds} segundos (${new Date(tokenExpiry).toLocaleString()})`);
   };
 
   return {
