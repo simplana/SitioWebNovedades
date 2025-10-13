@@ -102,7 +102,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    let loyverseUrl = `https://api.loyverse.com/v1/items?limit=${limit}`;
+    let loyverseUrl = `https://api.loyverse.com/v1.0/items?limit=${limit}`;
 
     if (cursor) loyverseUrl += `&cursor=${cursor}`;
     if (itemsIds) loyverseUrl += `&items_ids=${itemsIds}`;
