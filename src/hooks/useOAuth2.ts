@@ -149,16 +149,39 @@ export const useOAuth2 = () => {
 
     window.addEventListener('message', handleMessage);
 
-    const checkClosed = setInterval(() => {
+    const checkClosed = setInterval(async () => {
       if (popup.closed) {
-        console.log('🔄 Popup was closed manually');
+        console.log('🔄 Popup was closed');
         window.removeEventListener('message', handleMessage);
         clearInterval(checkClosed);
-        if (state.loading) {
+
+        console.log('🔍 Checking database for saved credentials...');
+
+        const { data, error } = await supabase
+          .from('loyverse_credentials')
+          .select('id, is_active')
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (data) {
+          console.log('✅ Credentials found in database! OAuth was successful.');
+          setState({
+            isConnected: true,
+            loading: false,
+            error: null,
+            tokenExpiry: null,
+          });
+
+          setTimeout(() => {
+            console.log('🔄 Reloading page to refresh products...');
+            window.location.reload();
+          }, 500);
+        } else {
+          console.log('❌ No credentials found in database');
           setState(prev => ({
             ...prev,
             loading: false,
-            error: null,
+            error: error ? error.message : 'No se encontraron credenciales. Intenta de nuevo.',
           }));
         }
       }
