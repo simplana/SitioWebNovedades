@@ -188,30 +188,38 @@ Deno.serve(async (req: Request) => {
     console.log("✅ Tokens saved successfully to database!");
 
     return new Response(
-      `<script>
+      `<html>
+      <head><title>OAuth Success</title></head>
+      <body>
+      <script>
         console.log('✅ OAuth2 success, credentials saved to database');
         if (window.opener) {
           window.opener.postMessage({
             type: 'LOYVERSE_OAUTH_SUCCESS',
             connectionId: '${state}'
           }, '*');
-          console.log('✅ Message sent to parent');
+          console.log('✅ Message sent to parent window');
+        } else {
+          console.warn('⚠️ No window.opener found');
         }
 
         setTimeout(() => {
+          console.log('Closing popup window...');
           try {
             window.close();
           } catch (e) {
-            console.log('Forcing close...');
+            console.log('Forcing close via about:blank');
             window.location.href = 'about:blank';
           }
-        }, 100);
+        }, 2000);
       </script>
-      <div style="text-align: center; padding: 20px; font-family: Arial;">
+      <div style="text-align: center; padding: 40px; font-family: Arial;">
         <h2 style="color: #059669;">✅ ¡Conectado!</h2>
         <p>Credenciales guardadas de forma segura.</p>
-        <p>Cerrando ventana...</p>
-      </div>`,
+        <p>Esta ventana se cerrará automáticamente en 2 segundos...</p>
+      </div>
+      </body>
+      </html>`,
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "text/html" },
