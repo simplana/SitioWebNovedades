@@ -99,12 +99,18 @@ export const useOAuth2 = () => {
 
     console.log('✅ Popup opened successfully');
 
+    let intervalId: NodeJS.Timeout | null = null;
+    let hasCheckedDatabase = false;
+
     const handleMessage = (event: MessageEvent) => {
-      console.log('✅ Processing message from:', event.origin);
+      console.log('📨 Message received from:', event.origin, event.data);
 
       if (event.data && typeof event.data === 'object') {
         if (event.data.type === 'LOYVERSE_OAUTH_SUCCESS') {
-          console.log('OAuth2 success received');
+          console.log('✅ OAuth2 success message received!');
+
+          window.removeEventListener('message', handleMessage);
+          if (intervalId) clearInterval(intervalId);
 
           setState({
             isConnected: true,
@@ -113,30 +119,28 @@ export const useOAuth2 = () => {
             tokenExpiry: null,
           });
 
-          window.removeEventListener('message', handleMessage);
-          clearInterval(checkClosed);
-
           try {
             popup.close();
           } catch (e) {
-            console.log('❌ Could not close popup manually:', e);
+            console.log('Note: Could not close popup manually:', e);
           }
 
           setTimeout(() => {
             console.log('🔄 Reloading page to refresh connection status...');
             window.location.reload();
-          }, 200);
+          }, 500);
 
         } else if (event.data.type === 'LOYVERSE_OAUTH_ERROR') {
-          console.error('OAuth2 error received:', event.data.error);
+          console.error('❌ OAuth2 error received:', event.data.error);
+
+          window.removeEventListener('message', handleMessage);
+          if (intervalId) clearInterval(intervalId);
+
           setState(prev => ({
             ...prev,
             loading: false,
             error: event.data.error,
           }));
-
-          window.removeEventListener('message', handleMessage);
-          clearInterval(checkClosed);
 
           try {
             popup.close();
@@ -149,41 +153,69 @@ export const useOAuth2 = () => {
 
     window.addEventListener('message', handleMessage);
 
-    const checkClosed = setInterval(async () => {
-      if (popup.closed) {
-        console.log('🔄 Popup was closed');
-        window.removeEventListener('message', handleMessage);
-        clearInterval(checkClosed);
+    const checkDatabaseForCredentials = async () => {
+      if (hasCheckedDatabase) return;
 
-        console.log('🔍 Checking database for saved credentials...');
+      console.log('🔍 Checking database for saved credentials...');
+      hasCheckedDatabase = true;
 
-        const { data, error } = await supabase
+      try {
+        const { data, error: dbError } = await supabase
           .from('loyverse_credentials')
-          .select('id, is_active')
+          .select('id, is_active, token_expiry')
           .eq('is_active', true)
           .maybeSingle();
 
+        console.log('Database check result:', { data, dbError });
+
         if (data) {
           console.log('✅ Credentials found in database! OAuth was successful.');
+
+          window.removeEventListener('message', handleMessage);
+          if (intervalId) clearInterval(intervalId);
+
           setState({
             isConnected: true,
             loading: false,
             error: null,
-            tokenExpiry: null,
+            tokenExpiry: data.token_expiry,
           });
 
           setTimeout(() => {
             console.log('🔄 Reloading page to refresh products...');
             window.location.reload();
-          }, 500);
+          }, 1000);
         } else {
-          console.log('❌ No credentials found in database');
+          console.log('❌ No credentials found in database. Error:', dbError);
           setState(prev => ({
             ...prev,
             loading: false,
-            error: error ? error.message : 'No se encontraron credenciales. Intenta de nuevo.',
+            error: dbError ? dbError.message : 'No se encontraron credenciales. Por favor intenta conectar de nuevo.',
           }));
         }
+      } catch (err) {
+        console.error('Error checking database:', err);
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          error: 'Error verificando la conexión. Por favor intenta de nuevo.',
+        }));
+      }
+    };
+
+    intervalId = setInterval(() => {
+      try {
+        if (popup.closed) {
+          console.log('🔄 Popup window closed, checking database...');
+          window.removeEventListener('message', handleMessage);
+          if (intervalId) clearInterval(intervalId);
+
+          setTimeout(() => {
+            checkDatabaseForCredentials();
+          }, 1000);
+        }
+      } catch (e) {
+        console.error('Error in popup check interval:', e);
       }
     }, 500);
   };
