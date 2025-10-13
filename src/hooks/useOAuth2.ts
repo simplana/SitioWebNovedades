@@ -243,10 +243,39 @@ export const useOAuth2 = () => {
     });
   };
 
+  // Set tokens manually
+  const setTokensManually = (accessToken: string, refreshToken: string) => {
+    if (!accessToken || !refreshToken) {
+      setState(prev => ({
+        ...prev,
+        error: 'Access Token y Refresh Token son requeridos'
+      }));
+      return;
+    }
+
+    // Store tokens (set expiry to 1 year from now)
+    const tokenExpiry = Date.now() + (365 * 24 * 60 * 60 * 1000);
+    localStorage.setItem('lv_access_token', accessToken);
+    localStorage.setItem('lv_refresh_token', refreshToken);
+    localStorage.setItem('lv_access_token_exp', tokenExpiry.toString());
+
+    setState({
+      isConnected: true,
+      loading: false,
+      error: null,
+      accessToken,
+      refreshToken,
+      tokenExpiry
+    });
+
+    console.log('✅ Tokens manuales guardados exitosamente');
+  };
+
   return {
     ...state,
     initiateOAuth2Flow,
     disconnect,
-    exchangeCodeForTokens
+    exchangeCodeForTokens,
+    setTokensManually
   };
 };
