@@ -29,9 +29,17 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
   const handleAuthorize = () => {
     try {
       console.log('🚀 Intentando abrir popup de OAuth...');
-      
-      const authUrl = 'https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback?code=test&state=demo';
-      
+
+      // Construir URL de autorización de Loyverse
+      const clientId = import.meta.env.VITE_LOYVERSE_CLIENT_ID || 'dCcISKLUxosXUJvjIcSN';
+      const redirectUri = encodeURIComponent('https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback');
+      const scope = encodeURIComponent('ITEMS_READ INVENTORY_READ CUSTOMERS_READ');
+      const state = `oauth_${Date.now()}`;
+
+      const authUrl = `https://api.loyverse.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${state}`;
+
+      console.log('🔗 Opening Loyverse authorization URL:', authUrl);
+
       const popup = window.open(
         authUrl,
         'loyverse-oauth',
@@ -45,13 +53,34 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
       }
       
       console.log('✅ Popup opened successfully');
-      
-      // Monitor popup
+
+      // Listen for OAuth callback messages
+      const messageHandler = (event: MessageEvent) => {
+        console.log('📨 Received message:', event.data);
+
+        if (event.data.type === 'LOYVERSE_OAUTH_SUCCESS') {
+          console.log('✅ OAuth success received');
+          // Tokens are already saved by the callback page
+          popup?.close();
+          window.removeEventListener('message', messageHandler);
+          window.location.reload();
+        } else if (event.data.type === 'LOYVERSE_OAUTH_ERROR') {
+          console.error('❌ OAuth error received:', event.data.error);
+          popup?.close();
+          window.removeEventListener('message', messageHandler);
+          alert(`Error de OAuth: ${event.data.error}`);
+        }
+      };
+
+      window.addEventListener('message', messageHandler);
+
+      // Monitor popup closure as fallback
       const checkClosed = setInterval(() => {
-        if (popup.closed) {
-          console.log('🔄 Popup closed, checking for tokens...');
+        if (popup?.closed) {
+          console.log('🔄 Popup closed');
           clearInterval(checkClosed);
-          
+          window.removeEventListener('message', messageHandler);
+
           // Check if tokens were saved
           setTimeout(() => {
             if (hasValidTokens()) {
@@ -60,7 +89,7 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
             } else {
               console.log('❌ No tokens found after popup closed');
             }
-          }, 1000);
+          }, 500);
         }
       }, 1000);
       
