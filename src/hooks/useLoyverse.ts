@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAccessToken, hasValidTokens, clearStoredTokens } from '../lib/loyverse/auth';
-import { buildApiUrl } from '../lib/loyverse/url';
-import { useOAuth2 } from './useOAuth2';
+import { supabase } from '../lib/supabase';
 
 export interface LoyverseProduct {
   id: string;
@@ -38,7 +36,6 @@ export interface PaginationInfo {
 }
 
 export const useLoyverseProducts = () => {
-  const { refreshAccessToken, accessToken: oauthAccessToken } = useOAuth2();
   const [products, setProducts] = useState<LoyverseProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,111 +45,55 @@ export const useLoyverseProducts = () => {
     hasNextPage: false,
     hasPreviousPage: false
   });
-  const [cursors, setCursors] = useState<string[]>(['']); // Array to store cursors for each page
+  const [cursors, setCursors] = useState<string[]>(['']);
+  const [needsAuth, setNeedsAuth] = useState(false);
 
-  const fetchProducts = async (cursor?: string, page: number = 1, retryCount: number = 0) => {
+  const fetchProducts = async (cursor?: string, page: number = 1) => {
     try {
-      console.log('📦 Fetching products from Loyverse API...');
+      console.log('📦 Fetching products from Edge Function...');
+      setLoading(true);
 
-      // Get access token - priority: OAuth tokens > env token
-      let accessToken: string;
-
-      if (hasValidTokens()) {
-        // Use OAuth tokens from localStorage (managed by useOAuth2)
-        try {
-          accessToken = await getAccessToken();
-          console.log('✅ Using OAuth2 access token');
-        } catch (tokenError) {
-          console.error('❌ OAuth token error:', tokenError);
-          throw new Error('Authentication failed: Invalid OAuth tokens');
-        }
-      } else {
-        // Fallback to env token only if no OAuth tokens exist
-        const directToken = import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN;
-        if (directToken && directToken !== 'your-loyverse-token-here') {
-          accessToken = directToken;
-          console.log('⚠️ Using fallback access token from .env (OAuth recommended)');
-        } else {
-          throw new Error('No access token available. Please complete OAuth2 setup in Admin panel.');
-        }
-      }
-      
-      // Use edge function proxy to avoid CORS issues
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      let url = `${supabaseUrl}/functions/v1/loyverse-api-proxy?endpoint=items&limit=50`;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      let url = `${supabaseUrl}/functions/v1/loyverse-get-items?limit=50`;
       if (cursor) {
         url += `&cursor=${cursor}`;
       }
 
-      console.log('Making request to proxy:', url);
+      console.log('Making request to Edge Function:', url);
 
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${anonKey}`,
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+          'Accept': 'application/json',
+        },
       });
 
       console.log('Response received:', response.status, response.statusText);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error:', errorText);
+        const errorData = await response.json();
+        console.error('API Error:', errorData);
 
-        if (response.status === 401 && retryCount === 0) {
-          console.warn('Unauthorized - attempting to refresh token...');
-          const refreshed = await refreshAccessToken();
-          if (refreshed) {
-            console.log('Token refreshed successfully, retrying request...');
-            return fetchProducts(cursor, page, retryCount + 1);
-          } else {
-            clearStoredTokens();
-            throw new Error('Authentication failed: Unable to refresh token');
-          }
-        } else if (response.status === 401) {
-          console.warn('Unauthorized after refresh - clearing tokens');
-          clearStoredTokens();
-          throw new Error('Authentication failed: Invalid or expired token');
-        } else if (response.status === 403) {
-          throw new Error('Access forbidden: Check your API permissions');
-        } else if (response.status === 429) {
-          throw new Error('Rate limit exceeded: Too many requests');
-        } else {
-          throw new Error(`API Error: ${response.status} - ${errorText}`);
+        if (response.status === 401) {
+          setNeedsAuth(true);
+          throw new Error('No Loyverse connection found. Please connect in Admin panel.');
         }
+
+        throw new Error(errorData.error || `API Error: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Data received from Loyverse API, items found:', Array.isArray(data) ? data.length : (data.items?.length || 0));
+      console.log('Data received from Edge Function, items found:', data.items?.length || 0);
 
-      // Intentar diferentes estructuras de respuesta de Loyverse
-      let items: any[] = [];
-      
-      if (Array.isArray(data)) {
-        console.log('Data is direct array');
-        items = data;
-      } else if (data.items && Array.isArray(data.items)) {
-        console.log('Data has items property');
-        items = data.items;
-      } else if (data.data && Array.isArray(data.data)) {
-        console.log('Data has data property');
-        items = data.data;
-      } else if (data.results && Array.isArray(data.results)) {
-        console.log('Data has results property');
-        items = data.results;
-      } else {
-        console.log('Unrecognized data structure, available properties:', Object.keys(data));
-        throw new Error('Unrecognized data structure from Loyverse API');
-      }
+      const items = data.items || [];
 
-      console.log('Items found:', items.length);
-
-      const loyverseProducts: LoyverseProduct[] = items.map((item: any, index: number) => {
-        // Obtener el primer variant para precio y disponibilidad
+      const loyverseProducts: LoyverseProduct[] = items.map((item: any) => {
         const firstVariant = item.variants?.[0];
-        
+
         return {
           id: item.id,
           name: item.item_name || item.name || 'Producto sin nombre',
@@ -164,8 +105,8 @@ export const useLoyverseProducts = () => {
           availableForSale: firstVariant?.stores?.[0]?.available_for_sale ?? true,
           trackStock: item.track_stock ?? false,
           options: firstVariant?.option1_value || undefined,
-          isNew: false, // Loyverse no tiene este campo, podríamos usar created_at
-          isFeatured: false, // Loyverse no tiene este campo
+          isNew: false,
+          isFeatured: false,
           variants: item.variants?.map((variant: any) => ({
             variantId: variant.variant_id,
             sku: variant.sku,
@@ -181,10 +122,9 @@ export const useLoyverseProducts = () => {
       console.log('Products processed successfully:', loyverseProducts.length);
 
       setProducts(loyverseProducts);
-      
-      // Update pagination info
+
       const nextCursor = data.cursor || data.next_cursor || data.pagination?.next_cursor;
-      const hasNextPage = !!nextCursor && items.length === 50; // Solo hay siguiente página si obtuvimos 50 items completos
+      const hasNextPage = !!nextCursor && items.length === 50;
       const newPagination: PaginationInfo = {
         currentPage: page,
         totalPages: hasNextPage ? page + 1 : page,
@@ -192,10 +132,9 @@ export const useLoyverseProducts = () => {
         hasPreviousPage: page > 1,
         cursor: nextCursor
       };
-      
+
       setPagination(newPagination);
-      
-      // Store cursor for next page if it exists
+
       if (nextCursor && !cursors.includes(nextCursor)) {
         setCursors(prev => {
           const newCursors = [...prev];
@@ -203,12 +142,13 @@ export const useLoyverseProducts = () => {
           return newCursors;
         });
       }
-      
+
       setError(null);
+      setNeedsAuth(false);
 
     } catch (err) {
-      console.error('Error connecting to Loyverse:', err);
-      setError(err instanceof Error ? err.message : 'Failed to connect to Loyverse API');
+      console.error('Error fetching products:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch products');
       setProducts([]);
       setPagination({
         currentPage: 1,
@@ -221,35 +161,36 @@ export const useLoyverseProducts = () => {
     }
   };
 
-
   useEffect(() => {
     console.log('🔄 useLoyverse: Initializing product fetch...');
-    console.log('🔍 OAuth tokens available:', hasValidTokens());
-    console.log('🔍 OAuth access token from hook:', oauthAccessToken ? '✅ Present' : '❌ None');
 
-    // Only fetch if we have tokens (either OAuth or env)
-    const hasAuth = hasValidTokens() ||
-      (import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN &&
-       import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN !== 'your-loyverse-token-here');
+    const checkConnectionAndFetch = async () => {
+      const { data: credentials } = await supabase
+        .from('loyverse_credentials')
+        .select('is_active')
+        .eq('is_active', true)
+        .maybeSingle();
 
-    if (hasAuth) {
-      fetchProducts();
-    } else {
-      setLoading(false);
-      setError('Authentication required: Please complete OAuth2 setup in Admin panel');
-    }
-  }, [oauthAccessToken]);
+      if (credentials) {
+        fetchProducts();
+      } else {
+        setLoading(false);
+        setNeedsAuth(true);
+        setError('Authentication required: Please connect to Loyverse in Admin panel');
+      }
+    };
+
+    checkConnectionAndFetch();
+  }, []);
 
   const goToPage = async (page: number) => {
     if (page < 1) return;
-    
+
     setLoading(true);
-    
+
     if (page === 1) {
-      // First page, no cursor needed
       await fetchProducts(undefined, 1);
     } else {
-      // Use stored cursor for the previous page
       const cursor = cursors[page - 1];
       await fetchProducts(cursor, page);
     }
@@ -277,24 +218,22 @@ export const useLoyverseProducts = () => {
   };
 
   const getNewProducts = (limit?: number) => {
-    // Como Loyverse no tiene campo "isNew", usamos los productos más recientes
     const newProducts = products.slice(0, limit || products.length);
     return limit ? newProducts.slice(0, limit) : newProducts;
   };
 
   const getFeaturedProducts = (limit?: number) => {
     if (products.length === 0) return [];
-    
-    // Usar productos con precio más alto como destacados
+
     const featuredProducts = [...products]
       .sort((a, b) => (b.price || 0) - (a.price || 0))
       .slice(0, limit || products.length);
     return featuredProducts;
   };
-  
+
   const getCategories = () => {
     if (products.length === 0) return ['Todos'];
-    
+
     const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
     return ['Todos', ...categories];
   };
@@ -311,6 +250,6 @@ export const useLoyverseProducts = () => {
     getProductsByCategory,
     getFeaturedProducts,
     getCategories,
-    needsAuth: !hasValidTokens() && !import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN
+    needsAuth
   };
 };

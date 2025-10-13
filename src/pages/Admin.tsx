@@ -19,7 +19,6 @@ import {
   AlertCircle
 } from 'lucide-react';
 import PagueloFacilTestButton from '../components/PagueloFacilTestButton';
-import LoyverseAuthButton from '../components/LoyverseAuthButton';
 import DevTools from './Admin/DevTools';
 
 interface QuoteRequest {
@@ -291,9 +290,6 @@ const Admin = () => {
                   
                   <PagueloFacilTestButton />
                 </div>
-                
-                {/* Estado de Loyverse */}
-                <LoyverseAuthButton />
               </div>
             </div>
 

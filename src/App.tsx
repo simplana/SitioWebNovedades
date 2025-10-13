@@ -18,7 +18,6 @@ import Checkout from './pages/Checkout';
 import Orders from './pages/Orders';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
-import LoyverseCallback from './pages/LoyverseCallback';
 import DevTools from './pages/Admin/DevTools';
 
 function App() {
@@ -62,7 +61,6 @@ function App() {
             <Route path="/orders" element={<Orders />} />
             <Route path="/payment/success" element={<PaymentSuccess />} />
             <Route path="/payment/cancel" element={<PaymentCancel />} />
-            <Route path="/auth/loyverse/callback" element={<LoyverseCallback />} />
             <Route path="/admin/dev" element={<DevTools />} />
           </Routes>
         </main>

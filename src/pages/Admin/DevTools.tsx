@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Settings, Zap, CheckCircle, XCircle, LogIn, LogOut, AlertTriangle, Key } from 'lucide-react';
+import React from 'react';
+import { Settings, Zap, CheckCircle, XCircle, LogIn, LogOut, AlertTriangle } from 'lucide-react';
 import { useOAuth2 } from '../../hooks/useOAuth2';
 import PagueloFacilTestButton from '../../components/PagueloFacilTestButton';
 
@@ -8,19 +8,12 @@ const DevTools = () => {
     isConnected,
     loading,
     error,
-    accessToken,
     tokenExpiry,
     initiateOAuth2Flow,
     disconnect,
-    setTokensManually
   } = useOAuth2();
 
-  const [showManualInput, setShowManualInput] = useState(false);
-  const [manualAccessToken, setManualAccessToken] = useState('');
-  const [manualRefreshToken, setManualRefreshToken] = useState('');
-  const [manualExpiresIn, setManualExpiresIn] = useState('3600');
-
-  const isTokenExpired = tokenExpiry ? Date.now() >= tokenExpiry : false;
+  const isTokenExpired = tokenExpiry ? Date.now() >= new Date(tokenExpiry).getTime() : false;
 
   return (
     <div className="space-y-8">
@@ -69,14 +62,6 @@ const DevTools = () => {
                   }
                 </span>
               </div>
-              {accessToken && (
-                <div className="flex justify-between">
-                  <span>Token:</span>
-                  <span className="font-mono text-xs">
-                    {accessToken.substring(0, 20)}...
-                  </span>
-                </div>
-              )}
               {tokenExpiry && (
                 <div className="flex justify-between">
                   <span>Expira:</span>
@@ -102,37 +87,28 @@ const DevTools = () => {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3">
-            {!isConnected || isTokenExpired ? (
-              <>
-                <button
-                  onClick={initiateOAuth2Flow}
-                  disabled={loading}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300 ${
-                    loading
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700 transform hover:scale-105'
-                  } text-white`}
-                >
-                  {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>Conectando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="h-4 w-4" />
-                      <span>Conectar con Loyverse</span>
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={() => setShowManualInput(!showManualInput)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-semibold transition-all duration-300 transform hover:scale-105"
-                >
-                  <Key className="h-4 w-4" />
-                  <span>{showManualInput ? 'Ocultar' : 'Ingresar Tokens Manualmente'}</span>
-                </button>
-              </>
+            {!isConnected ? (
+              <button
+                onClick={initiateOAuth2Flow}
+                disabled={loading}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300 ${
+                  loading
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 transform hover:scale-105'
+                } text-white`}
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Conectando...</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="h-4 w-4" />
+                    <span>Conectar con Loyverse</span>
+                  </>
+                )}
+              </button>
             ) : (
               <button
                 onClick={disconnect}
@@ -144,84 +120,14 @@ const DevTools = () => {
             )}
           </div>
 
-          {/* Manual Token Input Form */}
-          {showManualInput && (!isConnected || isTokenExpired) && (
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <h4 className="font-semibold mb-3 text-gray-800">Ingresar Tokens Manualmente</h4>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Access Token
-                  </label>
-                  <input
-                    type="text"
-                    value={manualAccessToken}
-                    onChange={(e) => setManualAccessToken(e.target.value)}
-                    placeholder="Pega tu access token aquí..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Refresh Token
-                  </label>
-                  <input
-                    type="text"
-                    value={manualRefreshToken}
-                    onChange={(e) => setManualRefreshToken(e.target.value)}
-                    placeholder="Pega tu refresh token aquí..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Expires In (segundos)
-                  </label>
-                  <input
-                    type="number"
-                    value={manualExpiresIn}
-                    onChange={(e) => setManualExpiresIn(e.target.value)}
-                    placeholder="3600"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Tiempo en segundos hasta que expire el token (por defecto: 3600 = 1 hora)
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setTokensManually(
-                      manualAccessToken,
-                      manualRefreshToken,
-                      parseInt(manualExpiresIn) || 3600
-                    );
-                    setManualAccessToken('');
-                    setManualRefreshToken('');
-                    setManualExpiresIn('3600');
-                    setShowManualInput(false);
-                  }}
-                  disabled={!manualAccessToken || !manualRefreshToken}
-                  className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300 ${
-                    !manualAccessToken || !manualRefreshToken
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-green-600 hover:bg-green-700 transform hover:scale-105'
-                  } text-white`}
-                >
-                  <CheckCircle className="h-4 w-4" />
-                  <span>Guardar Tokens</span>
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Instructions */}
           <div className="bg-blue-50 rounded-lg p-4">
             <div className="flex items-start space-x-2">
               <Zap className="h-4 w-4 text-blue-600 mt-0.5" />
               <div className="text-xs text-blue-800">
-                <strong>Instrucciones:</strong> Haz clic en "Conectar con Loyverse" para abrir una ventana popup 
-                donde podrás autorizar el acceso a tu cuenta de Loyverse. Una vez autorizado, 
-                podrás ver los productos reales en la sección de productos.
+                <strong>Instrucciones:</strong> Haz clic en "Conectar con Loyverse" para abrir una ventana popup
+                donde podrás autorizar el acceso a tu cuenta de Loyverse. Las credenciales se guardarán
+                de forma segura en el servidor y podrás ver los productos reales en la sección de productos.
               </div>
             </div>
           </div>
