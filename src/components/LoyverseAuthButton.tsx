@@ -32,7 +32,17 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
 
       // Construir URL de autorización de Loyverse
       const clientId = import.meta.env.VITE_LOYVERSE_CLIENT_ID || 'dCcISKLUxosXUJvjIcSN';
-      const redirectUri = encodeURIComponent('https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback');
+
+      // OPCIONES de Redirect URI - necesitas configurar UNO de estos en el dashboard de Loyverse
+      // Opción 1: Edge Function (recomendado para producción)
+      const edgeFunctionUri = 'https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback';
+
+      // Opción 2: WebContainer URL (temporal, cambia cada sesión)
+      const webContainerUri = 'https://zp1v56uxy8rdx5ypatb0ockcb9tr6a-oci3--5173--96435430.local-credentialless.webcontainer-api.io/auth/loyverse/callback';
+
+      // USA ESTA: Cambia entre edgeFunctionUri o webContainerUri según lo que configuraste en Loyverse
+      const redirectUri = encodeURIComponent(edgeFunctionUri);
+
       const scope = encodeURIComponent('ITEMS_READ INVENTORY_READ CUSTOMERS_READ');
       const state = `oauth_${Date.now()}`;
 
@@ -371,8 +381,19 @@ const LoyverseAuthButton: React.FC<LoyverseAuthButtonProps> = ({ className = '' 
                 <ul className="space-y-1 text-xs">
                   <li><strong>Client ID:</strong> dCcISKLUxosXUJvjIcSN</li>
                   <li><strong>Scopes:</strong> ITEMS_READ, INVENTORY_READ, CUSTOMERS_READ</li>
-                  <li><strong>Problema:</strong> WebContainer no soporta HTTPS con certificados SSL</li>
+                  <li><strong>Redirect URI actual:</strong> Edge Function Supabase</li>
                 </ul>
+              </div>
+
+              <div className="p-3 bg-red-100 border border-red-300 rounded text-sm text-red-800">
+                <h4 className="font-medium mb-2">⚠️ Configuración requerida en Loyverse:</h4>
+                <p className="text-xs mb-2">Debes agregar este Redirect URI en tu dashboard de Loyverse:</p>
+                <code className="block bg-red-50 p-2 rounded text-xs break-all">
+                  https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback
+                </code>
+                <p className="text-xs mt-2">
+                  Dashboard → Settings → OAuth → Redirect URIs
+                </p>
               </div>
               
               <div className="p-3 bg-yellow-100 border border-yellow-300 rounded text-sm text-yellow-800">
