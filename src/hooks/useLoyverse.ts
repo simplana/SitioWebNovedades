@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAccessToken, hasValidTokens, clearStoredTokens } from '../lib/loyverse/auth';
 import { buildApiUrl } from '../lib/loyverse/url';
+import { useOAuth2 } from './useOAuth2';
 
 export interface LoyverseProduct {
   id: string;
@@ -37,6 +38,7 @@ export interface PaginationInfo {
 }
 
 export const useLoyverseProducts = () => {
+  const { refreshAccessToken, accessToken: oauthAccessToken } = useOAuth2();
   const [products, setProducts] = useState<LoyverseProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,10 +50,10 @@ export const useLoyverseProducts = () => {
   });
   const [cursors, setCursors] = useState<string[]>(['']); // Array to store cursors for each page
 
-  const fetchProducts = async (cursor?: string, page: number = 1) => {
+  const fetchProducts = async (cursor?: string, page: number = 1, retryCount: number = 0) => {
     try {
       console.log('Fetching products from Loyverse API...');
-      
+
       // Intentar obtener token de acceso
       let accessToken;
       try {
@@ -95,9 +97,19 @@ export const useLoyverseProducts = () => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('API Error:', errorText);
-        
-        if (response.status === 401) {
-          console.warn('Unauthorized - clearing invalid tokens');
+
+        if (response.status === 401 && retryCount === 0) {
+          console.warn('Unauthorized - attempting to refresh token...');
+          const refreshed = await refreshAccessToken();
+          if (refreshed) {
+            console.log('Token refreshed successfully, retrying request...');
+            return fetchProducts(cursor, page, retryCount + 1);
+          } else {
+            clearStoredTokens();
+            throw new Error('Authentication failed: Unable to refresh token');
+          }
+        } else if (response.status === 401) {
+          console.warn('Unauthorized after refresh - clearing tokens');
           clearStoredTokens();
           throw new Error('Authentication failed: Invalid or expired token');
         } else if (response.status === 403) {
@@ -211,8 +223,9 @@ export const useLoyverseProducts = () => {
     console.log('🔄 useLoyverse: Component mounted, checking tokens...');
     console.log('🔍 Has valid tokens:', hasValidTokens());
     console.log('🔍 Direct token available:', !!import.meta.env.VITE_LOYVERSE_ACCESS_TOKEN);
+    console.log('🔍 OAuth Access Token:', oauthAccessToken ? oauthAccessToken.substring(0, 20) + '...' : 'None');
     fetchProducts();
-  }, []);
+  }, [oauthAccessToken]);
 
   const goToPage = async (page: number) => {
     if (page < 1) return;

@@ -19,22 +19,117 @@ export const useOAuth2 = () => {
     tokenExpiry: null
   });
 
-  // Check for existing tokens on mount
+  // Refresh access token using refresh token
+  const refreshAccessToken = async (): Promise<boolean> => {
+    try {
+      const refreshToken = localStorage.getItem('lv_refresh_token');
+      if (!refreshToken) {
+        console.error('❌ No refresh token available');
+        return false;
+      }
+
+      console.log('🔄 Refreshing access token...');
+
+      const clientId = 'na0tlm2Whq22j3jTPV_l';
+      const clientSecret = 'G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw==';
+
+      const formData = new URLSearchParams();
+      formData.append('grant_type', 'refresh_token');
+      formData.append('client_id', clientId);
+      formData.append('client_secret', clientSecret);
+      formData.append('refresh_token', refreshToken);
+
+      const response = await fetch('https://api.loyverse.com/oauth/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json'
+        },
+        body: formData.toString()
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Token refresh failed:', errorText);
+        // If refresh fails, clear tokens
+        disconnect();
+        return false;
+      }
+
+      const tokenData = await response.json();
+      const tokenExpiry = Date.now() + (tokenData.expires_in - 30) * 1000;
+
+      // Update tokens
+      localStorage.setItem('lv_access_token', tokenData.access_token);
+      if (tokenData.refresh_token) {
+        localStorage.setItem('lv_refresh_token', tokenData.refresh_token);
+      }
+      localStorage.setItem('lv_access_token_exp', tokenExpiry.toString());
+
+      setState(prev => ({
+        ...prev,
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token || prev.refreshToken,
+        tokenExpiry,
+        error: null
+      }));
+
+      console.log('✅ Token refreshed successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ Token refresh error:', error);
+      disconnect();
+      return false;
+    }
+  };
+
+  // Check for existing tokens on mount and set up auto-refresh
   useEffect(() => {
     const accessToken = localStorage.getItem('lv_access_token');
     const refreshToken = localStorage.getItem('lv_refresh_token');
     const tokenExpiry = localStorage.getItem('lv_access_token_exp');
 
     if (accessToken && refreshToken) {
+      const expiry = tokenExpiry ? parseInt(tokenExpiry) : null;
       setState(prev => ({
         ...prev,
         isConnected: true,
         accessToken,
         refreshToken,
-        tokenExpiry: tokenExpiry ? parseInt(tokenExpiry) : null
+        tokenExpiry: expiry
       }));
+
+      // Check if token is expired or will expire soon (within 5 minutes)
+      if (expiry && Date.now() >= expiry - (5 * 60 * 1000)) {
+        console.log('⚠️ Token expired or expiring soon, refreshing...');
+        refreshAccessToken();
+      }
     }
   }, []);
+
+  // Auto-refresh token before expiration
+  useEffect(() => {
+    if (!state.tokenExpiry || !state.isConnected) return;
+
+    const timeUntilExpiry = state.tokenExpiry - Date.now();
+    // Refresh 5 minutes before expiration
+    const refreshTime = timeUntilExpiry - (5 * 60 * 1000);
+
+    if (refreshTime <= 0) {
+      // Token already expired or about to expire, refresh now
+      refreshAccessToken();
+      return;
+    }
+
+    console.log(`⏰ Token will be refreshed in ${Math.round(refreshTime / 1000)} seconds`);
+
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ Auto-refreshing token...');
+      refreshAccessToken();
+    }, refreshTime);
+
+    return () => clearTimeout(timeoutId);
+  }, [state.tokenExpiry, state.isConnected]);
 
   // Direct token exchange with Loyverse API
   const exchangeCodeForTokens = async (code: string): Promise<{
@@ -279,6 +374,7 @@ export const useOAuth2 = () => {
     initiateOAuth2Flow,
     disconnect,
     exchangeCodeForTokens,
-    setTokensManually
+    setTokensManually,
+    refreshAccessToken
   };
 };
