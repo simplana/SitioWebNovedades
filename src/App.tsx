@@ -5,6 +5,8 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import WhatsAppFloat from './components/WhatsAppFloat';
 import AuthModal from './components/AuthModal';
+import EmailVerificationBanner from './components/EmailVerificationBanner';
+import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import Products from './pages/Products';
 import ProductDetail from './pages/ProductDetail';
@@ -13,6 +15,8 @@ import Contact from './pages/Contact';
 import Restauraciones from './pages/Restauraciones';
 import AuthCallback from './pages/AuthCallback';
 import ResetPassword from './pages/ResetPassword';
+import EmailVerificationPending from './pages/EmailVerificationPending';
+import EmailVerified from './pages/EmailVerified';
 import Admin from './pages/Admin';
 import Checkout from './pages/Checkout';
 import Orders from './pages/Orders';
@@ -46,6 +50,7 @@ function App() {
     <Router>
       <div className="min-h-screen bg-white font-inter">
         <Header onAuthModalOpen={handleAuthModalOpen} />
+        <EmailVerificationBanner />
         <main>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -56,9 +61,25 @@ function App() {
             <Route path="/contacto" element={<Contact />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
+            <Route path="/auth/verify-email" element={<EmailVerificationPending />} />
+            <Route path="/auth/verified" element={<EmailVerified />} />
             <Route path="/admin" element={<Admin />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/orders" element={<Orders />} />
+            <Route
+              path="/checkout"
+              element={
+                <ProtectedRoute requireVerification={true}>
+                  <Checkout />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/orders"
+              element={
+                <ProtectedRoute requireVerification={true}>
+                  <Orders />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/payment/success" element={<PaymentSuccess />} />
             <Route path="/payment/cancel" element={<PaymentCancel />} />
             <Route path="/admin/dev" element={<DevTools />} />

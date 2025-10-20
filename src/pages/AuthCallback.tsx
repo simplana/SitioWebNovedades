@@ -1,16 +1,19 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Cross } from 'lucide-react';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        const type = searchParams.get('type');
+
         const { data, error } = await supabase.auth.getSession();
-        
+
         if (error) {
           console.error('Auth callback error:', error);
           navigate('/?error=auth_error');
@@ -18,7 +21,18 @@ const AuthCallback = () => {
         }
 
         if (data.session) {
-          // User is authenticated, redirect to home or intended page
+          const isEmailVerified = data.session.user.email_confirmed_at !== null;
+
+          if (type === 'signup' && isEmailVerified) {
+            navigate('/auth/verified');
+            return;
+          }
+
+          if (!isEmailVerified) {
+            navigate('/auth/verify-email');
+            return;
+          }
+
           const redirectTo = sessionStorage.getItem('auth_redirect') || '/';
           sessionStorage.removeItem('auth_redirect');
           navigate(redirectTo);
@@ -32,7 +46,7 @@ const AuthCallback = () => {
     };
 
     handleAuthCallback();
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
   return (
     <div className="pt-16 min-h-screen flex items-center justify-center">

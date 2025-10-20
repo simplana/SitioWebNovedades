@@ -7,6 +7,7 @@ export interface AuthState {
   session: Session | null;
   loading: boolean;
   error: AuthError | null;
+  emailVerified: boolean;
 }
 
 export const useAuth = () => {
@@ -14,7 +15,8 @@ export const useAuth = () => {
     user: null,
     session: null,
     loading: true,
-    error: null
+    error: null,
+    emailVerified: false
   });
 
   useEffect(() => {
@@ -32,7 +34,8 @@ export const useAuth = () => {
           user: session?.user ?? null,
           session,
           loading: false,
-          error: null
+          error: null,
+          emailVerified: session?.user?.email_confirmed_at ? true : false
         });
       } catch (error) {
         setAuthState(prev => ({ 
@@ -49,12 +52,13 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
-        
+
         setAuthState({
           user: session?.user ?? null,
           session,
           loading: false,
-          error: null
+          error: null,
+          emailVerified: session?.user?.email_confirmed_at ? true : false
         });
       }
     );
@@ -111,7 +115,7 @@ export const useAuth = () => {
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: metadata,
-        emailConfirm: false
+        emailConfirm: true
       }
     });
 
@@ -151,12 +155,85 @@ export const useAuth = () => {
     return { data, error };
   };
 
+  const resendVerificationEmail = async () => {
+    if (!authState.user?.email) {
+      return { error: new Error('No hay un usuario autenticado') };
+    }
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: authState.user.email
+      });
+
+      return { error };
+    } catch (err) {
+      return { error: err as Error };
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    setAuthState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      if (error) {
+        setAuthState(prev => ({ ...prev, error, loading: false }));
+        return { data: null, error };
+      }
+
+      return { data, error: null };
+    } catch (err) {
+      const error = err as AuthError;
+      setAuthState(prev => ({ ...prev, error, loading: false }));
+      return { data: null, error };
+    }
+  };
+
+  const signInWithFacebook = async () => {
+    setAuthState(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        setAuthState(prev => ({ ...prev, error, loading: false }));
+        return { data: null, error };
+      }
+
+      return { data, error: null };
+    } catch (err) {
+      const error = err as AuthError;
+      setAuthState(prev => ({ ...prev, error, loading: false }));
+      return { data: null, error };
+    }
+  };
+
   return {
     ...authState,
     signInWithEmail,
     signUpWithEmail,
+    signInWithGoogle,
+    signInWithFacebook,
     signOut,
     resetPassword,
-    isAuthenticated: !!authState.user
+    resendVerificationEmail,
+    isAuthenticated: !!authState.user,
+    isVerified: authState.emailVerified
   };
 };
