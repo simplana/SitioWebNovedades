@@ -50,6 +50,7 @@ function App() {
     <Router>
       <div className="min-h-screen bg-white font-inter">
         <Header onAuthModalOpen={handleAuthModalOpen} />
+        <EmailVerificationBanner />
         <main>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -66,7 +67,7 @@ function App() {
             <Route
               path="/checkout"
               element={
-                <ProtectedRoute requireVerification={false}>
+                <ProtectedRoute requireVerification={true}>
                   <Checkout />
                 </ProtectedRoute>
               }
@@ -74,7 +75,7 @@ function App() {
             <Route
               path="/orders"
               element={
-                <ProtectedRoute requireVerification={false}>
+                <ProtectedRoute requireVerification={true}>
                   <Orders />
                 </ProtectedRoute>
               }

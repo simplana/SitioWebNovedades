@@ -73,8 +73,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
           full_name: formData.fullName
         });
         if (!error) {
-          alert('¡Cuenta creada exitosamente! Ya puedes iniciar sesión.');
           onClose();
+          navigate('/auth/verify-email');
         } else {
           console.error('Error de registro:', error.message);
         }

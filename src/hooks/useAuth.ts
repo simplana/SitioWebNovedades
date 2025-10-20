@@ -114,8 +114,7 @@ export const useAuth = () => {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
-        data: metadata,
-        emailConfirm: false
+        data: metadata
       }
     });
 
