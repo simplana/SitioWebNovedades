@@ -21,18 +21,6 @@ const AuthCallback = () => {
         }
 
         if (data.session) {
-          const isEmailVerified = data.session.user.email_confirmed_at !== null;
-
-          if (type === 'signup' && isEmailVerified) {
-            navigate('/auth/verified');
-            return;
-          }
-
-          if (!isEmailVerified) {
-            navigate('/auth/verify-email');
-            return;
-          }
-
           const redirectTo = sessionStorage.getItem('auth_redirect') || '/';
           sessionStorage.removeItem('auth_redirect');
           navigate(redirectTo);

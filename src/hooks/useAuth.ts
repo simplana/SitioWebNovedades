@@ -115,7 +115,7 @@ export const useAuth = () => {
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: metadata,
-        emailConfirm: true
+        emailConfirm: false
       }
     });
 
