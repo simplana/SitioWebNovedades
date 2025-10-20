@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Mail, Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -28,6 +28,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
   const [oauthMessage, setOauthMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+    }
+  }, [isOpen, initialMode]);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
