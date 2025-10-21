@@ -24,6 +24,7 @@ import PagueloFacilTestButton from '../components/PagueloFacilTestButton';
 import DevTools from './Admin/DevTools';
 import { useAuth } from '../hooks/useAuth';
 import AuthModal from '../components/AuthModal';
+import { supabase } from '../lib/supabase';
 
 interface QuoteRequest {
   id: string;
@@ -64,14 +65,36 @@ const Admin = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-
-  const ADMIN_EMAIL = 'gerard.gaspar.crespo@gmail.com';
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
       setShowAuthModal(true);
+      setCheckingAdmin(false);
     }
   }, [user, loading]);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (user?.email) {
+        const { data, error } = await supabase
+          .from('admin_users')
+          .select('email')
+          .eq('email', user.email)
+          .maybeSingle();
+
+        setIsAdmin(!!data && !error);
+        setCheckingAdmin(false);
+      } else {
+        setCheckingAdmin(false);
+      }
+    };
+
+    if (user) {
+      checkAdminStatus();
+    }
+  }, [user]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -117,7 +140,7 @@ const Admin = () => {
   const pendingQuotes = quoteRequests.filter(q => q.status === 'pending').length;
   const activeOrders = orders.filter(o => o.status === 'processing' || o.status === 'shipped').length;
 
-  if (loading) {
+  if (loading || checkingAdmin) {
     return (
       <div className="pt-16 min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -157,7 +180,7 @@ const Admin = () => {
     );
   }
 
-  if (user.email !== ADMIN_EMAIL) {
+  if (user && !isAdmin) {
     return (
       <div className="pt-16 min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
