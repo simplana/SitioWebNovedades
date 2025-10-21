@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  Package, 
-  FileText, 
-  TrendingUp, 
-  Eye, 
-  CheckCircle, 
-  Clock, 
+import {
+  Users,
+  Package,
+  FileText,
+  TrendingUp,
+  Eye,
+  CheckCircle,
+  Clock,
   Truck,
   DollarSign,
   Calendar,
@@ -16,10 +16,14 @@ import {
   Phone,
   Mail,
   TestTube,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  LogIn
 } from 'lucide-react';
 import PagueloFacilTestButton from '../components/PagueloFacilTestButton';
 import DevTools from './Admin/DevTools';
+import { useAuth } from '../hooks/useAuth';
+import AuthModal from '../components/AuthModal';
 
 interface QuoteRequest {
   id: string;
@@ -53,86 +57,21 @@ interface Order {
 }
 
 const Admin = () => {
+  const { user, loading } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'quotes' | 'orders' | 'dev'>('overview');
   const [quoteRequests, setQuoteRequests] = useState<QuoteRequest[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Datos de demostración
-  useEffect(() => {
-    // Simular datos de cotizaciones
-    setQuoteRequests([
-      {
-        id: 'QT-001',
-        customerName: 'María González',
-        phone: '+507 6123-4567',
-        email: 'maria@email.com',
-        description: 'Restauración de imagen del Sagrado Corazón familiar, marco dorado dañado y pintura descolorida',
-        photos: ['foto1.jpg', 'foto2.jpg'],
-        status: 'pending',
-        createdAt: '2024-12-20',
-        estimatedPrice: 85,
-        estimatedDays: 15
-      },
-      {
-        id: 'QT-002',
-        customerName: 'Carlos Mendoza',
-        phone: '+507 6987-6543',
-        email: 'carlos@email.com',
-        description: 'Reparación de crucifijo antiguo de madera, brazo fracturado',
-        photos: ['foto3.jpg'],
-        status: 'quoted',
-        createdAt: '2024-12-18',
-        estimatedPrice: 45,
-        estimatedDays: 10
-      },
-      {
-        id: 'QT-003',
-        customerName: 'Ana Rodríguez',
-        phone: '+507 6555-1234',
-        email: 'ana@email.com',
-        description: 'Restauración de rosario de perlas, hilo roto y crucifijo oxidado',
-        photos: ['foto4.jpg', 'foto5.jpg'],
-        status: 'approved',
-        createdAt: '2024-12-15',
-        estimatedPrice: 25,
-        estimatedDays: 7
-      }
-    ]);
+  const ADMIN_EMAIL = 'gerard.gaspar.crespo@gmail.com';
 
-    // Simular datos de pedidos
-    setOrders([
-      {
-        id: 'ORD-001',
-        customerName: 'Pedro Martínez',
-        customerEmail: 'pedro@email.com',
-        customerPhone: '+507 6111-2222',
-        products: [
-          { id: '1', name: 'Imagen del Sagrado Corazón', quantity: 1, price: 25.00 },
-          { id: '2', name: 'Rosario de Cristal', quantity: 2, price: 18.50 }
-        ],
-        total: 62.00,
-        status: 'shipped',
-        createdAt: '2024-12-19',
-        shippingAddress: 'Calle 50, Ciudad de Panamá',
-        trackingNumber: 'TRK123456789'
-      },
-      {
-        id: 'ORD-002',
-        customerName: 'Lucía Fernández',
-        customerEmail: 'lucia@email.com',
-        customerPhone: '+507 6333-4444',
-        products: [
-          { id: '3', name: 'Crucifijo de Madera', quantity: 1, price: 35.00 }
-        ],
-        total: 35.00,
-        status: 'processing',
-        createdAt: '2024-12-17',
-        shippingAddress: 'Vía España, Ciudad de Panamá'
-      }
-    ]);
-  }, []);
+  useEffect(() => {
+    if (!loading && !user) {
+      setShowAuthModal(true);
+    }
+  }, [user, loading]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -177,6 +116,58 @@ const Admin = () => {
   const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
   const pendingQuotes = quoteRequests.filter(q => q.status === 'pending').length;
   const activeOrders = orders.filter(o => o.status === 'processing' || o.status === 'shipped').length;
+
+  if (loading) {
+    return (
+      <div className="pt-16 min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="pt-16 min-h-screen bg-gray-50">
+        <div className="flex items-center justify-center min-h-[80vh]">
+          <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
+            <div className="text-center mb-6">
+              <Lock className="h-16 w-16 text-gold mx-auto mb-4" />
+              <h1 className="text-2xl font-bold text-navy mb-2">Panel de Administración</h1>
+              <p className="text-gray-600">Inicia sesión para acceder</p>
+            </div>
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="w-full flex items-center justify-center space-x-2 bg-gold hover:bg-yellow-500 text-navy font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+            >
+              <LogIn className="h-5 w-5" />
+              <span>Iniciar Sesión</span>
+            </button>
+          </div>
+        </div>
+        {showAuthModal && (
+          <AuthModal
+            isOpen={showAuthModal}
+            onClose={() => setShowAuthModal(false)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (user.email !== ADMIN_EMAIL) {
+    return (
+      <div className="pt-16 min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Lock className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Acceso Denegado</h1>
+          <p className="text-gray-600">No tienes permiso para acceder a esta página.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pt-16 min-h-screen bg-gray-50">
@@ -338,52 +329,12 @@ const Admin = () => {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">Clientes Totales</p>
-                    <p className="text-2xl font-bold text-gray-900">47</p>
+                    <p className="text-2xl font-bold text-gray-900">0</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Recent Activity */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="font-playfair text-xl font-bold text-navy mb-4">
-                Actividad Reciente
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                  <div className="bg-green-100 p-2 rounded-full">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">Nueva cotización aprobada</p>
-                    <p className="text-sm text-gray-600">Ana Rodríguez - Restauración de rosario</p>
-                  </div>
-                  <span className="text-sm text-gray-500">Hace 2 horas</span>
-                </div>
-
-                <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                  <div className="bg-blue-100 p-2 rounded-full">
-                    <Package className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">Pedido enviado</p>
-                    <p className="text-sm text-gray-600">Pedro Martínez - ORD-001</p>
-                  </div>
-                  <span className="text-sm text-gray-500">Hace 5 horas</span>
-                </div>
-
-                <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                  <div className="bg-yellow-100 p-2 rounded-full">
-                    <FileText className="h-5 w-5 text-yellow-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">Nueva solicitud de cotización</p>
-                    <p className="text-sm text-gray-600">María González - Imagen del Sagrado Corazón</p>
-                  </div>
-                  <span className="text-sm text-gray-500">Hace 1 día</span>
-                </div>
-              </div>
-            </div>
           </div>
         )}
 
@@ -419,7 +370,13 @@ const Admin = () => {
 
             {/* Quotes List */}
             <div className="space-y-4">
-              {filteredQuotes.map((quote) => (
+              {filteredQuotes.length === 0 ? (
+                <div className="bg-white rounded-lg shadow-md p-12 text-center">
+                  <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay cotizaciones</h3>
+                  <p className="text-gray-500">Las solicitudes de cotización aparecerán aquí</p>
+                </div>
+              ) : filteredQuotes.map((quote) => (
                 <div key={quote.id} className="bg-white rounded-lg shadow-md p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -523,7 +480,13 @@ const Admin = () => {
 
             {/* Orders List */}
             <div className="space-y-4">
-              {filteredOrders.map((order) => (
+              {filteredOrders.length === 0 ? (
+                <div className="bg-white rounded-lg shadow-md p-12 text-center">
+                  <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay pedidos</h3>
+                  <p className="text-gray-500">Los pedidos de clientes aparecerán aquí</p>
+                </div>
+              ) : filteredOrders.map((order) => (
                 <div key={order.id} className="bg-white rounded-lg shadow-md p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
