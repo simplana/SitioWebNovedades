@@ -100,27 +100,43 @@ Deno.serve(async (req: Request) => {
     const insertData = await insertRes.json();
     console.log("✅ Saved successfully!", insertData);
 
+    const credentials = {
+      connectionId,
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      expiresIn: tokenData.expires_in,
+      tokenExpiry: tokenExpiry.toISOString(),
+      dbInsertStatus: insertRes.ok ? 'SUCCESS' : 'FAILED',
+      dbInsertError: insertRes.ok ? null : await insertRes.text()
+    };
+
     return new Response(
-      `<html><head><title>Success</title></head><body>
-      <script>
-        console.log('SAVED!');
-        if (window.opener) {
-          window.opener.postMessage({ type: 'LOYVERSE_OAUTH_SUCCESS', connectionId: '${state}' }, '*');
-        }
-      </script>
-      <div style="padding:20px;font-family:monospace;max-width:800px;margin:0 auto;">
-        <h2 style="color:green">✅ OAuth Successful!</h2>
-        <h3>📋 Credentials (copy these if needed):</h3>
-        <div style="background:#f5f5f5;padding:15px;border-radius:5px;font-size:11px;overflow-wrap:break-word;">
-          <p><strong>Connection ID:</strong><br>${connectionId}</p>
-          <p><strong>Access Token:</strong><br>${tokenData.access_token}</p>
-          <p><strong>Refresh Token:</strong><br>${tokenData.refresh_token}</p>
-          <p><strong>Expires In:</strong> ${tokenData.expires_in} seconds</p>
-          <p><strong>Token Expiry:</strong><br>${tokenExpiry.toISOString()}</p>
-        </div>
-        <p style="margin-top:20px;color:#666;">Database insert status: ${insertRes.status} ${insertRes.ok ? '✅' : '❌'}</p>
-      </div>
-      </body></html>`,
+      `<!DOCTYPE html>
+<html>
+<head><title>OAuth Success</title><meta charset="UTF-8"></head>
+<body>
+<script>
+  const credentials = ${JSON.stringify(credentials)};
+  console.log('CREDENTIALS:', credentials);
+
+  if (window.opener) {
+    window.opener.postMessage({
+      type: 'LOYVERSE_OAUTH_SUCCESS_WITH_CREDENTIALS',
+      credentials: credentials
+    }, '*');
+  }
+
+  setTimeout(() => {
+    try { window.close(); } catch(e) {}
+  }, 2000);
+</script>
+<div style="text-align:center;padding:50px;font-family:Arial;">
+  <h2 style="color:#059669;">OAuth Successful!</h2>
+  <p>Credentials will be displayed in the main window.</p>
+  <p>This window will close automatically...</p>
+</div>
+</body>
+</html>`,
       { headers: { ...corsHeaders, "Content-Type": "text/html" } }
     );
   } catch (error) {

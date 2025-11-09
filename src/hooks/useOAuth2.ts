@@ -71,7 +71,7 @@ export const useOAuth2 = () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     const clientId = 'na0tlm2Whq22j3jTPV_l';
-    const redirectUri = encodeURIComponent('https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-oauth-v2/callback');
+    const redirectUri = encodeURIComponent('https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback');
     const scopes = 'ITEMS_READ%20CUSTOMERS_READ%20RECEIPTS_READ%20OPENID';
     const randomState = Math.random().toString(36).substring(2, 15);
 
@@ -106,8 +106,60 @@ export const useOAuth2 = () => {
       console.log('📨 Message received from:', event.origin, event.data);
 
       if (event.data && typeof event.data === 'object') {
-        if (event.data.type === 'LOYVERSE_OAUTH_SUCCESS') {
-          console.log('✅ OAuth2 success message received!');
+        if (event.data.type === 'LOYVERSE_OAUTH_SUCCESS_WITH_CREDENTIALS') {
+          console.log('✅ OAuth2 success with credentials received!');
+          console.log('CREDENTIALS:', event.data.credentials);
+
+          window.removeEventListener('message', handleMessage);
+          if (intervalId) clearInterval(intervalId);
+
+          // Show credentials to user
+          const creds = event.data.credentials;
+          const message = `
+🎉 OAUTH SUCCESSFUL!
+
+Database Insert Status: ${creds.dbInsertStatus}
+${creds.dbInsertError ? `Error: ${creds.dbInsertError}` : ''}
+
+Connection ID: ${creds.connectionId}
+
+Access Token:
+${creds.accessToken}
+
+Refresh Token:
+${creds.refreshToken}
+
+Token Expiry: ${creds.tokenExpiry}
+Expires In: ${creds.expiresIn} seconds
+
+${creds.dbInsertStatus === 'SUCCESS' ? '✅ Credentials saved to database!' : '⚠️ Copy these credentials and provide them to the developer'}
+          `.trim();
+
+          alert(message);
+          console.log(message);
+
+          setState({
+            isConnected: creds.dbInsertStatus === 'SUCCESS',
+            loading: false,
+            error: creds.dbInsertStatus === 'FAILED' ? 'Database insert failed - credentials displayed in alert' : null,
+            tokenExpiry: creds.tokenExpiry,
+          });
+
+          try {
+            popup.close();
+          } catch (e) {
+            console.log('Note: Could not close popup manually:', e);
+          }
+
+          if (creds.dbInsertStatus === 'SUCCESS') {
+            setTimeout(() => {
+              console.log('🔄 Reloading page to refresh connection status...');
+              window.location.reload();
+            }, 500);
+          }
+
+        } else if (event.data.type === 'LOYVERSE_OAUTH_SUCCESS') {
+          console.log('✅ OAuth2 success message received (legacy)!');
 
           window.removeEventListener('message', handleMessage);
           if (intervalId) clearInterval(intervalId);
