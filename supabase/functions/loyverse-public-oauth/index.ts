@@ -13,11 +13,19 @@ Deno.serve(async (req: Request) => {
 
   try {
     const url = new URL(req.url);
+
+    // Test endpoint to verify deployment
+    if (url.searchParams.get("test")) {
+      return new Response("✅ V3 DEPLOYED - " + new Date().toISOString(), {
+        headers: { ...corsHeaders, "Content-Type": "text/plain" }
+      });
+    }
+
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
     const error = url.searchParams.get("error");
 
-    console.log("🔄 OAuth callback:", { code: code?.substring(0,10), state, error });
+    console.log("🔄 OAuth callback V3:", { code: code?.substring(0,10), state, error });
 
     if (error || !code) {
       const msg = error || "No code received";
@@ -131,7 +139,7 @@ Deno.serve(async (req: Request) => {
   }, 2000);
 </script>
 <div style="text-align:center;padding:50px;font-family:Arial;">
-  <h2 style="color:#059669;">OAuth Successful!</h2>
+  <h2 style="color:#059669;">✅ OAuth V3 Successful!</h2>
   <p>Credentials will be displayed in the main window.</p>
   <p>This window will close automatically...</p>
 </div>
