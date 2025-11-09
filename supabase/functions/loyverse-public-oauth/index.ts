@@ -147,26 +147,45 @@ Deno.serve(async (req: Request) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
 
     console.log("💾 Saving tokens to database...");
+    console.log("📊 Token data:", {
+      hasAccessToken: !!tokenData.access_token,
+      hasRefreshToken: !!tokenData.refresh_token,
+      expiresIn: tokenData.expires_in
+    });
 
     const connectionId = state || `loyverse_${Date.now()}`;
 
     // Deactivate any existing connections first
-    await supabase
+    const { error: updateError } = await supabase
       .from("loyverse_credentials")
       .update({ is_active: false })
       .eq("is_active", true);
 
-    const { error: dbError } = await supabase.from("loyverse_credentials").insert({
-      connection_id: connectionId,
-      access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token,
-      token_expiry: tokenExpiry.toISOString(),
-      is_active: true,
-      last_refreshed_at: new Date().toISOString(),
-    });
+    if (updateError) {
+      console.warn("⚠️ Error deactivating old credentials:", updateError);
+    }
+
+    const { data: insertData, error: dbError } = await supabase
+      .from("loyverse_credentials")
+      .insert({
+        connection_id: connectionId,
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        token_expiry: tokenExpiry.toISOString(),
+        is_active: true,
+        last_refreshed_at: new Date().toISOString(),
+      })
+      .select();
+
+    console.log("📝 Insert result:", { data: insertData, error: dbError });
 
     if (dbError) {
       console.error("❌ Database error:", dbError);
