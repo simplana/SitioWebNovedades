@@ -60,7 +60,6 @@ Deno.serve(async (req: Request) => {
 
     console.log("💾 Saving to DB...");
 
-    // Deactivate old
     await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials?is_active=eq.true`, {
       method: "PATCH",
       headers: {
@@ -72,7 +71,6 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({ is_active: false })
     });
 
-    // Insert new
     const insertRes = await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials`, {
       method: "POST",
       headers: {
@@ -99,7 +97,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    console.log("✅ Saved successfully!");
+    const insertData = await insertRes.json();
+    console.log("✅ Saved successfully!", insertData);
 
     return new Response(
       `<html><head><title>Success</title></head><body>
@@ -108,10 +107,19 @@ Deno.serve(async (req: Request) => {
         if (window.opener) {
           window.opener.postMessage({ type: 'LOYVERSE_OAUTH_SUCCESS', connectionId: '${state}' }, '*');
         }
-        setTimeout(() => window.close(), 2000);
       </script>
-      <h2 style="color:green;text-align:center;margin-top:50px">✅ Connected Successfully!</h2>
-      <p style="text-align:center">Window will close in 2 seconds...</p>
+      <div style="padding:20px;font-family:monospace;max-width:800px;margin:0 auto;">
+        <h2 style="color:green">✅ OAuth Successful!</h2>
+        <h3>📋 Credentials (copy these if needed):</h3>
+        <div style="background:#f5f5f5;padding:15px;border-radius:5px;font-size:11px;overflow-wrap:break-word;">
+          <p><strong>Connection ID:</strong><br>${connectionId}</p>
+          <p><strong>Access Token:</strong><br>${tokenData.access_token}</p>
+          <p><strong>Refresh Token:</strong><br>${tokenData.refresh_token}</p>
+          <p><strong>Expires In:</strong> ${tokenData.expires_in} seconds</p>
+          <p><strong>Token Expiry:</strong><br>${tokenExpiry.toISOString()}</p>
+        </div>
+        <p style="margin-top:20px;color:#666;">Database insert status: ${insertRes.status} ${insertRes.ok ? '✅' : '❌'}</p>
+      </div>
       </body></html>`,
       { headers: { ...corsHeaders, "Content-Type": "text/html" } }
     );
