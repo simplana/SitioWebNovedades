@@ -151,7 +151,16 @@ Deno.serve(async (req: Request) => {
 
     console.log("💾 Saving tokens to database...");
 
+    const connectionId = state || `loyverse_${Date.now()}`;
+
+    // Deactivate any existing connections first
+    await supabase
+      .from("loyverse_credentials")
+      .update({ is_active: false })
+      .eq("is_active", true);
+
     const { error: dbError } = await supabase.from("loyverse_credentials").insert({
+      connection_id: connectionId,
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token,
       token_expiry: tokenExpiry.toISOString(),
