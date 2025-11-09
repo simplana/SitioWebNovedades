@@ -71,7 +71,7 @@ export const useOAuth2 = () => {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     const clientId = 'na0tlm2Whq22j3jTPV_l';
-    const redirectUri = encodeURIComponent('https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback');
+    const redirectUri = encodeURIComponent('https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-oauth-v2/callback');
     const scopes = 'ITEMS_READ%20CUSTOMERS_READ%20RECEIPTS_READ%20OPENID';
     const randomState = Math.random().toString(36).substring(2, 15);
 
