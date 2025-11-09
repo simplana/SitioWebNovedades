@@ -8,10 +8,7 @@ const corsHeaders = {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
@@ -20,76 +17,18 @@ Deno.serve(async (req: Request) => {
     const state = url.searchParams.get("state");
     const error = url.searchParams.get("error");
 
-    console.log("🔄 Loyverse OAuth callback received:", {
-      code: code ? `${code.substring(0, 10)}...` : "MISSING",
-      state,
-      error,
-      method: req.method,
-      url: req.url,
-    });
+    console.log("🔄 OAuth callback:", { code: code?.substring(0,10), state, error });
 
-    if (error) {
-      console.error("❌ OAuth error from Loyverse:", error);
-      return new Response(
-        `<html><body><script>
-          if (window.opener) {
-            window.opener.postMessage({
-              type: 'LOYVERSE_OAUTH_ERROR',
-              error: '${error}',
-              connectionId: '${state}'
-            }, '*');
-          }
-          setTimeout(() => window.close(), 2000);
-        </script>
-        <div style="text-align: center; padding: 50px; font-family: Arial;">
-          <h2>❌ Error de OAuth</h2>
-          <p>Error: ${error}</p>
-          <p>Esta ventana se cerrará automáticamente...</p>
-        </div>
-        </body></html>`,
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "text/html" },
-        }
-      );
+    if (error || !code) {
+      const msg = error || "No code received";
+      return new Response(`<html><body><h2>Error: ${msg}</h2></body></html>`, {
+        headers: { ...corsHeaders, "Content-Type": "text/html" }
+      });
     }
 
-    if (!code) {
-      console.error("❌ No authorization code received");
-      return new Response(
-        `<html><body><script>
-          if (window.opener) {
-            window.opener.postMessage({
-              type: 'LOYVERSE_OAUTH_ERROR',
-              error: 'No authorization code received',
-              connectionId: '${state}'
-            }, '*');
-          }
-          setTimeout(() => window.close(), 2000);
-        </script>
-        <div style="text-align: center; padding: 50px; font-family: Arial;">
-          <h2>❌ Error</h2>
-          <p>No se recibió código de autorización</p>
-          <p>Esta ventana se cerrará automáticamente...</p>
-        </div>
-        </body></html>`,
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "text/html" },
-        }
-      );
-    }
-
-    console.log("🔄 Starting token exchange with Loyverse...");
-
-    const clientId = Deno.env.get("LOYVERSE_CLIENT_ID") || "na0tlm2Whq22j3jTPV_l";
-    const clientSecret = Deno.env.get("LOYVERSE_CLIENT_SECRET") || "G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw==";
-    const redirectUri = Deno.env.get("LOYVERSE_REDIRECT_URL") || "https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback";
-
-    console.log("🔑 Using credentials:");
-    console.log("  - Client ID:", clientId);
-    console.log("  - Client Secret:", clientSecret ? `${clientSecret.substring(0, 10)}...` : "MISSING");
-    console.log("  - Redirect URI:", redirectUri);
+    const clientId = "na0tlm2Whq22j3jTPV_l";
+    const clientSecret = "G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw==";
+    const redirectUri = "https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback";
 
     const formData = new URLSearchParams();
     formData.append("grant_type", "authorization_code");
@@ -98,87 +37,47 @@ Deno.serve(async (req: Request) => {
     formData.append("redirect_uri", redirectUri);
     formData.append("code", code);
 
-    console.log("🚀 Making token request to Loyverse");
-
     const loyverseResponse = await fetch("https://api.loyverse.com/oauth/token", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Accept": "application/json",
-      },
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
       body: formData.toString(),
     });
 
-    console.log("📡 Loyverse response status:", loyverseResponse.status);
-
     if (!loyverseResponse.ok) {
-      const errorText = await loyverseResponse.text();
-      console.error("❌ Loyverse token exchange failed:", errorText);
-
-      return new Response(
-        `<html><body><script>
-          if (window.opener) {
-            window.opener.postMessage({
-              type: 'LOYVERSE_OAUTH_ERROR',
-              error: 'Token exchange failed: ${errorText}',
-              connectionId: '${state}'
-            }, '*');
-          }
-          setTimeout(() => window.close(), 2000);
-        </script>
-        <div style="text-align: center; padding: 50px; font-family: Arial;">
-          <h2>❌ Error en intercambio de tokens</h2>
-          <p>${errorText}</p>
-          <p>Esta ventana se cerrará automáticamente...</p>
-        </div>
-        </body></html>`,
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "text/html" },
-        }
-      );
+      const err = await loyverseResponse.text();
+      console.error("❌ Token exchange failed:", err);
+      return new Response(`<html><body><h2>Token exchange error</h2><p>${err}</p></body></html>`, {
+        headers: { ...corsHeaders, "Content-Type": "text/html" }
+      });
     }
 
     const tokenData = await loyverseResponse.json();
-    console.log("✅ Token exchange successful!");
-
     const tokenExpiry = new Date(Date.now() + (tokenData.expires_in - 30) * 1000);
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "https://qmvnxviskifbluncflfo.supabase.co";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtdm54dmlza2lmYmx1bmNmbGZvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjY0NzczNiwiZXhwIjoyMDc4MjIzNzM2fQ.yT_zWx0H5LsxX-1HHFiYqtjJe2TcRPWqYWBTSMrL-kM";
-
-    console.log("💾 Saving tokens to database using REST API...");
-    console.log("📊 Token data:", {
-      hasAccessToken: !!tokenData.access_token,
-      hasRefreshToken: !!tokenData.refresh_token,
-      expiresIn: tokenData.expires_in
-    });
-
     const connectionId = state || `loyverse_${Date.now()}`;
 
-    // First, deactivate existing connections using REST API
-    const updateResponse = await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials?is_active=eq.true`, {
+    const supabaseUrl = "https://iabrhkvwhmliemgioxce.supabase.co";
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    console.log("💾 Saving to DB...");
+
+    // Deactivate old
+    await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials?is_active=eq.true`, {
       method: "PATCH",
       headers: {
-        "apikey": supabaseServiceKey,
-        "Authorization": `Bearer ${supabaseServiceKey}`,
+        "apikey": supabaseKey,
+        "Authorization": `Bearer ${supabaseKey}`,
         "Content-Type": "application/json",
         "Prefer": "return=minimal"
       },
       body: JSON.stringify({ is_active: false })
     });
 
-    if (!updateResponse.ok) {
-      console.warn("⚠️ Error deactivating old credentials:", await updateResponse.text());
-    }
-
-    // Insert new credentials using REST API
-    const insertResponse = await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials`, {
+    // Insert new
+    const insertRes = await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials`, {
       method: "POST",
       headers: {
-        "apikey": supabaseServiceKey,
-        "Authorization": `Bearer ${supabaseServiceKey}`,
+        "apikey": supabaseKey,
+        "Authorization": `Bearer ${supabaseKey}`,
         "Content-Type": "application/json",
         "Prefer": "return=representation"
       },
@@ -192,106 +91,36 @@ Deno.serve(async (req: Request) => {
       })
     });
 
-    const insertData = insertResponse.ok ? await insertResponse.json() : null;
-    const dbError = insertResponse.ok ? null : await insertResponse.text();
-
-    console.log("📝 Insert result:", {
-      status: insertResponse.status,
-      data: insertData,
-      error: dbError
-    });
-
-    if (dbError) {
-      console.error("❌ Database error:", dbError);
-      return new Response(
-        `<html><body><script>
-          if (window.opener) {
-            window.opener.postMessage({
-              type: 'LOYVERSE_OAUTH_ERROR',
-              error: 'Failed to save credentials: ${dbError}',
-              connectionId: '${state}'
-            }, '*');
-          }
-          setTimeout(() => window.close(), 2000);
-        </script>
-        <div style="text-align: center; padding: 50px; font-family: Arial;">
-          <h2>❌ Error al guardar credenciales</h2>
-          <p>${dbError}</p>
-          <p>Esta ventana se cerrará automáticamente...</p>
-        </div>
-        </body></html>`,
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "text/html" },
-        }
-      );
+    if (!insertRes.ok) {
+      const err = await insertRes.text();
+      console.error("❌ DB Insert failed:", err);
+      return new Response(`<html><body><h2>DB Error</h2><p>${err}</p></body></html>`, {
+        headers: { ...corsHeaders, "Content-Type": "text/html" }
+      });
     }
 
-    console.log("✅ Tokens saved successfully to database!");
+    console.log("✅ Saved successfully!");
 
     return new Response(
-      `<html>
-      <head><title>OAuth Success</title></head>
-      <body>
+      `<html><head><title>Success</title></head><body>
       <script>
-        console.log('✅ OAuth2 success, credentials saved to database');
+        console.log('SAVED!');
         if (window.opener) {
-          window.opener.postMessage({
-            type: 'LOYVERSE_OAUTH_SUCCESS',
-            connectionId: '${state}'
-          }, '*');
-          console.log('✅ Message sent to parent window');
-        } else {
-          console.warn('⚠️ No window.opener found');
-        }
-
-        setTimeout(() => {
-          console.log('Closing popup window...');
-          try {
-            window.close();
-          } catch (e) {
-            console.log('Forcing close via about:blank');
-            window.location.href = 'about:blank';
-          }
-        }, 2000);
-      </script>
-      <div style="text-align: center; padding: 40px; font-family: Arial;">
-        <h2 style="color: #059669;">✅ ¡Conectado!</h2>
-        <p>Credenciales guardadas de forma segura.</p>
-        <p>Esta ventana se cerrará automáticamente en 2 segundos...</p>
-      </div>
-      </body>
-      </html>`,
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "text/html" },
-      }
-    );
-  } catch (error) {
-    console.error("❌ Edge Function error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-
-    return new Response(
-      `<html><body><script>
-        if (window.opener) {
-          window.opener.postMessage({
-            type: 'LOYVERSE_OAUTH_ERROR',
-            error: 'Processing failed: ${errorMessage}',
-            connectionId: 'unknown'
-          }, '*');
+          window.opener.postMessage({ type: 'LOYVERSE_OAUTH_SUCCESS', connectionId: '${state}' }, '*');
         }
         setTimeout(() => window.close(), 2000);
       </script>
-      <div style="text-align: center; padding: 50px; font-family: Arial;">
-        <h2>❌ Error de procesamiento</h2>
-        <p>${errorMessage}</p>
-        <p>Esta ventana se cerrará automáticamente...</p>
-      </div>
+      <h2 style="color:green;text-align:center;margin-top:50px">✅ Connected Successfully!</h2>
+      <p style="text-align:center">Window will close in 2 seconds...</p>
       </body></html>`,
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "text/html" },
-      }
+      { headers: { ...corsHeaders, "Content-Type": "text/html" } }
     );
+  } catch (error) {
+    console.error("❌ Error:", error);
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    return new Response(`<html><body><h2>Error</h2><p>${msg}</p></body></html>`, {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "text/html" }
+    });
   }
 });
