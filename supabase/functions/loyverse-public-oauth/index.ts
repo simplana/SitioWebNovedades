@@ -145,8 +145,42 @@ Deno.serve(async (req: Request) => {
 
     const tokenExpiry = new Date(Date.now() + (tokenData.expires_in - 30) * 1000);
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    console.log("🔍 Environment check:", {
+      hasSupabaseUrl: !!supabaseUrl,
+      hasServiceKey: !!supabaseServiceKey,
+      supabaseUrl: supabaseUrl || "MISSING",
+      serviceKeyPrefix: supabaseServiceKey ? supabaseServiceKey.substring(0, 20) + "..." : "MISSING"
+    });
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("❌ Missing Supabase credentials!");
+      return new Response(
+        `<html><body><script>
+          if (window.opener) {
+            window.opener.postMessage({
+              type: 'LOYVERSE_OAUTH_ERROR',
+              error: 'Missing database configuration',
+              connectionId: '${state}'
+            }, '*');
+          }
+          setTimeout(() => window.close(), 2000);
+        </script>
+        <div style="text-align: center; padding: 50px; font-family: Arial;">
+          <h2>❌ Error de configuración</h2>
+          <p>Faltan credenciales de base de datos</p>
+          <p>Esta ventana se cerrará automáticamente...</p>
+        </div>
+        </body></html>`,
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "text/html" },
+        }
+      );
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
