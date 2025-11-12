@@ -17,7 +17,7 @@ Deno.serve(async (req: Request) => {
     const state = url.searchParams.get("state");
     const error = url.searchParams.get("error");
 
-    console.log("OAUTH CALLBACK V2:", { code: code?.substring(0,10), state, error });
+    console.log("OAUTH CALLBACK V2 ENV_URL:", { code: code?.substring(0,10), state, error });
 
     if (error || !code) {
       const msg = error || "No code received";
@@ -28,7 +28,8 @@ Deno.serve(async (req: Request) => {
 
     const clientId = "na0tlm2Whq22j3jTPV_l";
     const clientSecret = "G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw==";
-    const redirectUri = "https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-oauth-v2/callback";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const redirectUri = `${supabaseUrl}/functions/v1/loyverse-oauth-v2/callback`;
 
     const formData = new URLSearchParams();
     formData.append("grant_type", "authorization_code");
@@ -53,7 +54,6 @@ Deno.serve(async (req: Request) => {
     const tokenData = await loyverseResponse.json();
     const tokenExpiry = new Date(Date.now() + (tokenData.expires_in - 30) * 1000);
 
-    const supabaseUrl = "https://iabrhkvwhmliemgioxce.supabase.co";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const insertRes = await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials?on_conflict=connection_id`, {

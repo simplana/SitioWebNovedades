@@ -15,7 +15,7 @@ Deno.serve(async (req: Request) => {
     const url = new URL(req.url);
 
     if (url.searchParams.get("test")) {
-      return new Response("✅ V5 UPSERT - " + new Date().toISOString(), {
+      return new Response("✅ V6 ENV_URL - " + new Date().toISOString(), {
         headers: { ...corsHeaders, "Content-Type": "text/plain" }
       });
     }
@@ -24,7 +24,7 @@ Deno.serve(async (req: Request) => {
     const state = url.searchParams.get("state");
     const error = url.searchParams.get("error");
 
-    console.log("🔄 OAuth callback V5 (UPSERT):", { code: code?.substring(0,10), state, error });
+    console.log("🔄 OAuth callback V6 (ENV_URL):", { code: code?.substring(0,10), state, error });
 
     if (error || !code) {
       const msg = error || "No code received";
@@ -35,7 +35,8 @@ Deno.serve(async (req: Request) => {
 
     const clientId = "na0tlm2Whq22j3jTPV_l";
     const clientSecret = "G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw==";
-    const redirectUri = "https://iabrhkvwhmliemgioxce.supabase.co/functions/v1/loyverse-public-oauth/callback";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const redirectUri = `${supabaseUrl}/functions/v1/loyverse-public-oauth/callback`;
 
     const formData = new URLSearchParams();
     formData.append("grant_type", "authorization_code");
@@ -61,7 +62,6 @@ Deno.serve(async (req: Request) => {
     const tokenData = await loyverseResponse.json();
     const tokenExpiry = new Date(Date.now() + (tokenData.expires_in - 30) * 1000);
 
-    const supabaseUrl = "https://iabrhkvwhmliemgioxce.supabase.co";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     console.log("💾 Saving to DB...");
