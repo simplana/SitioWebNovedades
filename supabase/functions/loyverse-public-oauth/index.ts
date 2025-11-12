@@ -64,11 +64,34 @@ Deno.serve(async (req: Request) => {
     const connectionId = state || `loyverse_${Date.now()}`;
 
     const supabaseUrl = "https://iabrhkvwhmliemgioxce.supabase.co";
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     console.log("💾 Saving to DB...");
+    console.log("📊 Token Data Received:", {
+      has_access_token: !!tokenData.access_token,
+      access_token_length: tokenData.access_token?.length,
+      has_refresh_token: !!tokenData.refresh_token,
+      refresh_token_length: tokenData.refresh_token?.length,
+      expires_in: tokenData.expires_in,
+      token_expiry: tokenExpiry.toISOString(),
+      connection_id: connectionId
+    });
+    console.log("🔑 Supabase Config:", {
+      url: supabaseUrl,
+      has_service_key: !!supabaseKey,
+      service_key_length: supabaseKey?.length
+    });
 
-    await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials?is_active=eq.true`, {
+    if (!supabaseKey) {
+      const error = "SUPABASE_SERVICE_ROLE_KEY not found in environment";
+      console.error("❌", error);
+      return new Response(`<html><body><h2>Configuration Error</h2><p>${error}</p></body></html>`, {
+        headers: { ...corsHeaders, "Content-Type": "text/html" }
+      });
+    }
+
+    console.log("🔄 Step 1: Deactivating existing credentials...");
+    const deactivateRes = await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials?is_active=eq.true`, {
       method: "PATCH",
       headers: {
         "apikey": supabaseKey,
@@ -77,6 +100,29 @@ Deno.serve(async (req: Request) => {
         "Prefer": "return=minimal"
       },
       body: JSON.stringify({ is_active: false })
+    });
+    console.log("✅ Deactivate response:", deactivateRes.status, deactivateRes.statusText);
+    if (!deactivateRes.ok) {
+      const deactivateError = await deactivateRes.text();
+      console.warn("⚠️ Deactivate warning (non-critical):", deactivateError);
+    }
+
+    console.log("🔄 Step 2: Inserting new credentials...");
+    const payload = {
+      connection_id: connectionId,
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
+      token_expiry: tokenExpiry.toISOString(),
+      is_active: true,
+      last_refreshed_at: new Date().toISOString(),
+    };
+    console.log("📦 Insert Payload:", {
+      connection_id: payload.connection_id,
+      access_token: payload.access_token.substring(0, 20) + "...",
+      refresh_token: payload.refresh_token.substring(0, 20) + "...",
+      token_expiry: payload.token_expiry,
+      is_active: payload.is_active,
+      last_refreshed_at: payload.last_refreshed_at
     });
 
     const insertRes = await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials`, {
@@ -87,26 +133,30 @@ Deno.serve(async (req: Request) => {
         "Content-Type": "application/json",
         "Prefer": "return=representation"
       },
-      body: JSON.stringify({
-        connection_id: connectionId,
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        token_expiry: tokenExpiry.toISOString(),
-        is_active: true,
-        last_refreshed_at: new Date().toISOString(),
-      })
+      body: JSON.stringify(payload)
     });
 
+    console.log("📊 Insert Response Status:", insertRes.status, insertRes.statusText);
+
+    let insertData = null;
+    let insertError = null;
+
     if (!insertRes.ok) {
-      const err = await insertRes.text();
-      console.error("❌ DB Insert failed:", err);
-      return new Response(`<html><body><h2>DB Error</h2><p>${err}</p></body></html>`, {
-        headers: { ...corsHeaders, "Content-Type": "text/html" }
+      insertError = await insertRes.text();
+      console.error("❌ DB Insert failed:", {
+        status: insertRes.status,
+        statusText: insertRes.statusText,
+        error: insertError
+      });
+    } else {
+      insertData = await insertRes.json();
+      console.log("✅ Saved successfully!", {
+        id: insertData[0]?.id,
+        connection_id: insertData[0]?.connection_id,
+        token_expiry: insertData[0]?.token_expiry,
+        is_active: insertData[0]?.is_active
       });
     }
-
-    const insertData = await insertRes.json();
-    console.log("✅ Saved successfully!", insertData);
 
     const credentials = {
       connectionId,
@@ -115,34 +165,109 @@ Deno.serve(async (req: Request) => {
       expiresIn: tokenData.expires_in,
       tokenExpiry: tokenExpiry.toISOString(),
       dbInsertStatus: insertRes.ok ? 'SUCCESS' : 'FAILED',
-      dbInsertError: insertRes.ok ? null : await insertRes.text()
+      dbInsertError: insertError,
+      dbRecordId: insertData?.[0]?.id || null,
+      timestamp: new Date().toISOString()
     };
+
+    const statusColor = insertRes.ok ? '#059669' : '#DC2626';
+    const statusIcon = insertRes.ok ? '✅' : '❌';
+    const statusText = insertRes.ok ? 'ÉXITO' : 'ERROR';
 
     return new Response(
       `<!DOCTYPE html>
 <html>
-<head><title>OAuth Success</title><meta charset="UTF-8"></head>
+<head>
+  <title>OAuth ${statusText}</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 20px; background: #f3f4f6; }
+    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .header { text-align: center; margin-bottom: 30px; }
+    .status { font-size: 48px; margin-bottom: 10px; }
+    .title { font-size: 24px; font-weight: bold; color: ${statusColor}; margin: 0; }
+    .section { margin: 20px 0; padding: 15px; background: #f9fafb; border-radius: 8px; border-left: 4px solid ${statusColor}; }
+    .label { font-weight: 600; color: #374151; margin-bottom: 8px; }
+    .value { font-family: 'Courier New', monospace; font-size: 13px; color: #1f2937; word-break: break-all; background: white; padding: 8px; border-radius: 4px; }
+    .error { background: #FEE2E2; border-left-color: #DC2626; }
+    .error .value { color: #991B1B; }
+    .success-msg { background: #D1FAE5; color: #065F46; padding: 12px; border-radius: 8px; margin: 20px 0; text-align: center; }
+    .timestamp { text-align: center; color: #6B7280; font-size: 12px; margin-top: 20px; }
+  </style>
+</head>
 <body>
+<div class="container">
+  <div class="header">
+    <div class="status">${statusIcon}</div>
+    <h1 class="title">OAuth ${statusText}</h1>
+  </div>
+
+  ${insertRes.ok ? '<div class="success-msg"><strong>¡Credenciales guardadas exitosamente en la base de datos!</strong></div>' : ''}
+
+  <div class="section">
+    <div class="label">Estado de Base de Datos:</div>
+    <div class="value">${credentials.dbInsertStatus}${credentials.dbRecordId ? ' (ID: ' + credentials.dbRecordId + ')' : ''}</div>
+  </div>
+
+  ${insertError ? `<div class="section error">
+    <div class="label">Error de Base de Datos:</div>
+    <div class="value">${insertError}</div>
+  </div>` : ''}
+
+  <div class="section">
+    <div class="label">Connection ID:</div>
+    <div class="value">${credentials.connectionId}</div>
+  </div>
+
+  <div class="section">
+    <div class="label">Access Token (primeros 30 caracteres):</div>
+    <div class="value">${credentials.accessToken.substring(0, 30)}...</div>
+  </div>
+
+  <div class="section">
+    <div class="label">Refresh Token (primeros 30 caracteres):</div>
+    <div class="value">${credentials.refreshToken.substring(0, 30)}...</div>
+  </div>
+
+  <div class="section">
+    <div class="label">Fecha de Expiración:</div>
+    <div class="value">${new Date(credentials.tokenExpiry).toLocaleString('es-ES')}</div>
+  </div>
+
+  <div class="section">
+    <div class="label">Expira en:</div>
+    <div class="value">${credentials.expiresIn} segundos (${Math.floor(credentials.expiresIn / 3600)} horas)</div>
+  </div>
+
+  <div class="timestamp">Timestamp: ${credentials.timestamp}</div>
+  <div style="text-align: center; margin-top: 20px; color: #6B7280;">
+    Esta ventana se cerrará automáticamente...
+  </div>
+</div>
+
 <script>
   const credentials = ${JSON.stringify(credentials)};
-  console.log('CREDENTIALS:', credentials);
+  console.log('🎉 OAUTH COMPLETE - Full Credentials:', credentials);
 
   if (window.opener) {
+    console.log('📤 Sending credentials to parent window...');
     window.opener.postMessage({
       type: 'LOYVERSE_OAUTH_SUCCESS_WITH_CREDENTIALS',
       credentials: credentials
     }, '*');
+    console.log('✅ Message sent successfully');
+  } else {
+    console.warn('⚠️ No window.opener found');
   }
 
   setTimeout(() => {
-    try { window.close(); } catch(e) {}
-  }, 2000);
+    console.log('🔒 Closing popup window...');
+    try { window.close(); } catch(e) {
+      console.log('Note: Auto-close blocked:', e);
+    }
+  }, 5000);
 </script>
-<div style="text-align:center;padding:50px;font-family:Arial;">
-  <h2 style="color:#059669;">✅ OAuth V3 Successful!</h2>
-  <p>Credentials will be displayed in the main window.</p>
-  <p>This window will close automatically...</p>
-</div>
 </body>
 </html>`,
       { headers: { ...corsHeaders, "Content-Type": "text/html" } }
