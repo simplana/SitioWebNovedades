@@ -92,7 +92,7 @@ export const useOAuth2 = () => {
       setState(prev => ({
         ...prev,
         loading: false,
-        error: 'No se pudo abrir la ventana emergente. Verifica que no esté bloqueada por el navegador.',
+        error: 'No se pudo abrir la ventana emergente. SOLUCIÓN: Busca el icono de popup bloqueado en la barra de direcciones (generalmente a la derecha) y haz clic en "Permitir siempre popups de este sitio", luego intenta de nuevo.',
       }));
       return;
     }
@@ -276,7 +276,7 @@ ${creds.dbInsertStatus === 'SUCCESS' ? '✅ Credentials saved to database!' : '�
     try {
       const { error } = await supabase
         .from('loyverse_credentials')
-        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .delete()
         .eq('is_active', true);
 
       if (error) {
