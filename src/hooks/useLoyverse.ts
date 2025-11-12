@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
 
 export interface LoyverseProduct {
   id: string;
@@ -163,24 +162,7 @@ export const useLoyverseProducts = () => {
 
   useEffect(() => {
     console.log('🔄 useLoyverse: Initializing product fetch...');
-
-    const checkConnectionAndFetch = async () => {
-      const { data: credentials } = await supabase
-        .from('loyverse_credentials')
-        .select('is_active')
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (credentials) {
-        fetchProducts();
-      } else {
-        setLoading(false);
-        setNeedsAuth(true);
-        setError('Authentication required: Please connect to Loyverse in Admin panel');
-      }
-    };
-
-    checkConnectionAndFetch();
+    fetchProducts();
   }, []);
 
   const goToPage = async (page: number) => {
