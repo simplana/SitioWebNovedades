@@ -15,7 +15,7 @@ Deno.serve(async (req: Request) => {
     const url = new URL(req.url);
 
     if (url.searchParams.get("test")) {
-      return new Response("✅ V4 DEPLOYED - " + new Date().toISOString(), {
+      return new Response("✅ V5 UPSERT - " + new Date().toISOString(), {
         headers: { ...corsHeaders, "Content-Type": "text/plain" }
       });
     }
@@ -24,7 +24,7 @@ Deno.serve(async (req: Request) => {
     const state = url.searchParams.get("state");
     const error = url.searchParams.get("error");
 
-    console.log("🔄 OAuth callback V4:", { code: code?.substring(0,10), state, error });
+    console.log("🔄 OAuth callback V5 (UPSERT):", { code: code?.substring(0,10), state, error });
 
     if (error || !code) {
       const msg = error || "No code received";
@@ -60,7 +60,6 @@ Deno.serve(async (req: Request) => {
 
     const tokenData = await loyverseResponse.json();
     const tokenExpiry = new Date(Date.now() + (tokenData.expires_in - 30) * 1000);
-    const connectionId = state || `loyverse_${Date.now()}`;
 
     const supabaseUrl = "https://iabrhkvwhmliemgioxce.supabase.co";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -73,7 +72,7 @@ Deno.serve(async (req: Request) => {
       refresh_token_length: tokenData.refresh_token?.length,
       expires_in: tokenData.expires_in,
       token_expiry: tokenExpiry.toISOString(),
-      connection_id: connectionId
+      connection_id: 'primary'
     });
     console.log("🔑 Supabase Config:", {
       url: supabaseUrl,
@@ -89,31 +88,16 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    console.log("🔄 Step 1: Deleting all existing credentials...");
-    const deleteRes = await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials`, {
-      method: "DELETE",
-      headers: {
-        "apikey": supabaseKey,
-        "Authorization": `Bearer ${supabaseKey}`,
-        "Prefer": "return=minimal"
-      }
-    });
-    console.log("✅ Delete response:", deleteRes.status, deleteRes.statusText);
-    if (!deleteRes.ok) {
-      const deleteError = await deleteRes.text();
-      console.warn("⚠️ Delete warning (non-critical):", deleteError);
-    }
-
-    console.log("🔄 Step 2: Inserting new credentials...");
+    console.log("🔄 Upserting credentials (insert or replace)...");
     const payload = {
-      connection_id: connectionId,
+      connection_id: 'primary',
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token,
       token_expiry: tokenExpiry.toISOString(),
       is_active: true,
       last_refreshed_at: new Date().toISOString(),
     };
-    console.log("📦 Insert Payload:", {
+    console.log("📦 Upsert Payload:", {
       connection_id: payload.connection_id,
       access_token: payload.access_token.substring(0, 20) + "...",
       refresh_token: payload.refresh_token.substring(0, 20) + "...",
@@ -122,18 +106,18 @@ Deno.serve(async (req: Request) => {
       last_refreshed_at: payload.last_refreshed_at
     });
 
-    const insertRes = await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials`, {
+    const insertRes = await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials?on_conflict=connection_id`, {
       method: "POST",
       headers: {
         "apikey": supabaseKey,
         "Authorization": `Bearer ${supabaseKey}`,
         "Content-Type": "application/json",
-        "Prefer": "return=representation"
+        "Prefer": "return=representation,resolution=merge-duplicates"
       },
       body: JSON.stringify(payload)
     });
 
-    console.log("📊 Insert Response Status:", insertRes.status, insertRes.statusText);
+    console.log("📊 Upsert Response Status:", insertRes.status, insertRes.statusText);
 
     let insertData = null;
     let insertError = null;
@@ -156,7 +140,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const credentials = {
-      connectionId,
+      connectionId: 'primary',
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
       expiresIn: tokenData.expires_in,

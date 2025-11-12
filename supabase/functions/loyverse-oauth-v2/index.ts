@@ -52,30 +52,20 @@ Deno.serve(async (req: Request) => {
 
     const tokenData = await loyverseResponse.json();
     const tokenExpiry = new Date(Date.now() + (tokenData.expires_in - 30) * 1000);
-    const connectionId = state || `loyverse_${Date.now()}`;
 
     const supabaseUrl = "https://iabrhkvwhmliemgioxce.supabase.co";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials`, {
-      method: "DELETE",
-      headers: {
-        "apikey": supabaseKey,
-        "Authorization": `Bearer ${supabaseKey}`,
-        "Prefer": "return=minimal"
-      }
-    });
-
-    const insertRes = await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials`, {
+    const insertRes = await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials?on_conflict=connection_id`, {
       method: "POST",
       headers: {
         "apikey": supabaseKey,
         "Authorization": `Bearer ${supabaseKey}`,
         "Content-Type": "application/json",
-        "Prefer": "return=representation"
+        "Prefer": "return=representation,resolution=merge-duplicates"
       },
       body: JSON.stringify({
-        connection_id: connectionId,
+        connection_id: 'primary',
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
         token_expiry: tokenExpiry.toISOString(),
@@ -116,7 +106,7 @@ Deno.serve(async (req: Request) => {
 
   <div class="box">
     <strong>Connection ID:</strong>
-    <div class="token" id="connId">${connectionId}</div>
+    <div class="token" id="connId">primary</div>
     <button class="copy-btn" onclick="copyText('connId')">Copy</button>
   </div>
 
@@ -150,7 +140,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (window.opener) {
-      window.opener.postMessage({ type: 'LOYVERSE_OAUTH_SUCCESS', connectionId: '${state}' }, '*');
+      window.opener.postMessage({ type: 'LOYVERSE_OAUTH_SUCCESS', connectionId: 'primary' }, '*');
     }
   </script>
 </body>
