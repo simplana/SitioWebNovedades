@@ -14,9 +14,8 @@ Deno.serve(async (req: Request) => {
   try {
     const url = new URL(req.url);
 
-    // Test endpoint to verify deployment
     if (url.searchParams.get("test")) {
-      return new Response("✅ V3 DEPLOYED - " + new Date().toISOString(), {
+      return new Response("✅ V4 DEPLOYED - " + new Date().toISOString(), {
         headers: { ...corsHeaders, "Content-Type": "text/plain" }
       });
     }
@@ -25,7 +24,7 @@ Deno.serve(async (req: Request) => {
     const state = url.searchParams.get("state");
     const error = url.searchParams.get("error");
 
-    console.log("🔄 OAuth callback V3:", { code: code?.substring(0,10), state, error });
+    console.log("🔄 OAuth callback V4:", { code: code?.substring(0,10), state, error });
 
     if (error || !code) {
       const msg = error || "No code received";
@@ -90,21 +89,19 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    console.log("🔄 Step 1: Deactivating existing credentials...");
-    const deactivateRes = await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials?is_active=eq.true`, {
-      method: "PATCH",
+    console.log("🔄 Step 1: Deleting all existing credentials...");
+    const deleteRes = await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials`, {
+      method: "DELETE",
       headers: {
         "apikey": supabaseKey,
         "Authorization": `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
         "Prefer": "return=minimal"
-      },
-      body: JSON.stringify({ is_active: false })
+      }
     });
-    console.log("✅ Deactivate response:", deactivateRes.status, deactivateRes.statusText);
-    if (!deactivateRes.ok) {
-      const deactivateError = await deactivateRes.text();
-      console.warn("⚠️ Deactivate warning (non-critical):", deactivateError);
+    console.log("✅ Delete response:", deleteRes.status, deleteRes.statusText);
+    if (!deleteRes.ok) {
+      const deleteError = await deleteRes.text();
+      console.warn("⚠️ Delete warning (non-critical):", deleteError);
     }
 
     console.log("🔄 Step 2: Inserting new credentials...");

@@ -57,15 +57,13 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = "https://iabrhkvwhmliemgioxce.supabase.co";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials?is_active=eq.true`, {
-      method: "PATCH",
+    await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials`, {
+      method: "DELETE",
       headers: {
         "apikey": supabaseKey,
         "Authorization": `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
         "Prefer": "return=minimal"
-      },
-      body: JSON.stringify({ is_active: false })
+      }
     });
 
     const insertRes = await fetch(`${supabaseUrl}/rest/v1/loyverse_credentials`, {
