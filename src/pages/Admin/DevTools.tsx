@@ -1,5 +1,5 @@
-import React from 'react';
-import { Settings, Zap, CheckCircle, XCircle, LogIn, LogOut, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Settings, Zap, CheckCircle, XCircle, LogIn, LogOut, AlertTriangle, Database, RefreshCw, Info } from 'lucide-react';
 import { useOAuth2 } from '../../hooks/useOAuth2';
 import PagueloFacilTestButton from '../../components/PagueloFacilTestButton';
 
@@ -13,7 +13,54 @@ const DevTools = () => {
     disconnect,
   } = useOAuth2();
 
+  const [tokenDetails, setTokenDetails] = useState<any>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [showFullTokens, setShowFullTokens] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshResult, setRefreshResult] = useState<any>(null);
+
   const isTokenExpired = tokenExpiry ? Date.now() >= new Date(tokenExpiry).getTime() : false;
+
+  const fetchTokenDetails = async () => {
+    setLoadingDetails(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/loyverse-token-refresh?action=details`, {
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+      });
+      const data = await response.json();
+      setTokenDetails(data.credentials);
+    } catch (err) {
+      console.error('Error fetching token details:', err);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const testRefreshToken = async (force: boolean) => {
+    setRefreshing(true);
+    setRefreshResult(null);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/loyverse-token-refresh?force=${force}`, {
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+      });
+      const data = await response.json();
+      setRefreshResult(data);
+    } catch (err: any) {
+      setRefreshResult({ error: err.message });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (isConnected) {
+      fetchTokenDetails();
+    }
+  }, [isConnected]);
 
   return (
     <div className="space-y-8">
