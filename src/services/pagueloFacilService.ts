@@ -60,7 +60,9 @@ class PagueloFacilService {
   async testConnection(): Promise<{ success: boolean; message: string; details?: any }> {
     try {
       if (this.demoMode) {
-        console.log('🎭 DEMO MODE - Simulando conexión exitosa con Paguelo Fácil');
+        if (import.meta.env.DEV) {
+          console.log('🎭 DEMO MODE - Simulando conexión exitosa con Paguelo Fácil');
+        }
         return {
           success: true,
           message: 'Modo demostración - Conexión simulada exitosa',
@@ -73,14 +75,17 @@ class PagueloFacilService {
         };
       }
 
-      console.log('🧪 TESTING PAGUELO FÁCIL CONNECTION');
-      console.log('📋 Configuration:');
-      console.log('  - API URL:', this.apiUrl);
-      console.log('  - Access Token:', this.accessToken ? `${this.accessToken.substring(0, 10)}...` : 'NOT SET');
-      console.log('  - Test Mode:', this.testMode);
+      if (import.meta.env.DEV) {
+        console.log('🧪 TESTING PAGUELO FÁCIL CONNECTION');
+        console.log('📋 Configuration:');
+        console.log('  - API URL:', this.apiUrl);
+        console.log('  - Test Mode:', this.testMode);
+      }
       
       // Primero probar un endpoint simple para validar el token
-      console.log('🔍 Testing token validity...');
+      if (import.meta.env.DEV) {
+        console.log('🔍 Testing token validity...');
+      }
       const tokenTest = await this.testTokenValidity();
       
       if (!tokenTest.valid) {
@@ -115,12 +120,15 @@ class PagueloFacilService {
         }
       };
 
-      console.log('🚀 Creating test payment...');
+      if (import.meta.env.DEV) {
+        console.log('🚀 Creating test payment...');
+      }
       const response = await this.createPayment(testPayment);
       
       if (response.success) {
-        console.log('✅ TEST SUCCESSFUL!');
-        console.log('📋 Response:', response);
+        if (import.meta.env.DEV) {
+          console.log('✅ TEST SUCCESSFUL!');
+        }
         return {
           success: true,
           message: 'Conexión exitosa con Paguelo Fácil',
@@ -131,8 +139,9 @@ class PagueloFacilService {
           }
         };
       } else {
-        console.log('❌ TEST FAILED!');
-        console.log('📋 Error:', response.error);
+        if (import.meta.env.DEV) {
+          console.log('❌ TEST FAILED!');
+        }
         return {
           success: false,
           message: `Error en la conexión: ${response.error}`,
@@ -140,7 +149,9 @@ class PagueloFacilService {
         };
       }
     } catch (error) {
-      console.error('❌ TEST CONNECTION ERROR:', error);
+      if (import.meta.env.DEV) {
+        console.error('❌ TEST CONNECTION ERROR:', error);
+      }
       return {
         success: false,
         message: `Error de conexión: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -152,7 +163,9 @@ class PagueloFacilService {
   // Método para probar la validez del token
   private async testTokenValidity(): Promise<{ valid: boolean; error?: string; details?: any }> {
     try {
-      console.log('🔑 Testing token with different API endpoints...');
+      if (import.meta.env.DEV) {
+        console.log('🔑 Testing token with different API endpoints...');
+      }
       
       // Probar diferentes URLs de API de Paguelo Fácil
       const apiUrls = [
@@ -163,7 +176,9 @@ class PagueloFacilService {
       ];
       
       for (const apiUrl of apiUrls) {
-        console.log(`🌐 Testing API URL: ${apiUrl}`);
+        if (import.meta.env.DEV) {
+          console.log(`🌐 Testing API URL: ${apiUrl}`);
+        }
         
         try {
           const response = await fetch(`${apiUrl}/v1/auth/validate`, {
@@ -174,20 +189,28 @@ class PagueloFacilService {
               'Accept': 'application/json',
             },
           });
-          
-          console.log(`📡 Response status: ${response.status}`);
+
+          if (import.meta.env.DEV) {
+            console.log(`📡 Response status: ${response.status}`);
+          }
           
           if (response.ok) {
             const data = await response.json();
-            console.log('✅ Token válido con URL:', apiUrl);
+            if (import.meta.env.DEV) {
+              console.log('✅ Token válido con URL:', apiUrl);
+            }
             this.apiUrl = apiUrl; // Actualizar URL correcta
             return { valid: true, details: data };
           } else {
             const errorData = await response.json().catch(() => ({}));
-            console.log(`❌ Error with ${apiUrl}:`, errorData);
+            if (import.meta.env.DEV) {
+              console.log(`❌ Error with ${apiUrl}:`, errorData);
+            }
           }
         } catch (error) {
-          console.log(`❌ Network error with ${apiUrl}:`, error);
+          if (import.meta.env.DEV) {
+            console.log(`❌ Network error with ${apiUrl}:`, error);
+          }
         }
       }
       
@@ -209,9 +232,10 @@ class PagueloFacilService {
     }
 
     try {
-      console.log(`🚀 Making request to: ${this.apiUrl}${endpoint}`);
-      console.log(`🔑 Using token: ${this.accessToken.substring(0, 15)}...`);
-      
+      if (import.meta.env.DEV) {
+        console.log(`🚀 Making request to: ${this.apiUrl}${endpoint}`);
+      }
+
       const response = await fetch(`${this.apiUrl}${endpoint}`, {
         ...options,
         headers: {
@@ -222,26 +246,25 @@ class PagueloFacilService {
         },
       });
 
-      console.log(`📡 Response status: ${response.status}`);
-      console.log(`📡 Response headers:`, Object.fromEntries(response.headers.entries()));
-      
+      if (import.meta.env.DEV) {
+        console.log(`📡 Response status: ${response.status}`);
+      }
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.log(`❌ Error response body:`, errorText);
-        
+
         let errorData;
         try {
           errorData = JSON.parse(errorText);
         } catch {
           errorData = { message: errorText };
         }
-        
+
         throw new Error(errorData.message || `Paguelo Fácil API error: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error('❌ Request error:', error);
       if (error instanceof TypeError && error.message.includes('fetch')) {
         throw new Error('Unable to connect to Paguelo Fácil API. Please check your internet connection.');
       }
@@ -253,8 +276,9 @@ class PagueloFacilService {
   async createPayment(paymentData: PagueloFacilPayment): Promise<PagueloFacilResponse> {
     try {
       if (this.demoMode) {
-        console.log('🎭 DEMO MODE - Simulando creación de pago');
-        console.log('📋 Payment data:', paymentData);
+        if (import.meta.env.DEV) {
+          console.log('🎭 DEMO MODE - Simulando creación de pago');
+        }
         
         // Simular delay de API
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -270,7 +294,9 @@ class PagueloFacilService {
         };
       }
 
-      console.log('🚀 Creating Paguelo Fácil payment:', paymentData);
+      if (import.meta.env.DEV) {
+        console.log('🚀 Creating Paguelo Fácil payment');
+      }
       
       const response = await this.makeRequest('/v1/payments', {
         method: 'POST',
@@ -289,7 +315,9 @@ class PagueloFacilService {
         })
       });
 
-      console.log('✅ Paguelo Fácil payment created:', response);
+      if (import.meta.env.DEV) {
+        console.log('✅ Paguelo Fácil payment created');
+      }
       
       return {
         success: true,
@@ -298,7 +326,9 @@ class PagueloFacilService {
         message: 'Payment created successfully'
       };
     } catch (error) {
-      console.error('❌ Error creating Paguelo Fácil payment:', error);
+      if (import.meta.env.DEV) {
+        console.error('❌ Error creating Paguelo Fácil payment:', error);
+      }
       return {
         success: false,
         paymentId: '',
@@ -312,7 +342,9 @@ class PagueloFacilService {
   async getPaymentStatus(paymentId: string): Promise<PagueloFacilStatus> {
     try {
       if (this.demoMode || paymentId.startsWith('DEMO-')) {
-        console.log('🎭 DEMO MODE - Simulando verificación de pago');
+        if (import.meta.env.DEV) {
+          console.log('🎭 DEMO MODE - Simulando verificación de pago');
+        }
         
         // Simular delay de API
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -327,7 +359,9 @@ class PagueloFacilService {
         };
       }
 
-      console.log('🔍 Checking payment status for:', paymentId);
+      if (import.meta.env.DEV) {
+        console.log('🔍 Checking payment status for:', paymentId);
+      }
       
       const response = await this.makeRequest(`/v1/payments/${paymentId}`);
       
@@ -340,7 +374,9 @@ class PagueloFacilService {
         paidAt: response.paid_at
       };
     } catch (error) {
-      console.error('❌ Error checking payment status:', error);
+      if (import.meta.env.DEV) {
+        console.error('❌ Error checking payment status:', error);
+      }
       throw error;
     }
   }
@@ -383,7 +419,9 @@ class PagueloFacilService {
   validateWebhook(payload: any, signature: string): boolean {
     // Implementar validación de webhook según documentación de Paguelo Fácil
     // Por ahora retornamos true, pero en producción debe validar la firma
-    console.log('🔐 Validating webhook:', { payload, signature });
+    if (import.meta.env.DEV) {
+      console.log('🔐 Validating webhook');
+    }
     return true;
   }
 }
