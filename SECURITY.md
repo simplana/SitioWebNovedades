@@ -52,6 +52,71 @@ This application is PCI DSS compliant. See [PCI_DSS_COMPLIANCE.md](./PCI_DSS_COM
 - Comprehensive security controls implemented
 - Regular security audits and testing
 
+## Payment Integration Security
+
+### Zero-Trust Payment Architecture
+
+Our payment integration follows a zero-trust security model where **NO payment secrets are exposed to the frontend**.
+
+**Architecture:**
+```
+Frontend (React)
+  └─ Calls only Supabase Edge Functions
+       ↓
+Supabase Edge Functions (Secure Backend)
+  ├─ paguelo-facil-create-payment
+  ├─ paguelo-facil-get-status
+  └─ paguelo-facil-webhook
+       └─ Holds payment credentials (server-side only)
+            ↓
+Paguelo Fácil API (PCI DSS Level 1)
+  └─ Processes all card data
+```
+
+### Security Guarantees
+
+1. **No Secrets in Frontend**
+   - Frontend bundle contains ZERO payment credentials
+   - No `VITE_PAGUELO_FACIL_*` environment variables
+   - No payment tokens in URLs or query parameters
+   - All payment API calls proxy through secure backend
+
+2. **Backend-Only Payment Processing**
+   - Payment secrets stored only in Supabase Functions environment
+   - All API calls to payment gateway originate from secure backend
+   - Request validation and sanitization at backend layer
+   - Comprehensive audit logging of all payment events
+
+3. **Webhook Security**
+   - Webhooks received exclusively by backend functions
+   - Webhook signature validation (implemented in backend)
+   - Sanitization of all webhook payloads before database storage
+   - Frontend never receives raw webhook data
+
+### Environment Variables Security
+
+**Frontend Variables (VITE_*):**
+- ✅ `VITE_SUPABASE_URL` - Public, safe to expose
+- ✅ `VITE_SUPABASE_ANON_KEY` - Public, safe to expose (RLS protected)
+- ❌ NO payment credentials allowed
+
+**Backend Variables (Supabase Functions only):**
+- `PAGUELO_FACIL_ACCESS_TOKEN` - Server-side only, never exposed
+- `PAGUELO_FACIL_API_URL` - Server-side only
+- Configured in: Supabase Dashboard > Edge Functions > Settings
+
+### Payment Data Flow
+
+1. Customer initiates checkout on frontend
+2. Frontend calls Supabase Function with order details (NO card data)
+3. Supabase Function uses server-side token to create payment with Paguelo Fácil
+4. Payment URL returned to frontend (NO secrets included)
+5. Customer redirected to Paguelo Fácil hosted checkout
+6. Customer enters card data on PCI DSS compliant page
+7. Payment processed by Paguelo Fácil
+8. Webhook notification sent to Supabase Function (backend only)
+9. Frontend receives payment status (sanitized, no sensitive data)
+
 ## Security Best Practices for Developers
 
 When contributing to this project:

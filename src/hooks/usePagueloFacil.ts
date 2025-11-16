@@ -37,7 +37,7 @@ export const usePagueloFacil = () => {
         redirectUrls: {
           success: `${window.location.origin}/payment/success?orderId=${paymentData.orderId}`,
           cancel: `${window.location.origin}/payment/cancel?orderId=${paymentData.orderId}`,
-          notify: `${window.location.origin}/api/webhooks/paguelo-facil`
+          notify: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/paguelo-facil-webhook`
         }
       };
 
@@ -73,14 +73,9 @@ export const usePagueloFacil = () => {
     }
   };
 
-  const generateDirectPaymentUrl = (amount: number, description: string, reference: string): string => {
-    return pagueloFacilService.generatePaymentUrl(amount, description, reference);
-  };
-
   return {
     createPayment,
     checkPaymentStatus,
-    generateDirectPaymentUrl,
     loading,
     error
   };

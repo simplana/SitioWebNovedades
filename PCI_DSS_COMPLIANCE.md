@@ -176,6 +176,29 @@ Novedades Católicas DOES NOT store, process, or transmit cardholder data direct
 
 ## Security Architecture
 
+### Payment Integration Architecture
+
+**Zero-Trust Payment Integration:** All payment credentials and API calls are isolated in secure backend functions. The frontend has zero access to payment secrets.
+
+```
+Frontend (React)
+  ├─ NO payment secrets
+  ├─ NO direct API calls to payment gateway
+  └─ Only calls Supabase Functions
+       ↓
+Supabase Edge Functions (Secure Backend)
+  ├─ paguelo-facil-create-payment
+  ├─ paguelo-facil-get-status
+  └─ paguelo-facil-webhook
+       ├─ Holds PAGUELO_FACIL_ACCESS_TOKEN (server-side only)
+       ├─ Validates all requests
+       ├─ Sanitizes all data
+       └─ Logs audit events
+            ↓
+Paguelo Fácil API (PCI DSS Level 1)
+  └─ Handles all card data processing
+```
+
 ### Data Flow Diagram
 
 ```
@@ -183,62 +206,106 @@ Novedades Católicas DOES NOT store, process, or transmit cardholder data direct
 │   Customer  │
 └──────┬──────┘
        │
-       │ (1) Browse products
-       │ (2) Add to cart
+       │ (1) Browse & add to cart
        │
        v
-┌─────────────────────────┐
-│  Novedades Católicas    │
-│  Frontend Application   │
-│  - NO CARD DATA STORED  │
-│  - HTTPS Only           │
-│  - Security Headers     │
-└──────────┬──────────────┘
+┌─────────────────────────────────────┐
+│  Frontend Application               │
+│  - NO payment secrets               │
+│  - NO card data                     │
+└──────────┬─────────────────────────┘
            │
-           │ (3) Initiate payment
+           │ (2) Create payment request
            │     (order details only)
            │
            v
-┌─────────────────────────┐
-│   Paguelo Fácil API     │
-│   - PCI DSS Compliant   │
-│   - Handles card data   │
-└──────────┬──────────────┘
+┌─────────────────────────────────────┐
+│  Supabase Edge Function             │
+│  paguelo-facil-create-payment       │
+│  - Validates request                │
+│  - Uses server-side token           │
+└──────────┬─────────────────────────┘
            │
-           │ (4) Redirect to payment page
-           │
-           v
-┌─────────────────────────┐
-│  Customer enters card   │
-│  data on Paguelo Fácil  │
-│  secure payment page    │
-└──────────┬──────────────┘
-           │
-           │ (5) Payment processed
+           │ (3) POST /v1/payments
+           │     with Bearer token
            │
            v
-┌─────────────────────────┐
-│   Payment Processor     │
-│   (Bank/Card Network)   │
-└──────────┬──────────────┘
+┌─────────────────────────────────────┐
+│   Paguelo Fácil API                 │
+│   - Creates payment session         │
+│   - Returns checkout URL            │
+└──────────┬─────────────────────────┘
            │
-           │ (6) Payment result
-           │
-           v
-┌─────────────────────────┐
-│   Paguelo Fácil API     │
-└──────────┬──────────────┘
-           │
-           │ (7) Webhook/Redirect
-           │     (payment status only)
+           │ (4) Returns payment URL
            │
            v
-┌─────────────────────────┐
-│  Novedades Católicas    │
-│  - Update order status  │
-│  - No card data received│
-└─────────────────────────┘
+┌─────────────────────────────────────┐
+│  Supabase Edge Function             │
+│  - Logs payment initiation          │
+│  - Returns sanitized response       │
+└──────────┬─────────────────────────┘
+           │
+           │ (5) Payment URL (no secrets)
+           │
+           v
+┌─────────────────────────────────────┐
+│  Frontend Application               │
+│  - Redirects user to checkout       │
+└─────────────────────────────────────┘
+           │
+           │ (6) Redirect to Paguelo Fácil
+           │
+           v
+┌─────────────────────────────────────┐
+│  Paguelo Fácil Hosted Checkout      │
+│  - Customer enters card data        │
+│  - PCI DSS compliant environment    │
+└──────────┬─────────────────────────┘
+           │
+           │ (7) Process payment
+           │
+           v
+┌─────────────────────────────────────┐
+│   Payment Processor / Bank          │
+└──────────┬─────────────────────────┘
+           │
+           │ (8) Payment result
+           │
+           v
+┌─────────────────────────────────────┐
+│   Paguelo Fácil API                 │
+└─────┬────────────────────┬─────────┘
+      │                    │
+      │ (9) Webhook        │ (10) Redirect
+      │                    │
+      v                    v
+┌──────────────────┐  ┌──────────────────┐
+│  Supabase Edge   │  │  Frontend App    │
+│  Function        │  │  Success/Cancel  │
+│  (webhook)       │  │  Page            │
+│  - Validates     │  └──────────────────┘
+│  - Logs event    │
+│  - Updates DB    │
+└──────────────────┘
 ```
+
+### Key Security Principles
+
+1. **Separation of Concerns**
+   - Frontend: User interface only
+   - Backend (Supabase Functions): Payment API integration
+   - Payment Processor: Card data handling
+
+2. **Zero Secret Exposure**
+   - NO `VITE_PAGUELO_FACIL_*` variables
+   - All payment tokens in backend environment only
+   - Frontend bundle contains NO payment credentials
+
+3. **Defense in Depth**
+   - Input validation on frontend
+   - Request validation in backend functions
+   - Audit logging at every step
+   - Sanitization of all sensitive data
 
 ### Security Headers
 
