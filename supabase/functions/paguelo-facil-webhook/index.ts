@@ -1,8 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.55.0";
 
+const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN") || "*";
+
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": allowedOrigin,
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
@@ -28,7 +30,7 @@ Deno.serve(async (req: Request) => {
 
     const payload = await req.json();
 
-    console.log("Received Paguelo Fácil webhook");
+    console.log("Received Paguelo Fácil webhook (payload sanitized)");
 
     const paymentId = payload.payment_id || payload.id || payload.paymentId;
     const status = payload.status;

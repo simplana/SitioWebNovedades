@@ -1,7 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
+const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN") || "*";
+
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": allowedOrigin,
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };

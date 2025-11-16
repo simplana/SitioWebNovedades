@@ -89,6 +89,11 @@ Receives webhook notifications from Paguelo Fácil.
 
 **Usage:** Configure this URL in your Paguelo Fácil dashboard as the webhook endpoint.
 
+**Security Note:**
+- ⚠️ **TODO**: Webhook signature validation needs to be implemented when Paguelo Fácil provides official documentation
+- Currently accepting webhooks in backend only (no frontend exposure)
+- Future implementation will use `PAGUELO_FACIL_WEBHOOK_SECRET` environment variable for HMAC signature validation
+
 ## Environment Variables
 
 These functions require the following environment variables to be configured in **Supabase Dashboard**:
@@ -97,8 +102,10 @@ These functions require the following environment variables to be configured in 
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `PAGUELO_FACIL_ACCESS_TOKEN` | Your Paguelo Fácil API token (secret) | `SlLmEttBcJBgyYjIq...` |
+| `PAGUELO_FACIL_ACCESS_TOKEN` | Your Paguelo Fácil API token (secret) | `your-secret-token` |
 | `PAGUELO_FACIL_API_URL` | Paguelo Fácil API URL | `https://api.paguelofacil.com` |
+| `PAGUELO_FACIL_WEBHOOK_SECRET` | Webhook signature secret (future use) | `your-webhook-secret` |
+| `ALLOWED_ORIGIN` | Allowed CORS origin (production domain) | `https://novedadescatolicas.com` |
 
 ### Auto-Configured Variables
 

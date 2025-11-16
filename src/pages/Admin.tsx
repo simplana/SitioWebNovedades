@@ -289,15 +289,21 @@ const Admin = () => {
                     </div>
                     
                     <div className="bg-gray-100 rounded-lg p-4 text-sm">
-                      <h4 className="font-semibold mb-2">📋 Cómo obtener tu ACCESS TOKEN:</h4>
+                      <h4 className="font-semibold mb-2">📋 Cómo configurar tu ACCESS TOKEN:</h4>
                       <ol className="list-decimal list-inside space-y-1 text-gray-700">
                         <li>Ve a tu panel de <strong>Paguelo Fácil</strong></li>
                         <li>Busca la sección <strong>"API"</strong> o <strong>"Integraciones"</strong></li>
                         <li>Genera un nuevo <strong>ACCESS TOKEN</strong></li>
-                        <li>Cópialo y pégalo en el archivo <code>.env</code>:</li>
+                        <li>Ve a tu <strong>Supabase Dashboard</strong> → <strong>Edge Functions</strong> → <strong>Settings</strong></li>
+                        <li>Configura las siguientes variables de entorno:</li>
                       </ol>
-                      <div className="mt-2 p-2 bg-gray-200 rounded font-mono text-xs">
-                        VITE_PAGUELO_FACIL_ACCESS_TOKEN=tu-token-real-aqui
+                      <div className="mt-2 p-3 bg-gray-800 rounded font-mono text-xs text-green-400">
+                        PAGUELO_FACIL_ACCESS_TOKEN=your-secret-token-here<br/>
+                        PAGUELO_FACIL_API_URL=https://api.paguelofacil.com
+                      </div>
+                      <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                        <strong>⚠️ Importante:</strong> Estas variables deben configurarse <strong>exclusivamente como Environment Variables de Supabase Edge Functions</strong>.
+                        <strong className="text-red-600"> NO deben colocarse en el .env del frontend</strong> ni usar el prefijo <code>VITE_</code>.
                       </div>
                     </div>
                   </div>
