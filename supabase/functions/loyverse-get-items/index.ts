@@ -1,8 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN") || "*";
+
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": allowedOrigin,
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
@@ -62,8 +64,19 @@ Deno.serve(async (req: Request) => {
     if (hoursUntilExpiry < 24) {
       console.log("⚠️ Token expires in less than 24 hours, refreshing...");
 
-      const clientId = Deno.env.get("LOYVERSE_CLIENT_ID") || "na0tlm2Whq22j3jTPV_l";
-      const clientSecret = Deno.env.get("LOYVERSE_CLIENT_SECRET") || "G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw==";
+      const clientId = Deno.env.get("LOYVERSE_CLIENT_ID");
+      const clientSecret = Deno.env.get("LOYVERSE_CLIENT_SECRET");
+
+      if (!clientId || !clientSecret) {
+        console.error("Loyverse OAuth credentials not configured");
+        return new Response(
+          JSON.stringify({ error: "Loyverse OAuth is not configured" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
 
       const formData = new URLSearchParams();
       formData.append("grant_type", "refresh_token");

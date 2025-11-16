@@ -1,7 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
+const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN") || "*";
+
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": allowedOrigin,
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
@@ -33,8 +35,20 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const clientId = "na0tlm2Whq22j3jTPV_l";
-    const clientSecret = "G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw==";
+    const clientId = Deno.env.get("LOYVERSE_CLIENT_ID");
+    const clientSecret = Deno.env.get("LOYVERSE_CLIENT_SECRET");
+
+    if (!clientId || !clientSecret) {
+      console.error("Loyverse OAuth credentials not configured");
+      return new Response(
+        `<html><body><h2>Error: Loyverse OAuth is not configured</h2></body></html>`,
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "text/html" },
+        }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const redirectUri = `${supabaseUrl}/functions/v1/loyverse-public-oauth/callback`;
 
