@@ -434,10 +434,30 @@ const Profile = () => {
                     <span>Seleccionar Ubicación en el Mapa</span>
                   </button>
                   {editedProfile.latitude && editedProfile.longitude && (
-                    <p className="text-sm text-blue-700 mt-2 text-center">
-                      📍 Coordenadas: {editedProfile.latitude.toFixed(6)}, {editedProfile.longitude.toFixed(6)}
-                    </p>
+                    <div className="mt-3 flex items-center justify-center space-x-2">
+                      <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full flex items-center space-x-2 text-sm">
+                        <MapPin className="h-4 w-4" />
+                        <span>Ubicación configurada en el mapa</span>
+                      </div>
+                    </div>
                   )}
+                </div>
+              )}
+
+              {!isEditing && profile.latitude && profile.longitude && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <p className="text-sm text-gray-700 flex items-center">
+                    <MapPin className="h-4 w-4 mr-2 text-divine-gold" />
+                    Ubicación en mapa configurada
+                  </p>
+                  <a
+                    href={`https://www.google.com/maps/place/${profile.latitude},${profile.longitude}/@${profile.latitude},${profile.longitude},17z`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 text-sm mt-1 inline-block"
+                  >
+                    Ver en Google Maps →
+                  </a>
                 </div>
               )}
             </div>
