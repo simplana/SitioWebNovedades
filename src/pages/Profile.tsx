@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Calendar, Shield, Package, MapPin, Phone, Edit2, Save, X, Loader } from 'lucide-react';
+import { User, Mail, Calendar, Shield, Package, MapPin, Phone, Edit2, Save, X, Loader, Map, AlertCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
+import AddressMapPicker from '../components/AddressMapPicker';
+import { getProvinceNames, getCorregimientosByProvince } from '../utils/panamaLocations';
 
 interface UserProfile {
   full_name: string;
   phone: string;
-  address: string;
+  provincia: string;
+  corregimiento: string;
+  direccion_exacta: string;
+  direccion_referencia: string;
+  latitude?: number;
+  longitude?: number;
   city: string;
   country: string;
 }
@@ -19,14 +26,21 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [orderCount, setOrderCount] = useState(0);
+  const [showMapPicker, setShowMapPicker] = useState(false);
   const [profile, setProfile] = useState<UserProfile>({
     full_name: '',
     phone: '',
-    address: '',
+    provincia: '',
+    corregimiento: '',
+    direccion_exacta: '',
+    direccion_referencia: '',
+    latitude: undefined,
+    longitude: undefined,
     city: '',
     country: 'Panamá'
   });
   const [editedProfile, setEditedProfile] = useState<UserProfile>(profile);
+  const [availableCorregimientos, setAvailableCorregimientos] = useState<string[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -40,6 +54,16 @@ const Profile = () => {
       loadOrderCount();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (editedProfile.provincia) {
+      const corregimientos = getCorregimientosByProvince(editedProfile.provincia);
+      setAvailableCorregimientos(corregimientos);
+      if (!corregimientos.includes(editedProfile.corregimiento)) {
+        setEditedProfile({ ...editedProfile, corregimiento: '' });
+      }
+    }
+  }, [editedProfile.provincia]);
 
   const loadProfile = async () => {
     try {
@@ -59,12 +83,20 @@ const Profile = () => {
         const profileData = {
           full_name: data.full_name || '',
           phone: data.phone || '',
-          address: data.address || '',
+          provincia: data.provincia || '',
+          corregimiento: data.corregimiento || '',
+          direccion_exacta: data.direccion_exacta || '',
+          direccion_referencia: data.direccion_referencia || '',
+          latitude: data.latitude,
+          longitude: data.longitude,
           city: data.city || '',
           country: data.country || 'Panamá'
         };
         setProfile(profileData);
         setEditedProfile(profileData);
+        if (profileData.provincia) {
+          setAvailableCorregimientos(getCorregimientosByProvince(profileData.provincia));
+        }
       }
     } catch (error) {
       console.error('Error:', error);
@@ -88,6 +120,11 @@ const Profile = () => {
 
   const handleSave = async () => {
     if (!user) return;
+
+    if (!editedProfile.provincia || !editedProfile.corregimiento || !editedProfile.direccion_exacta) {
+      alert('Por favor, completa todos los campos de dirección de envío (Provincia, Corregimiento y Dirección Exacta)');
+      return;
+    }
 
     try {
       setSaving(true);
@@ -128,6 +165,15 @@ const Profile = () => {
     setIsEditing(false);
   };
 
+  const handleLocationSelect = (lat: number, lng: number, address: string) => {
+    setEditedProfile({
+      ...editedProfile,
+      latitude: lat,
+      longitude: lng,
+      direccion_referencia: address || editedProfile.direccion_referencia
+    });
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -147,6 +193,8 @@ const Profile = () => {
       day: 'numeric'
     });
   };
+
+  const isShippingInfoComplete = profile.provincia && profile.corregimiento && profile.direccion_exacta;
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -178,6 +226,20 @@ const Profile = () => {
           </div>
 
           <div className="px-6 py-6 sm:px-8">
+            {!isShippingInfoComplete && (
+              <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start space-x-3">
+                <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-yellow-800">
+                    Información de envío incompleta
+                  </p>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Para realizar pedidos con envío a domicilio, completa tu provincia, corregimiento y dirección exacta.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="bg-blue-50 rounded-lg p-4 flex items-center space-x-3">
                 <Package className="h-8 w-8 text-blue-600" />
@@ -261,65 +323,123 @@ const Profile = () => {
                   </p>
                 )}
               </div>
+            </div>
+
+            <h2 className="text-xl font-semibold text-gray-900 mt-8 mb-4 flex items-center">
+              <MapPin className="h-6 w-6 mr-2 text-divine-gold" />
+              Información de Envío
+            </h2>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Provincia <span className="text-red-500">*</span>
+                  </label>
+                  {isEditing ? (
+                    <select
+                      value={editedProfile.provincia}
+                      onChange={(e) => setEditedProfile({ ...editedProfile, provincia: e.target.value, corregimiento: '' })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                    >
+                      <option value="">Selecciona una provincia</option>
+                      {getProvinceNames().map((prov) => (
+                        <option key={prov} value={prov}>{prov}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">
+                      {profile.provincia || 'No especificado'}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Corregimiento <span className="text-red-500">*</span>
+                  </label>
+                  {isEditing ? (
+                    <select
+                      value={editedProfile.corregimiento}
+                      onChange={(e) => setEditedProfile({ ...editedProfile, corregimiento: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                      disabled={!editedProfile.provincia}
+                    >
+                      <option value="">Selecciona un corregimiento</option>
+                      {availableCorregimientos.map((corr) => (
+                        <option key={corr} value={corr}>{corr}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">
+                      {profile.corregimiento || 'No especificado'}
+                    </p>
+                  )}
+                </div>
+              </div>
 
               <div>
                 <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
                   <MapPin className="h-4 w-4 mr-2" />
-                  Dirección
+                  Dirección Exacta <span className="text-red-500">*</span>
                 </label>
                 {isEditing ? (
                   <textarea
-                    value={editedProfile.address}
-                    onChange={(e) => setEditedProfile({ ...editedProfile, address: e.target.value })}
+                    value={editedProfile.direccion_exacta}
+                    onChange={(e) => setEditedProfile({ ...editedProfile, direccion_exacta: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
                     rows={2}
-                    placeholder="Calle, número, apartamento, etc."
+                    placeholder="Calle, número, edificio, apartamento, etc."
                   />
                 ) : (
-                  <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">
-                    {profile.address || 'No especificado'}
+                  <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg whitespace-pre-wrap">
+                    {profile.direccion_exacta || 'No especificado'}
                   </p>
                 )}
+                <p className="text-xs text-gray-500 mt-1">
+                  Ej: Calle 50, Edificio Plaza Central, Piso 5, Apto 502
+                </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Ciudad
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editedProfile.city}
-                      onChange={(e) => setEditedProfile({ ...editedProfile, city: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                      placeholder="Ciudad"
-                    />
-                  ) : (
-                    <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">
-                      {profile.city || 'No especificado'}
+              <div>
+                <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                  <Map className="h-4 w-4 mr-2" />
+                  Referencias y Puntos de Referencia
+                </label>
+                {isEditing ? (
+                  <textarea
+                    value={editedProfile.direccion_referencia}
+                    onChange={(e) => setEditedProfile({ ...editedProfile, direccion_referencia: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                    rows={2}
+                    placeholder="Ej: Cerca del supermercado Rey, edificio blanco frente al parque"
+                  />
+                ) : (
+                  <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg whitespace-pre-wrap">
+                    {profile.direccion_referencia || 'No especificado'}
+                  </p>
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  Ayúdanos con puntos de referencia para encontrar tu dirección más fácilmente
+                </p>
+              </div>
+
+              {isEditing && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <button
+                    onClick={() => setShowMapPicker(true)}
+                    className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center space-x-2"
+                  >
+                    <Map className="h-5 w-5" />
+                    <span>Seleccionar Ubicación en el Mapa</span>
+                  </button>
+                  {editedProfile.latitude && editedProfile.longitude && (
+                    <p className="text-sm text-blue-700 mt-2 text-center">
+                      📍 Coordenadas: {editedProfile.latitude.toFixed(6)}, {editedProfile.longitude.toFixed(6)}
                     </p>
                   )}
                 </div>
-
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    País
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editedProfile.country}
-                      onChange={(e) => setEditedProfile({ ...editedProfile, country: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">
-                      {profile.country}
-                    </p>
-                  )}
-                </div>
-              </div>
+              )}
             </div>
 
             {isEditing && (
@@ -359,6 +479,15 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {showMapPicker && (
+        <AddressMapPicker
+          latitude={editedProfile.latitude}
+          longitude={editedProfile.longitude}
+          onLocationSelect={handleLocationSelect}
+          onClose={() => setShowMapPicker(false)}
+        />
+      )}
     </div>
   );
 };
