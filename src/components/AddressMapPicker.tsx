@@ -44,6 +44,7 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
   const [loading, setLoading] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState<string>('');
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -56,11 +57,21 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
         return;
       }
 
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+      if (!apiKey) {
+        setMapError('No se ha configurado la API Key de Google Maps. Por favor, contacta al administrador.');
+        return;
+      }
+
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
       script.async = true;
       script.defer = true;
       script.onload = () => setMapLoaded(true);
+      script.onerror = () => {
+        setMapError('Error al cargar Google Maps. Verifica tu conexión a internet.');
+      };
       document.head.appendChild(script);
     };
 
@@ -290,7 +301,21 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
               className="border-2 border-gray-300 rounded-lg overflow-hidden shadow-lg bg-gray-100"
               style={{ height: '450px' }}
             >
-              {!mapLoaded && (
+              {mapError && (
+                <div className="flex items-center justify-center h-full p-6">
+                  <div className="text-center max-w-md">
+                    <div className="bg-red-100 rounded-full p-4 inline-block mb-4">
+                      <X className="h-8 w-8 text-red-600" />
+                    </div>
+                    <p className="text-red-800 font-semibold mb-2">Error al Cargar el Mapa</p>
+                    <p className="text-red-600 text-sm mb-4">{mapError}</p>
+                    <p className="text-gray-600 text-xs">
+                      Por favor, contacta al administrador para configurar la API de Google Maps.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {!mapLoaded && !mapError && (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-divine-gold mx-auto mb-4"></div>
