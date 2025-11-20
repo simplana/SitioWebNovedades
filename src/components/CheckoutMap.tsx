@@ -89,6 +89,16 @@ const CheckoutMap: React.FC<CheckoutMapProps> = ({
       };
       reverseGeocode(newPos.lat, newPos.lng);
     });
+
+    map.addListener('click', (e: any) => {
+      const newPos = {
+        lat: e.latLng.lat(),
+        lng: e.latLng.lng()
+      };
+      marker.setPosition(newPos);
+      map.panTo(newPos);
+      reverseGeocode(newPos.lat, newPos.lng);
+    });
   }, [mapLoaded]);
 
   useEffect(() => {
@@ -180,7 +190,7 @@ const CheckoutMap: React.FC<CheckoutMapProps> = ({
       )}
       <div className="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg px-3 py-2 flex items-center space-x-2">
         <MapPin className="h-4 w-4 text-divine-gold" />
-        <span className="text-xs text-gray-700">Arrastra el marcador para ajustar</span>
+        <span className="text-xs text-gray-700">Haz click o arrastra el marcador</span>
       </div>
     </div>
   );

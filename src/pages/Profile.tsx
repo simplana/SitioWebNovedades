@@ -532,26 +532,33 @@ const Profile = () => {
                         <label className="text-sm font-medium text-gray-700 mb-2 block">
                           Provincia de Panamá <span className="text-red-500">*</span>
                         </label>
-                        <input
-                          type="text"
+                        <select
                           value={editedProfile.provincia}
-                          readOnly
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
-                          placeholder="Auto-relleno"
-                        />
+                          onChange={(e) => setEditedProfile({ ...editedProfile, provincia: e.target.value, corregimiento: '' })}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                        >
+                          <option value="">Selecciona una provincia</option>
+                          {getProvinceNames().map((prov) => (
+                            <option key={prov} value={prov}>{prov}</option>
+                          ))}
+                        </select>
                       </div>
 
                       <div>
                         <label className="text-sm font-medium text-gray-700 mb-2 block">
                           Corregimiento <span className="text-red-500">*</span>
                         </label>
-                        <input
-                          type="text"
+                        <select
                           value={editedProfile.corregimiento}
-                          readOnly
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
-                          placeholder="Auto-relleno"
-                        />
+                          onChange={(e) => setEditedProfile({ ...editedProfile, corregimiento: e.target.value })}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                          disabled={!editedProfile.provincia}
+                        >
+                          <option value="">Selecciona un corregimiento</option>
+                          {availableCorregimientos.map((corr) => (
+                            <option key={corr} value={corr}>{corr}</option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   </div>
@@ -572,6 +579,7 @@ const Profile = () => {
                           provincia: province,
                           corregimiento: district
                         }));
+                        setAutocompleteValue(address);
                       }}
                       height="500px"
                     />
