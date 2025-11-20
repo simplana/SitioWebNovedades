@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapPin, Navigation, X } from 'lucide-react';
+import { MapPin, Navigation, X, Search, Loader2 } from 'lucide-react';
 
 interface AddressMapPickerProps {
   latitude?: number;
@@ -25,15 +25,18 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
     lat: latitude || 8.9824,
     lng: longitude || -79.5199
   });
+  const [searchQuery, setSearchQuery] = useState('');
   const [address, setAddress] = useState('');
   const [province, setProvince] = useState('');
   const [district, setDistrict] = useState('');
   const [loading, setLoading] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string>('');
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
+  const geocoderRef = useRef<any>(null);
 
   useEffect(() => {
     const loadGoogleMaps = () => {
@@ -87,6 +90,7 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
     });
 
     markerRef.current = marker;
+    geocoderRef.current = new google.maps.Geocoder();
 
     map.addListener('click', (e: any) => {
       const clickedPos = {
@@ -96,6 +100,7 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
       setPosition(clickedPos);
       marker.setPosition(clickedPos);
       map.panTo(clickedPos);
+      reverseGeocode(clickedPos.lat, clickedPos.lng);
     });
 
     marker.addListener('dragend', (e: any) => {
@@ -105,8 +110,130 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
       };
       setPosition(newPos);
       map.panTo(newPos);
+      reverseGeocode(newPos.lat, newPos.lng);
     });
   }, [mapLoaded]);
+
+  const reverseGeocode = async (lat: number, lng: number) => {
+    if (!geocoderRef.current) return;
+
+    setGeocoding(true);
+    const latlng = { lat, lng };
+
+    try {
+      const results = await new Promise<any>((resolve, reject) => {
+        geocoderRef.current.geocode({ location: latlng }, (results: any, status: any) => {
+          if (status === 'OK' && results && results[0]) {
+            resolve(results);
+          } else {
+            reject(status);
+          }
+        });
+      });
+
+      if (results && results[0]) {
+        const addressComponents = results[0].address_components;
+        const formattedAddress = results[0].formatted_address;
+
+        let foundProvince = '';
+        let foundDistrict = '';
+
+        for (const component of addressComponents) {
+          const types = component.types;
+
+          if (types.includes('administrative_area_level_1')) {
+            foundProvince = component.long_name;
+          }
+
+          if (types.includes('locality') || types.includes('sublocality') || types.includes('administrative_area_level_2')) {
+            if (!foundDistrict) {
+              foundDistrict = component.long_name;
+            }
+          }
+        }
+
+        setAddress(formattedAddress);
+        setProvince(foundProvince);
+        setDistrict(foundDistrict);
+      }
+    } catch (error) {
+      console.error('Error en geocodificación inversa:', error);
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
+  const handleSearchAddress = async () => {
+    if (!searchQuery.trim() || !geocoderRef.current) return;
+
+    setGeocoding(true);
+
+    try {
+      const results = await new Promise<any>((resolve, reject) => {
+        geocoderRef.current.geocode(
+          {
+            address: searchQuery + ', Panamá',
+            componentRestrictions: { country: 'PA' }
+          },
+          (results: any, status: any) => {
+            if (status === 'OK' && results && results[0]) {
+              resolve(results);
+            } else {
+              reject(status);
+            }
+          }
+        );
+      });
+
+      if (results && results[0]) {
+        const location = results[0].geometry.location;
+        const newPos = {
+          lat: location.lat(),
+          lng: location.lng()
+        };
+
+        setPosition(newPos);
+
+        if (googleMapRef.current) {
+          googleMapRef.current.panTo(newPos);
+          googleMapRef.current.setZoom(17);
+        }
+
+        if (markerRef.current) {
+          markerRef.current.setPosition(newPos);
+        }
+
+        const addressComponents = results[0].address_components;
+        const formattedAddress = results[0].formatted_address;
+
+        let foundProvince = '';
+        let foundDistrict = '';
+
+        for (const component of addressComponents) {
+          const types = component.types;
+
+          if (types.includes('administrative_area_level_1')) {
+            foundProvince = component.long_name;
+          }
+
+          if (types.includes('locality') || types.includes('sublocality') || types.includes('administrative_area_level_2')) {
+            if (!foundDistrict) {
+              foundDistrict = component.long_name;
+            }
+          }
+        }
+
+        setAddress(formattedAddress);
+        setProvince(foundProvince);
+        setDistrict(foundDistrict);
+      }
+    } catch (error) {
+      console.error('Error buscando dirección:', error);
+      alert('No se pudo encontrar la dirección. Intenta con otra búsqueda o selecciona manualmente en el mapa.');
+    } finally {
+      setGeocoding(false);
+    }
+  };
 
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
@@ -125,6 +252,7 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
           if (markerRef.current) {
             markerRef.current.setPosition(newPos);
           }
+          reverseGeocode(newPos.lat, newPos.lng);
           setLoading(false);
         },
         (error) => {
@@ -140,7 +268,7 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
 
   const handleConfirm = () => {
     if (!address.trim() || !province.trim() || !district.trim()) {
-      alert('Por favor, completa todos los campos requeridos (Dirección, Provincia y Corregimiento)');
+      alert('Por favor, busca una dirección o selecciona una ubicación en el mapa primero.');
       return;
     }
 
@@ -150,29 +278,13 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
 
   const googleMapsLink = `https://www.google.com/maps?q=${position.lat},${position.lng}`;
 
-  const panamaProvinces = [
-    'Panamá',
-    'Panamá Oeste',
-    'Colón',
-    'Chiriquí',
-    'Coclé',
-    'Herrera',
-    'Los Santos',
-    'Veraguas',
-    'Bocas del Toro',
-    'Darién',
-    'Comarca Guna Yala',
-    'Comarca Emberá-Wounaan',
-    'Comarca Ngäbe-Buglé'
-  ];
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div className="bg-divine-gold px-6 py-4 flex items-center justify-between flex-shrink-0">
           <h2 className="text-xl font-bold text-white flex items-center">
             <MapPin className="h-6 w-6 mr-2" />
-            Selecciona tu Ubicación en el Mapa
+            Selecciona tu Ubicación
           </h2>
           <button
             onClick={onClose}
@@ -186,35 +298,75 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
           <div className="p-6 space-y-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm font-semibold text-blue-900 mb-2">
-                ¿Cómo seleccionar tu ubicación?
+                Dos formas de seleccionar tu ubicación:
               </p>
-              <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                <li><strong>Haz clic en el mapa</strong> donde vives o arrastra el marcador rojo</li>
-                <li>El mapa te ayuda a <strong>confirmar visualmente</strong> tu ubicación exacta</li>
-                <li>Completa los campos de <strong>Dirección, Provincia y Corregimiento</strong> manualmente</li>
-                <li>Agrega detalles adicionales si deseas (color de portón, referencias, etc.)</li>
-                <li>Presiona "Confirmar Ubicación" cuando esté correcto</li>
-              </ol>
+              <div className="text-sm text-blue-800 space-y-2">
+                <div className="flex items-start">
+                  <span className="font-bold mr-2">1.</span>
+                  <span><strong>Escribe tu dirección</strong> en el campo de búsqueda y presiona el botón de buscar</span>
+                </div>
+                <div className="flex items-start">
+                  <span className="font-bold mr-2">2.</span>
+                  <span><strong>Haz clic en el mapa</strong> o arrastra el marcador rojo a tu ubicación</span>
+                </div>
+                <p className="mt-2 pt-2 border-t border-blue-300">
+                  El sistema detectará automáticamente tu <strong>Provincia y Corregimiento</strong> según la ubicación seleccionada.
+                </p>
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={getCurrentLocation}
-                disabled={loading}
-                className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-              >
-                <Navigation className="h-4 w-4" />
-                <span>{loading ? 'Obteniendo ubicación...' : 'Usar mi ubicación actual'}</span>
-              </button>
-              <a
-                href={googleMapsLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <MapPin className="h-4 w-4" />
-                <span>Ver en Google Maps</span>
-              </a>
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearchAddress()}
+                    placeholder="Ej: Calle 50, Ciudad de Panamá"
+                    className="w-full px-4 py-3 pr-10 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                    disabled={geocoding}
+                  />
+                  <Search className="absolute right-3 top-3.5 h-5 w-5 text-gray-400" />
+                </div>
+                <button
+                  onClick={handleSearchAddress}
+                  disabled={geocoding || !searchQuery.trim()}
+                  className="px-6 py-3 bg-divine-gold text-white rounded-lg hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  {geocoding ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span>Buscando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-5 w-5" />
+                      <span>Buscar</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={getCurrentLocation}
+                  disabled={loading}
+                  className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  <Navigation className="h-4 w-4" />
+                  <span>{loading ? 'Obteniendo ubicación...' : 'Usar mi ubicación actual'}</span>
+                </button>
+                <a
+                  href={googleMapsLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <MapPin className="h-4 w-4" />
+                  <span>Ver en Google Maps</span>
+                </a>
+              </div>
             </div>
 
             <div
@@ -246,69 +398,47 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
               )}
             </div>
 
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-sm text-green-900 flex items-start">
-                <MapPin className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5 text-green-600" />
-                <span>
-                  <strong className="block mb-1">Ubicación seleccionada en el mapa:</strong>
-                  <span className="text-green-800 text-xs">
-                    Latitud: {position.lat.toFixed(6)}, Longitud: {position.lng.toFixed(6)}
-                  </span>
-                </span>
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Provincia <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={province}
-                  onChange={(e) => setProvince(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                  required
-                >
-                  <option value="">Selecciona una provincia</option>
-                  {panamaProvinces.map((prov) => (
-                    <option key={prov} value={prov}>
-                      {prov}
-                    </option>
-                  ))}
-                </select>
+            {geocoding && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center">
+                <Loader2 className="h-5 w-5 mr-2 animate-spin text-amber-600" />
+                <span className="text-amber-800 text-sm">Detectando dirección...</span>
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Corregimiento / Distrito <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                  placeholder="Ej: Bella Vista, San Miguelito"
-                  required
-                />
+            {address && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                <div>
+                  <p className="text-xs font-semibold text-green-900 mb-1">Dirección Detectada:</p>
+                  <p className="text-sm text-green-800">{address}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-green-900 mb-1">Provincia:</p>
+                    <p className="text-sm text-green-800">{province || 'No detectada'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-green-900 mb-1">Corregimiento/Distrito:</p>
+                    <p className="text-sm text-green-800">{district || 'No detectado'}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-green-900 mb-1">Coordenadas:</p>
+                  <p className="text-xs text-green-700">
+                    Lat: {position.lat.toFixed(6)}, Lng: {position.lng.toFixed(6)}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Dirección completa <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                rows={3}
-                placeholder="Ej: Calle 50, Edificio Torre del Mar, Piso 10, Oficina 1005&#10;o&#10;Urbanización Los Ángeles, Casa 123, Portón azul"
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Incluye calle, edificio, casa, apartamento, y referencias que ayuden con la entrega
-              </p>
-            </div>
+            {!address && !geocoding && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                <p className="text-sm text-gray-600">
+                  Busca una dirección o selecciona una ubicación en el mapa para continuar
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -321,7 +451,8 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
           </button>
           <button
             onClick={handleConfirm}
-            className="bg-divine-gold text-white px-6 py-2 rounded-lg hover:bg-amber-600 transition-colors flex items-center space-x-2"
+            disabled={!address || !province || !district}
+            className="bg-divine-gold text-white px-6 py-2 rounded-lg hover:bg-amber-600 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <MapPin className="h-4 w-4" />
             <span>Confirmar Ubicación</span>
