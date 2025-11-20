@@ -1,5 +1,15 @@
-import React, { useState } from 'react';
-import { MapPin, Navigation, X, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapPin, Navigation, X } from 'lucide-react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
 
 interface AddressMapPickerProps {
   latitude?: number;
@@ -8,26 +18,46 @@ interface AddressMapPickerProps {
   onClose: () => void;
 }
 
+interface LocationMarkerProps {
+  position: [number, number];
+  setPosition: (pos: [number, number]) => void;
+}
+
+const LocationMarker: React.FC<LocationMarkerProps> = ({ position, setPosition }) => {
+  const map = useMapEvents({
+    click(e) {
+      setPosition([e.latlng.lat, e.latlng.lng]);
+      map.flyTo(e.latlng, map.getZoom());
+    },
+  });
+
+  return position ? <Marker position={position} /> : null;
+};
+
 const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
   latitude,
   longitude,
   onLocationSelect,
   onClose
 }) => {
-  const [currentLat, setCurrentLat] = useState(latitude || 8.9824);
-  const [currentLng, setCurrentLng] = useState(longitude || -79.5199);
+  const [position, setPosition] = useState<[number, number]>([
+    latitude || 8.9824,
+    longitude || -79.5199
+  ]);
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
-  const [mapKey, setMapKey] = useState(0);
+  const mapRef = useRef<any>(null);
 
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
       setLoading(true);
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCurrentLat(position.coords.latitude);
-          setCurrentLng(position.coords.longitude);
-          setMapKey(prev => prev + 1);
+        (pos) => {
+          const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+          setPosition(newPos);
+          if (mapRef.current) {
+            mapRef.current.flyTo(newPos, 17);
+          }
           setLoading(false);
         },
         (error) => {
@@ -42,15 +72,11 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
   };
 
   const handleConfirm = () => {
-    onLocationSelect(currentLat, currentLng, address);
+    onLocationSelect(position[0], position[1], address);
     onClose();
   };
 
-  const updateLocation = () => {
-    setMapKey(prev => prev + 1);
-  };
-
-  const googleMapsPlaceUrl = `https://www.google.com/maps/place/${currentLat},${currentLng}/@${currentLat},${currentLng},17z`;
+  const googleMapsLink = `https://www.google.com/maps?q=${position[0]},${position[1]}`;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -71,16 +97,15 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
         <div className="flex-1 overflow-y-auto">
           <div className="p-6 space-y-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <strong>¿Cómo seleccionar cualquier punto?</strong>
+              <p className="text-sm font-semibold text-blue-900 mb-2">
+                ¿Cómo seleccionar tu ubicación?
               </p>
-              <ol className="text-sm text-blue-700 mt-2 space-y-1 list-decimal list-inside">
-                <li>Haz clic en "Abrir en Google Maps" para buscar tu ubicación</li>
-                <li>En Google Maps, haz clic derecho sobre el punto exacto que deseas</li>
-                <li>Selecciona la primera opción (las coordenadas) para copiarlas</li>
-                <li>Regresa aquí y pega las coordenadas en los campos de abajo</li>
-                <li>Presiona "Actualizar Mapa" para ver el marcador en esa ubicación</li>
-                <li>Si está correcto, haz clic en "Confirmar Ubicación"</li>
+              <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                <li>Haz clic directamente en el mapa donde vives</li>
+                <li>Mueve el mapa arrastrándolo con el mouse o dedos</li>
+                <li>Usa el zoom (+/-) para acercarte más</li>
+                <li>El marcador rojo se colocará donde hagas clic</li>
+                <li>Cuando esté en el lugar correcto, presiona "Confirmar Ubicación"</li>
               </ol>
             </div>
 
@@ -94,79 +119,39 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
                 <span>{loading ? 'Obteniendo ubicación...' : 'Usar mi ubicación actual'}</span>
               </button>
               <a
-                href={googleMapsPlaceUrl}
+                href={googleMapsLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
               >
                 <MapPin className="h-4 w-4" />
-                <span>Abrir en Google Maps</span>
+                <span>Ver en Google Maps</span>
               </a>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Latitud
-                </label>
-                <input
-                  type="text"
-                  value={currentLat}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (!isNaN(Number(val)) || val === '-' || val === '' || val.endsWith('.')) {
-                      setCurrentLat(val === '' ? 0 : val === '-' ? 0 : parseFloat(val) || 0);
-                    }
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                  placeholder="8.9824"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Longitud
-                </label>
-                <input
-                  type="text"
-                  value={currentLng}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (!isNaN(Number(val)) || val === '-' || val === '' || val.endsWith('.')) {
-                      setCurrentLng(val === '' ? 0 : val === '-' ? 0 : parseFloat(val) || 0);
-                    }
-                  }}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                  placeholder="-79.5199"
-                />
-              </div>
-              <button
-                onClick={updateLocation}
-                className="flex items-center justify-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+            <div className="border-2 border-gray-300 rounded-lg overflow-hidden shadow-lg" style={{ height: '500px' }}>
+              <MapContainer
+                center={position}
+                zoom={17}
+                style={{ height: '100%', width: '100%' }}
+                ref={mapRef}
               >
-                <Check className="h-4 w-4" />
-                <span>Actualizar Mapa</span>
-              </button>
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <LocationMarker position={position} setPosition={setPosition} />
+              </MapContainer>
             </div>
 
-            <div className="bg-gray-50 border-2 border-gray-300 rounded-lg overflow-hidden" style={{ height: '450px' }}>
-              <iframe
-                key={mapKey}
-                src={`https://maps.google.com/maps?q=${currentLat},${currentLng}&t=&z=17&ie=UTF8&iwloc=&output=embed`}
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Mapa de ubicación"
-              />
-            </div>
-
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <p className="text-sm text-amber-800 flex items-start">
-                <MapPin className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-sm text-green-900 flex items-start">
+                <MapPin className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5 text-green-600" />
                 <span>
-                  <strong>Ubicación seleccionada:</strong> {currentLat.toFixed(6)}, {currentLng.toFixed(6)}
+                  <strong className="block mb-1">Ubicación seleccionada:</strong>
+                  <span className="text-green-800">
+                    Latitud: {position[0].toFixed(6)}, Longitud: {position[1].toFixed(6)}
+                  </span>
                 </span>
               </p>
             </div>
