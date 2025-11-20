@@ -69,9 +69,9 @@ const Profile = () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('id', user?.id)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
@@ -130,22 +130,22 @@ const Profile = () => {
       setSaving(true);
 
       const { data: existing } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .maybeSingle();
 
       if (existing) {
         const { error } = await supabase
-          .from('user_profiles')
+          .from('profiles')
           .update(editedProfile)
-          .eq('user_id', user.id);
+          .eq('id', user.id);
 
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('user_profiles')
-          .insert([{ ...editedProfile, user_id: user.id }]);
+          .from('profiles')
+          .insert([{ ...editedProfile, id: user.id }]);
 
         if (error) throw error;
       }
@@ -165,13 +165,16 @@ const Profile = () => {
     setIsEditing(false);
   };
 
-  const handleLocationSelect = (lat: number, lng: number, address: string) => {
+  const handleLocationSelect = (lat: number, lng: number, address: string, province: string, district: string) => {
     setEditedProfile({
       ...editedProfile,
       latitude: lat,
       longitude: lng,
-      direccion_referencia: address || editedProfile.direccion_referencia
+      direccion_exacta: address,
+      provincia: province,
+      corregimiento: district
     });
+    setShowMapPicker(false);
   };
 
   if (authLoading || loading) {
