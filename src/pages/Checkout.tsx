@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
 import { usePagueloFacil } from '../hooks/usePagueloFacil';
-import { ShoppingCart, CreditCard, Truck, CheckCircle, ArrowLeft, User, MapPin, Phone, Mail, MessageCircle } from 'lucide-react';
+import { ShoppingCart, CreditCard, Truck, CheckCircle, ArrowLeft, User, MapPin, Phone, Mail, MessageCircle, Search, Navigation } from 'lucide-react';
 import PagueloFacilButton from '../components/PagueloFacilButton';
 import PagueloFacilPaymentCard from '../components/PagueloFacilPaymentCard';
+import CheckoutMap from '../components/CheckoutMap';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -28,10 +29,96 @@ const Checkout = () => {
     street: '',
     houseNumber: '',
     notes: '',
-    deliveryMethod: 'delivery'
+    deliveryMethod: 'delivery',
+    latitude: 8.9824,
+    longitude: -79.5199
   });
 
+  const [autocompleteValue, setAutocompleteValue] = useState('');
+  const autocompleteRef = useRef<HTMLInputElement>(null);
+  const autocompleteInstanceRef = useRef<any>(null);
+
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | 'paguelo_facil'>('transfer');
+
+  useEffect(() => {
+    const loadPlacesAutocomplete = () => {
+      if (!window.google || !window.google.maps || !window.google.maps.places) {
+        setTimeout(loadPlacesAutocomplete, 100);
+        return;
+      }
+
+      if (!autocompleteRef.current || autocompleteInstanceRef.current) return;
+
+      const autocomplete = new window.google.maps.places.Autocomplete(autocompleteRef.current, {
+        componentRestrictions: { country: 'pa' },
+        fields: ['address_components', 'geometry', 'formatted_address'],
+        types: ['address']
+      });
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+
+        if (!place.geometry || !place.geometry.location) {
+          return;
+        }
+
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        const formattedAddress = place.formatted_address || '';
+
+        let province = '';
+        let district = '';
+        let corregimiento = '';
+        let streetName = '';
+        let streetNumber = '';
+
+        if (place.address_components) {
+          for (const component of place.address_components) {
+            const types = component.types;
+
+            if (types.includes('administrative_area_level_1')) {
+              province = component.long_name;
+            }
+
+            if (types.includes('locality')) {
+              district = component.long_name;
+            }
+
+            if (types.includes('sublocality') || types.includes('sublocality_level_1')) {
+              corregimiento = component.long_name;
+            }
+
+            if (types.includes('route')) {
+              streetName = component.long_name;
+            }
+
+            if (types.includes('street_number')) {
+              streetNumber = component.long_name;
+            }
+          }
+        }
+
+        setCustomerInfo(prev => ({
+          ...prev,
+          province: province,
+          district: district,
+          corregimiento: corregimiento || district,
+          street: streetName,
+          houseNumber: streetNumber,
+          latitude: lat,
+          longitude: lng
+        }));
+
+        setAutocompleteValue(formattedAddress);
+      });
+
+      autocompleteInstanceRef.current = autocomplete;
+    };
+
+    if (step === 'info') {
+      loadPlacesAutocomplete();
+    }
+  }, [step]);
   // Datos de ubicación de Panamá
   const panamaData = {
     'Panamá': {
@@ -337,11 +424,67 @@ const Checkout = () => {
           <div className="lg:col-span-2">
             {step === 'info' && (
               <div className="bg-sacred-white rounded-2xl shadow-sacred p-8">
-                <h2 className="font-playfair text-2xl font-bold text-navy-devotion mb-6">
+                <h2 className="font-playfair text-2xl font-bold text-navy-devotion mb-6 flex items-center">
+                  <MapPin className="h-6 w-6 mr-2 text-divine-gold" />
                   Información de Contacto y Entrega
                 </h2>
-                
+
                 <form onSubmit={handleSubmitInfo} className="space-y-6">
+                  {/* Delivery Method First */}
+                  <div>
+                    <label className="block text-sm font-medium text-stone-prayer mb-2">
+                      Método de entrega *
+                    </label>
+                    <div className="space-y-3">
+                      <div
+                        className={`border-2 rounded-xl p-4 cursor-pointer transition-all duration-200 ${
+                          customerInfo.deliveryMethod === 'delivery'
+                            ? 'border-divine-gold bg-light-gold bg-opacity-20'
+                            : 'border-divine-gold border-opacity-30 hover:border-divine-gold hover:border-opacity-50'
+                        }`}
+                        onClick={() => setCustomerInfo(prev => ({ ...prev, deliveryMethod: 'delivery' }))}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="radio"
+                            name="deliveryMethod"
+                            value="delivery"
+                            checked={customerInfo.deliveryMethod === 'delivery'}
+                            onChange={handleInputChange}
+                            className="text-divine-gold focus:ring-divine-gold"
+                          />
+                          <div>
+                            <h3 className="font-semibold text-navy-devotion">Envío a domicilio</h3>
+                            <p className="text-sm text-stone-prayer">Recibe tu pedido en la dirección que indiques</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        className={`border-2 rounded-xl p-4 cursor-pointer transition-all duration-200 ${
+                          customerInfo.deliveryMethod === 'pickup'
+                            ? 'border-divine-gold bg-light-gold bg-opacity-20'
+                            : 'border-divine-gold border-opacity-30 hover:border-divine-gold hover:border-opacity-50'
+                        }`}
+                        onClick={() => setCustomerInfo(prev => ({ ...prev, deliveryMethod: 'pickup' }))}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="radio"
+                            name="deliveryMethod"
+                            value="pickup"
+                            checked={customerInfo.deliveryMethod === 'pickup'}
+                            onChange={handleInputChange}
+                            className="text-divine-gold focus:ring-divine-gold"
+                          />
+                          <div>
+                            <h3 className="font-semibold text-navy-devotion">Retiro en tienda</h3>
+                            <p className="text-sm text-stone-prayer">Retira tu pedido en nuestra tienda física</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-stone-prayer mb-2">
@@ -396,201 +539,129 @@ const Checkout = () => {
                     </div>
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-stone-prayer mb-2">
-                      Método de entrega *
-                    </label>
-                    <div className="space-y-3">
-                      <div 
-                        className={`border-2 rounded-xl p-4 cursor-pointer transition-all duration-200 ${
-                          customerInfo.deliveryMethod === 'delivery' 
-                            ? 'border-divine-gold bg-light-gold bg-opacity-20' 
-                            : 'border-divine-gold border-opacity-30 hover:border-divine-gold hover:border-opacity-50'
-                        }`}
-                        onClick={() => setCustomerInfo(prev => ({ ...prev, deliveryMethod: 'delivery' }))}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <input
-                            type="radio"
-                            name="deliveryMethod"
-                            value="delivery"
-                            checked={customerInfo.deliveryMethod === 'delivery'}
-                            onChange={handleInputChange}
-                            className="text-divine-gold focus:ring-divine-gold"
-                          />
-                          <div>
-                            <h3 className="font-semibold text-navy-devotion">Envío a domicilio</h3>
-                            <p className="text-sm text-stone-prayer">Recibe tu pedido en la dirección que indiques</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div 
-                        className={`border-2 rounded-xl p-4 cursor-pointer transition-all duration-200 ${
-                          customerInfo.deliveryMethod === 'pickup' 
-                            ? 'border-divine-gold bg-light-gold bg-opacity-20' 
-                            : 'border-divine-gold border-opacity-30 hover:border-divine-gold hover:border-opacity-50'
-                        }`}
-                        onClick={() => setCustomerInfo(prev => ({ ...prev, deliveryMethod: 'pickup' }))}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <input
-                            type="radio"
-                            name="deliveryMethod"
-                            value="pickup"
-                            checked={customerInfo.deliveryMethod === 'pickup'}
-                            onChange={handleInputChange}
-                            className="text-divine-gold focus:ring-divine-gold"
-                          />
-                          <div>
-                            <h3 className="font-semibold text-navy-devotion">Retiro en tienda</h3>
-                            <p className="text-sm text-stone-prayer">Retira tu pedido en nuestra tienda física</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                   
-                  {/* Campos de dirección - Solo si es envío a domicilio */}
+                  {/* Address Section with Map - Only for delivery */}
                   {customerInfo.deliveryMethod === 'delivery' && (
                     <>
-                      <div>
-                        <label className="block text-sm font-medium text-stone-prayer mb-2">
-                          País *
-                        </label>
-                        <select
-                          name="country"
-                          value={customerInfo.country}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                          required
-                        >
-                          <option value="Panamá">Panamá</option>
-                          <option value="Otro país">Otro país</option>
-                        </select>
-                      </div>
-                      
-                      {/* Campos específicos para Panamá */}
-                      {customerInfo.country === 'Panamá' && (
-                        <>
-                          <div>
-                            <label className="block text-sm font-medium text-stone-prayer mb-2">
-                              Provincia *
-                            </label>
-                            <select
-                              name="province"
-                              value={customerInfo.province}
-                              onChange={handleInputChange}
-                              className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                              required
-                            >
-                              <option value="">Selecciona una provincia</option>
-                              {Object.keys(panamaData).map((province) => (
-                                <option key={province} value={province}>
-                                  {province}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          
-                          {customerInfo.province && (
+                      <div className="border-t border-gray-200 pt-6">
+                        <h3 className="font-semibold text-lg text-navy-devotion mb-4 flex items-center">
+                          <MapPin className="h-5 w-5 mr-2 text-divine-gold" />
+                          Dirección de Entrega
+                        </h3>
+
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                          <p className="text-sm text-blue-800 mb-2">
+                            <strong>Busca tu dirección:</strong> Escribe tu dirección en el campo de búsqueda y selecciona de las sugerencias.
+                          </p>
+                          <p className="text-xs text-blue-700">
+                            El mapa se actualizará automáticamente y puedes ajustar el marcador arrastrándolo a tu ubicación exacta.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div className="space-y-4">
                             <div>
                               <label className="block text-sm font-medium text-stone-prayer mb-2">
-                                Distrito *
+                                <Search className="inline h-4 w-4 mr-1" />
+                                Buscar dirección *
                               </label>
-                              <select
-                                name="district"
-                                value={customerInfo.district}
-                                onChange={handleInputChange}
-                                className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                                required
-                              >
-                                <option value="">Selecciona un distrito</option>
-                                {Object.keys(panamaData[customerInfo.province as keyof typeof panamaData] || {}).map((district) => (
-                                  <option key={district} value={district}>
-                                    {district}
-                                  </option>
-                                ))}
-                              </select>
+                              <input
+                                ref={autocompleteRef}
+                                type="text"
+                                value={autocompleteValue}
+                                onChange={(e) => setAutocompleteValue(e.target.value)}
+                                className="w-full px-4 py-3 border-2 border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-divine-gold"
+                                placeholder="Ej: Calle 50, Ciudad de Panamá"
+                              />
+                              <p className="text-xs text-gray-500 mt-1">
+                                Comienza a escribir y selecciona de las sugerencias
+                              </p>
                             </div>
-                          )}
-                          
-                          {customerInfo.district && (
+
                             <div>
                               <label className="block text-sm font-medium text-stone-prayer mb-2">
-                                Corregimiento *
+                                Provincia *
                               </label>
-                              <select
+                              <input
+                                type="text"
+                                name="province"
+                                value={customerInfo.province}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent bg-gray-50"
+                                placeholder="Se llenará automáticamente"
+                                readOnly
+                                required
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-stone-prayer mb-2">
+                                Corregimiento / Distrito *
+                              </label>
+                              <input
+                                type="text"
                                 name="corregimiento"
                                 value={customerInfo.corregimiento}
                                 onChange={handleInputChange}
-                                className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                                required
-                              >
-                                <option value="">Selecciona un corregimiento</option>
-                                {(panamaData[customerInfo.province as keyof typeof panamaData]?.[customerInfo.district as keyof typeof panamaData[keyof typeof panamaData]] || []).map((corregimiento) => (
-                                  <option key={corregimiento} value={corregimiento}>
-                                    {corregimiento}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          )}
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <label className="block text-sm font-medium text-stone-prayer mb-2">
-                                Calle *
-                              </label>
-                              <input
-                                type="text"
-                                name="street"
-                                value={customerInfo.street}
-                                onChange={handleInputChange}
-                                className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                                placeholder="Nombre de la calle"
+                                className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent bg-gray-50"
+                                placeholder="Se llenará automáticamente"
+                                readOnly
                                 required
                               />
                             </div>
-                            
-                            <div>
-                              <label className="block text-sm font-medium text-stone-prayer mb-2">
-                                Número de casa/apartamento *
-                              </label>
-                              <input
-                                type="text"
-                                name="houseNumber"
-                                value={customerInfo.houseNumber}
-                                onChange={handleInputChange}
-                                className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                                placeholder="Ej: Casa 123, Apt 4B"
-                                required
-                              />
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-stone-prayer mb-2">
+                                  Casa/Edificio
+                                </label>
+                                <input
+                                  type="text"
+                                  name="houseNumber"
+                                  value={customerInfo.houseNumber}
+                                  onChange={handleInputChange}
+                                  className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                                  placeholder="Ej: Casa 123"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-stone-prayer mb-2">
+                                  Apt/Piso (opcional)
+                                </label>
+                                <input
+                                  type="text"
+                                  name="street"
+                                  value={customerInfo.street}
+                                  onChange={handleInputChange}
+                                  className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                                  placeholder="Ej: Apt 4B"
+                                />
+                              </div>
                             </div>
                           </div>
-                        </>
-                      )}
-                      
-                      {/* Campo de dirección para otros países */}
-                      {customerInfo.country === 'Otro país' && (
-                        <div>
-                          <label className="block text-sm font-medium text-stone-prayer mb-2">
-                            Dirección completa *
-                          </label>
-                          <div className="relative">
-                            <MapPin className="absolute left-3 top-3 text-dove-gray h-5 w-5" />
-                            <textarea
-                              name="street"
-                              value={customerInfo.street}
-                              onChange={handleInputChange}
-                              rows={3}
-                              className="w-full pl-10 pr-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent resize-none"
-                              placeholder="Dirección completa con ciudad y país..."
-                              required
+
+                          <div>
+                            <label className="block text-sm font-medium text-stone-prayer mb-2">
+                              Mapa de ubicación
+                            </label>
+                            <CheckoutMap
+                              latitude={customerInfo.latitude}
+                              longitude={customerInfo.longitude}
+                              onLocationChange={(lat, lng, address, province, district) => {
+                                setCustomerInfo(prev => ({
+                                  ...prev,
+                                  latitude: lat,
+                                  longitude: lng,
+                                  province: province,
+                                  corregimiento: district
+                                }));
+                              }}
+                              height="400px"
                             />
                           </div>
                         </div>
-                      )}
+                      </div>
                     </>
                   )}
                   
