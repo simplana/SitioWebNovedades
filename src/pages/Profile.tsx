@@ -504,14 +504,14 @@ const Profile = () => {
 
                     <div>
                       <label className="text-sm font-medium text-gray-700 mb-2 block">
-                        Apt, Suite, etc (opcional)
+                        Descripción (opcional)
                       </label>
                       <input
                         type="text"
                         value={editedProfile.direccion_referencia}
                         onChange={(e) => setEditedProfile({ ...editedProfile, direccion_referencia: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                        placeholder="Ej: Apt 4B, Piso 5"
+                        placeholder="Ej: Apt 4B, Piso 5, Casa azul"
                       />
                     </div>
 
@@ -543,27 +543,16 @@ const Profile = () => {
 
                       <div>
                         <label className="text-sm font-medium text-gray-700 mb-2 block">
-                          Zip/Postal code
+                          Corregimiento <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
-                          placeholder="Opcional"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                          value={editedProfile.corregimiento}
+                          readOnly
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                          placeholder="Auto-relleno"
                         />
                       </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-2 block">
-                        Panamá
-                      </label>
-                      <input
-                        type="text"
-                        value={editedProfile.corregimiento}
-                        readOnly
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
-                        placeholder="Auto-relleno"
-                      />
                     </div>
                   </div>
 
