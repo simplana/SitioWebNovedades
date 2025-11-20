@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapPin, Navigation, X } from 'lucide-react';
+import { MapPin, Navigation, X, Loader2 } from 'lucide-react';
 
 interface AddressMapPickerProps {
   latitude?: number;
   longitude?: number;
-  onLocationSelect: (lat: number, lng: number, address: string) => void;
+  onLocationSelect: (lat: number, lng: number, address: string, province: string, district: string) => void;
   onClose: () => void;
+}
+
+interface LocationDetails {
+  fullAddress: string;
+  province: string;
+  district: string;
+  city: string;
+  street: string;
 }
 
 declare global {
@@ -25,12 +33,21 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
     lat: latitude || 8.9824,
     lng: longitude || -79.5199
   });
-  const [address, setAddress] = useState('');
+  const [locationDetails, setLocationDetails] = useState<LocationDetails>({
+    fullAddress: '',
+    province: '',
+    district: '',
+    city: '',
+    street: ''
+  });
+  const [additionalNotes, setAdditionalNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
+  const geocoderRef = useRef<any>(null);
 
   useEffect(() => {
     const loadGoogleMaps = () => {
@@ -50,10 +67,80 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
     loadGoogleMaps();
   }, []);
 
+  const reverseGeocode = async (lat: number, lng: number) => {
+    if (!geocoderRef.current) return;
+
+    setGeocoding(true);
+    const latlng = { lat, lng };
+
+    try {
+      const results = await new Promise<any>((resolve, reject) => {
+        geocoderRef.current.geocode({ location: latlng }, (results: any, status: any) => {
+          if (status === 'OK' && results && results[0]) {
+            resolve(results);
+          } else {
+            reject(status);
+          }
+        });
+      });
+
+      if (results && results[0]) {
+        const addressComponents = results[0].address_components;
+        const formattedAddress = results[0].formatted_address;
+
+        let province = '';
+        let district = '';
+        let city = '';
+        let street = '';
+
+        addressComponents.forEach((component: any) => {
+          const types = component.types;
+
+          if (types.includes('administrative_area_level_1')) {
+            province = component.long_name;
+          }
+
+          if (types.includes('administrative_area_level_2') || types.includes('locality')) {
+            if (!district) district = component.long_name;
+          }
+
+          if (types.includes('sublocality') || types.includes('sublocality_level_1')) {
+            if (!city) city = component.long_name;
+          }
+
+          if (types.includes('route')) {
+            street = component.long_name;
+          }
+        });
+
+        setLocationDetails({
+          fullAddress: formattedAddress,
+          province: province || 'Panamá',
+          district: district || city || '',
+          city: city || district || '',
+          street: street
+        });
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      setLocationDetails({
+        fullAddress: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        province: 'Panamá',
+        district: '',
+        city: '',
+        street: ''
+      });
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;
 
     const { google } = window;
+
+    geocoderRef.current = new google.maps.Geocoder();
 
     const map = new google.maps.Map(mapRef.current, {
       center: position,
@@ -75,6 +162,8 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
 
     markerRef.current = marker;
 
+    reverseGeocode(position.lat, position.lng);
+
     map.addListener('click', (e: any) => {
       const clickedPos = {
         lat: e.latLng.lat(),
@@ -83,6 +172,7 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
       setPosition(clickedPos);
       marker.setPosition(clickedPos);
       map.panTo(clickedPos);
+      reverseGeocode(clickedPos.lat, clickedPos.lng);
     });
 
     marker.addListener('dragend', (e: any) => {
@@ -92,6 +182,7 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
       };
       setPosition(newPos);
       map.panTo(newPos);
+      reverseGeocode(newPos.lat, newPos.lng);
     });
   }, [mapLoaded]);
 
@@ -112,6 +203,7 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
           if (markerRef.current) {
             markerRef.current.setPosition(newPos);
           }
+          reverseGeocode(newPos.lat, newPos.lng);
           setLoading(false);
         },
         (error) => {
@@ -126,7 +218,17 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
   };
 
   const handleConfirm = () => {
-    onLocationSelect(position.lat, position.lng, address);
+    const fullAddressWithNotes = additionalNotes
+      ? `${locationDetails.fullAddress} - ${additionalNotes}`
+      : locationDetails.fullAddress;
+
+    onLocationSelect(
+      position.lat,
+      position.lng,
+      fullAddressWithNotes,
+      locationDetails.province,
+      locationDetails.district
+    );
     onClose();
   };
 
@@ -156,10 +258,10 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
               </p>
               <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
                 <li><strong>Haz clic directamente en el mapa</strong> donde vives</li>
-                <li>Mueve el mapa arrastrándolo con el mouse o dedos</li>
-                <li>Usa el zoom (+/-) para acercarte más</li>
-                <li>También puedes <strong>arrastrar el marcador rojo</strong> a la posición exacta</li>
-                <li>Cuando esté en el lugar correcto, presiona "Confirmar Ubicación"</li>
+                <li>La dirección, provincia y corregimiento se detectarán automáticamente</li>
+                <li>Puedes <strong>arrastrar el marcador rojo</strong> para ajustar la posición</li>
+                <li>Agrega detalles adicionales si deseas (color de portón, número de casa, etc.)</li>
+                <li>Presiona "Confirmar Ubicación" cuando esté correcto</li>
               </ol>
             </div>
 
@@ -186,7 +288,7 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
             <div
               ref={mapRef}
               className="border-2 border-gray-300 rounded-lg overflow-hidden shadow-lg bg-gray-100"
-              style={{ height: '500px' }}
+              style={{ height: '450px' }}
             >
               {!mapLoaded && (
                 <div className="flex items-center justify-center h-full">
@@ -198,29 +300,66 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
               )}
             </div>
 
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-sm text-green-900 flex items-start">
-                <MapPin className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5 text-green-600" />
-                <span>
-                  <strong className="block mb-1">Ubicación seleccionada:</strong>
-                  <span className="text-green-800">
-                    Latitud: {position.lat.toFixed(6)}, Longitud: {position.lng.toFixed(6)}
-                  </span>
-                </span>
-              </p>
-            </div>
+            {geocoding && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center">
+                <Loader2 className="h-5 w-5 mr-2 animate-spin text-amber-600" />
+                <span className="text-sm text-amber-800">Obteniendo dirección...</span>
+              </div>
+            )}
+
+            {locationDetails.fullAddress && !geocoding && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-2">
+                <div className="flex items-start">
+                  <MapPin className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5 text-green-600" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-green-900 mb-2">Ubicación Detectada:</p>
+
+                    <div className="space-y-1 text-sm">
+                      <div className="flex">
+                        <span className="font-medium text-green-900 w-24">Dirección:</span>
+                        <span className="text-green-800">{locationDetails.fullAddress}</span>
+                      </div>
+
+                      {locationDetails.province && (
+                        <div className="flex">
+                          <span className="font-medium text-green-900 w-24">Provincia:</span>
+                          <span className="text-green-800">{locationDetails.province}</span>
+                        </div>
+                      )}
+
+                      {locationDetails.district && (
+                        <div className="flex">
+                          <span className="font-medium text-green-900 w-24">Corregimiento:</span>
+                          <span className="text-green-800">{locationDetails.district}</span>
+                        </div>
+                      )}
+
+                      <div className="flex">
+                        <span className="font-medium text-green-900 w-24">Coordenadas:</span>
+                        <span className="text-green-800 text-xs">
+                          {position.lat.toFixed(6)}, {position.lng.toFixed(6)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Descripción adicional (opcional)
+                Detalles adicionales (opcional)
               </label>
               <textarea
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                value={additionalNotes}
+                onChange={(e) => setAdditionalNotes(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
                 rows={2}
-                placeholder="Ej: Portón azul, casa de dos pisos"
+                placeholder="Ej: Portón azul, casa de dos pisos, al lado del supermercado"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Puedes agregar referencias adicionales para facilitar la entrega
+              </p>
             </div>
           </div>
         </div>
@@ -234,7 +373,8 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
           </button>
           <button
             onClick={handleConfirm}
-            className="bg-divine-gold text-white px-6 py-2 rounded-lg hover:bg-amber-600 transition-colors flex items-center space-x-2"
+            disabled={!locationDetails.fullAddress || geocoding}
+            className="bg-divine-gold text-white px-6 py-2 rounded-lg hover:bg-amber-600 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <MapPin className="h-4 w-4" />
             <span>Confirmar Ubicación</span>
