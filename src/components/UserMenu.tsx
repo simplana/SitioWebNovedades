@@ -73,12 +73,16 @@ const UserMenu: React.FC = () => {
             </div>
 
             <div className="py-2">
-              <button className="w-full flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors duration-200">
+              <Link
+                to="/profile"
+                onClick={() => setIsOpen(false)}
+                className="w-full flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+              >
                 <Settings className="h-5 w-5" />
                 <span>Mi Perfil</span>
-              </button>
-              
-              <Link 
+              </Link>
+
+              <Link
                 to="/orders"
                 onClick={() => setIsOpen(false)}
                 className="w-full flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors duration-200"

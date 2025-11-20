@@ -20,6 +20,7 @@ import EmailVerified from './pages/EmailVerified';
 import Admin from './pages/Admin';
 import Checkout from './pages/Checkout';
 import Orders from './pages/Orders';
+import Profile from './pages/Profile';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
 import DevTools from './pages/Admin/DevTools';
@@ -77,6 +78,14 @@ function App() {
               element={
                 <ProtectedRoute requireVerification={true}>
                   <Orders />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
                 </ProtectedRoute>
               }
             />
