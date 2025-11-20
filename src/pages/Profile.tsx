@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Calendar, Shield, Package, MapPin, Phone, Edit2, Save, X, Loader, Map, AlertCircle } from 'lucide-react';
+import { User, Mail, Calendar, Shield, Package, MapPin, Phone, Edit2, Save, X, Loader, Map, AlertCircle, Search } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import AddressMapPicker from '../components/AddressMapPicker';
+import CheckoutMap from '../components/CheckoutMap';
 import { getProvinceNames, getCorregimientosByProvince } from '../utils/panamaLocations';
 
 interface UserProfile {
@@ -41,6 +42,9 @@ const Profile = () => {
   });
   const [editedProfile, setEditedProfile] = useState<UserProfile>(profile);
   const [availableCorregimientos, setAvailableCorregimientos] = useState<string[]>([]);
+  const [autocompleteValue, setAutocompleteValue] = useState('');
+  const autocompleteRef = useRef<HTMLInputElement>(null);
+  const autocompleteInstanceRef = useRef<any>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -64,6 +68,81 @@ const Profile = () => {
       }
     }
   }, [editedProfile.provincia]);
+
+  useEffect(() => {
+    const loadPlacesAutocomplete = () => {
+      if (!window.google || !window.google.maps || !window.google.maps.places) {
+        setTimeout(loadPlacesAutocomplete, 100);
+        return;
+      }
+
+      if (!autocompleteRef.current || autocompleteInstanceRef.current) return;
+
+      const autocomplete = new window.google.maps.places.Autocomplete(autocompleteRef.current, {
+        componentRestrictions: { country: 'pa' },
+        fields: ['address_components', 'geometry', 'formatted_address'],
+        types: ['address']
+      });
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+
+        if (!place.geometry || !place.geometry.location) {
+          return;
+        }
+
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        const formattedAddress = place.formatted_address || '';
+
+        let province = '';
+        let district = '';
+        let streetName = '';
+        let streetNumber = '';
+
+        if (place.address_components) {
+          for (const component of place.address_components) {
+            const types = component.types;
+
+            if (types.includes('administrative_area_level_1')) {
+              province = component.long_name;
+            }
+
+            if (types.includes('locality') || types.includes('sublocality') || types.includes('sublocality_level_1')) {
+              district = component.long_name;
+            }
+
+            if (types.includes('route')) {
+              streetName = component.long_name;
+            }
+
+            if (types.includes('street_number')) {
+              streetNumber = component.long_name;
+            }
+          }
+        }
+
+        const fullAddress = `${streetName}${streetNumber ? ' ' + streetNumber : ''}`.trim() || formattedAddress;
+
+        setEditedProfile(prev => ({
+          ...prev,
+          provincia: province,
+          corregimiento: district,
+          direccion_exacta: fullAddress,
+          latitude: lat,
+          longitude: lng
+        }));
+
+        setAutocompleteValue(formattedAddress);
+      });
+
+      autocompleteInstanceRef.current = autocomplete;
+    };
+
+    if (isEditing) {
+      loadPlacesAutocomplete();
+    }
+  }, [isEditing]);
 
   const loadProfile = async () => {
     try {
@@ -333,137 +412,184 @@ const Profile = () => {
               Información de Envío
             </h2>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Provincia <span className="text-red-500">*</span>
-                  </label>
-                  {isEditing ? (
-                    <select
-                      value={editedProfile.provincia}
-                      onChange={(e) => setEditedProfile({ ...editedProfile, provincia: e.target.value, corregimiento: '' })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                    >
-                      <option value="">Selecciona una provincia</option>
-                      {getProvinceNames().map((prov) => (
-                        <option key={prov} value={prov}>{prov}</option>
-                      ))}
-                    </select>
-                  ) : (
+            {!isEditing ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">
+                      Provincia <span className="text-red-500">*</span>
+                    </label>
                     <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">
                       {profile.provincia || 'No especificado'}
                     </p>
-                  )}
-                </div>
+                  </div>
 
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Corregimiento <span className="text-red-500">*</span>
-                  </label>
-                  {isEditing ? (
-                    <select
-                      value={editedProfile.corregimiento}
-                      onChange={(e) => setEditedProfile({ ...editedProfile, corregimiento: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                      disabled={!editedProfile.provincia}
-                    >
-                      <option value="">Selecciona un corregimiento</option>
-                      {availableCorregimientos.map((corr) => (
-                        <option key={corr} value={corr}>{corr}</option>
-                      ))}
-                    </select>
-                  ) : (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">
+                      Corregimiento <span className="text-red-500">*</span>
+                    </label>
                     <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">
                       {profile.corregimiento || 'No especificado'}
                     </p>
-                  )}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Dirección Exacta <span className="text-red-500">*</span>
-                </label>
-                {isEditing ? (
-                  <textarea
-                    value={editedProfile.direccion_exacta}
-                    onChange={(e) => setEditedProfile({ ...editedProfile, direccion_exacta: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                    rows={2}
-                    placeholder="Calle, número, edificio, apartamento, etc."
-                  />
-                ) : (
+                <div>
+                  <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Dirección Exacta <span className="text-red-500">*</span>
+                  </label>
                   <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg whitespace-pre-wrap">
                     {profile.direccion_exacta || 'No especificado'}
                   </p>
-                )}
-                <p className="text-xs text-gray-500 mt-1">
-                  Ej: Calle 50, Edificio Plaza Central, Piso 5, Apto 502
-                </p>
-              </div>
+                </div>
 
-              <div>
-                <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                  <Map className="h-4 w-4 mr-2" />
-                  Referencias y Puntos de Referencia
-                </label>
-                {isEditing ? (
-                  <textarea
-                    value={editedProfile.direccion_referencia}
-                    onChange={(e) => setEditedProfile({ ...editedProfile, direccion_referencia: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                    rows={2}
-                    placeholder="Ej: Cerca del supermercado Rey, edificio blanco frente al parque"
-                  />
-                ) : (
+                <div>
+                  <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                    <Map className="h-4 w-4 mr-2" />
+                    Referencias y Puntos de Referencia
+                  </label>
                   <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg whitespace-pre-wrap">
                     {profile.direccion_referencia || 'No especificado'}
                   </p>
-                )}
-                <p className="text-xs text-gray-500 mt-1">
-                  Ayúdanos con puntos de referencia para encontrar tu dirección más fácilmente
-                </p>
-              </div>
+                </div>
 
-              {isEditing && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <button
-                    onClick={() => setShowMapPicker(true)}
-                    className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center space-x-2"
-                  >
-                    <Map className="h-5 w-5" />
-                    <span>Seleccionar Ubicación en el Mapa</span>
-                  </button>
-                  {editedProfile.latitude && editedProfile.longitude && (
-                    <div className="mt-3 flex items-center justify-center space-x-2">
-                      <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full flex items-center space-x-2 text-sm">
-                        <MapPin className="h-4 w-4" />
-                        <span>Ubicación configurada en el mapa</span>
+                {profile.latitude && profile.longitude && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <p className="text-sm text-gray-700 flex items-center">
+                      <MapPin className="h-4 w-4 mr-2 text-divine-gold" />
+                      Ubicación en mapa configurada
+                    </p>
+                    <a
+                      href={`https://www.google.com/maps/place/${profile.latitude},${profile.longitude}/@${profile.latitude},${profile.longitude},17z`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 text-sm mt-1 inline-block"
+                    >
+                      Ver en Google Maps →
+                    </a>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-blue-800 mb-2">
+                    <strong>Busca tu dirección:</strong> Escribe tu dirección en el campo de búsqueda y selecciona de las sugerencias.
+                  </p>
+                  <p className="text-xs text-blue-700">
+                    El mapa se actualizará automáticamente y puedes ajustar el marcador arrastrándolo a tu ubicación exacta.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                        <Search className="h-4 w-4 mr-2" />
+                        Buscar dirección <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        ref={autocompleteRef}
+                        type="text"
+                        value={autocompleteValue}
+                        onChange={(e) => setAutocompleteValue(e.target.value)}
+                        className="w-full px-4 py-3 border-2 border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-divine-gold"
+                        placeholder="Ej: Calle 50, Ciudad de Panamá"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Comienza a escribir y selecciona de las sugerencias
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Apt, Suite, etc (opcional)
+                      </label>
+                      <input
+                        type="text"
+                        value={editedProfile.direccion_referencia}
+                        onChange={(e) => setEditedProfile({ ...editedProfile, direccion_referencia: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                        placeholder="Ej: Apt 4B, Piso 5"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Panamá
+                      </label>
+                      <input
+                        type="text"
+                        value="Panamá"
+                        readOnly
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Provincia de Panamá <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={editedProfile.provincia}
+                          readOnly
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                          placeholder="Auto-relleno"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Zip/Postal code
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Opcional"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                        />
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
 
-              {!isEditing && profile.latitude && profile.longitude && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <p className="text-sm text-gray-700 flex items-center">
-                    <MapPin className="h-4 w-4 mr-2 text-divine-gold" />
-                    Ubicación en mapa configurada
-                  </p>
-                  <a
-                    href={`https://www.google.com/maps/place/${profile.latitude},${profile.longitude}/@${profile.latitude},${profile.longitude},17z`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 text-sm mt-1 inline-block"
-                  >
-                    Ver en Google Maps →
-                  </a>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Panamá
+                      </label>
+                      <input
+                        type="text"
+                        value={editedProfile.corregimiento}
+                        readOnly
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                        placeholder="Auto-relleno"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mapa de ubicación
+                    </label>
+                    <CheckoutMap
+                      latitude={editedProfile.latitude || 8.9824}
+                      longitude={editedProfile.longitude || -79.5199}
+                      onLocationChange={(lat, lng, address, province, district) => {
+                        setEditedProfile(prev => ({
+                          ...prev,
+                          latitude: lat,
+                          longitude: lng,
+                          direccion_exacta: address,
+                          provincia: province,
+                          corregimiento: district
+                        }));
+                      }}
+                      height="500px"
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {isEditing && (
               <div className="mt-6 flex items-center justify-end space-x-3">
