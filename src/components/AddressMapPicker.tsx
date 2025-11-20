@@ -1,15 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import { MapPin, Navigation, X } from 'lucide-react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
 
 interface AddressMapPickerProps {
   latitude?: number;
@@ -18,21 +8,12 @@ interface AddressMapPickerProps {
   onClose: () => void;
 }
 
-interface LocationMarkerProps {
-  position: [number, number];
-  setPosition: (pos: [number, number]) => void;
+declare global {
+  interface Window {
+    google: any;
+    initMap: () => void;
+  }
 }
-
-const LocationMarker: React.FC<LocationMarkerProps> = ({ position, setPosition }) => {
-  const map = useMapEvents({
-    click(e) {
-      setPosition([e.latlng.lat, e.latlng.lng]);
-      map.flyTo(e.latlng, map.getZoom());
-    },
-  });
-
-  return position ? <Marker position={position} /> : null;
-};
 
 const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
   latitude,
@@ -40,23 +21,96 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
   onLocationSelect,
   onClose
 }) => {
-  const [position, setPosition] = useState<[number, number]>([
-    latitude || 8.9824,
-    longitude || -79.5199
-  ]);
+  const [position, setPosition] = useState<{ lat: number; lng: number }>({
+    lat: latitude || 8.9824,
+    lng: longitude || -79.5199
+  });
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
-  const mapRef = useRef<any>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const googleMapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+
+  useEffect(() => {
+    const loadGoogleMaps = () => {
+      if (window.google && window.google.maps) {
+        setMapLoaded(true);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8`;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => setMapLoaded(true);
+      document.head.appendChild(script);
+    };
+
+    loadGoogleMaps();
+  }, []);
+
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+
+    const { google } = window;
+
+    const map = new google.maps.Map(mapRef.current, {
+      center: position,
+      zoom: 17,
+      mapTypeControl: true,
+      streetViewControl: true,
+      fullscreenControl: true,
+      zoomControl: true,
+    });
+
+    googleMapRef.current = map;
+
+    const marker = new google.maps.Marker({
+      position: position,
+      map: map,
+      draggable: true,
+      animation: google.maps.Animation.DROP,
+    });
+
+    markerRef.current = marker;
+
+    map.addListener('click', (e: any) => {
+      const clickedPos = {
+        lat: e.latLng.lat(),
+        lng: e.latLng.lng()
+      };
+      setPosition(clickedPos);
+      marker.setPosition(clickedPos);
+      map.panTo(clickedPos);
+    });
+
+    marker.addListener('dragend', (e: any) => {
+      const newPos = {
+        lat: e.latLng.lat(),
+        lng: e.latLng.lng()
+      };
+      setPosition(newPos);
+      map.panTo(newPos);
+    });
+  }, [mapLoaded]);
 
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
       setLoading(true);
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+          const newPos = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude
+          };
           setPosition(newPos);
-          if (mapRef.current) {
-            mapRef.current.flyTo(newPos, 17);
+          if (googleMapRef.current) {
+            googleMapRef.current.panTo(newPos);
+            googleMapRef.current.setZoom(17);
+          }
+          if (markerRef.current) {
+            markerRef.current.setPosition(newPos);
           }
           setLoading(false);
         },
@@ -72,11 +126,11 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
   };
 
   const handleConfirm = () => {
-    onLocationSelect(position[0], position[1], address);
+    onLocationSelect(position.lat, position.lng, address);
     onClose();
   };
 
-  const googleMapsLink = `https://www.google.com/maps?q=${position[0]},${position[1]}`;
+  const googleMapsLink = `https://www.google.com/maps?q=${position.lat},${position.lng}`;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -101,10 +155,10 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
                 ¿Cómo seleccionar tu ubicación?
               </p>
               <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                <li>Haz clic directamente en el mapa donde vives</li>
+                <li><strong>Haz clic directamente en el mapa</strong> donde vives</li>
                 <li>Mueve el mapa arrastrándolo con el mouse o dedos</li>
                 <li>Usa el zoom (+/-) para acercarte más</li>
-                <li>El marcador rojo se colocará donde hagas clic</li>
+                <li>También puedes <strong>arrastrar el marcador rojo</strong> a la posición exacta</li>
                 <li>Cuando esté en el lugar correcto, presiona "Confirmar Ubicación"</li>
               </ol>
             </div>
@@ -129,19 +183,19 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
               </a>
             </div>
 
-            <div className="border-2 border-gray-300 rounded-lg overflow-hidden shadow-lg" style={{ height: '500px' }}>
-              <MapContainer
-                center={position}
-                zoom={17}
-                style={{ height: '100%', width: '100%' }}
-                ref={mapRef}
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <LocationMarker position={position} setPosition={setPosition} />
-              </MapContainer>
+            <div
+              ref={mapRef}
+              className="border-2 border-gray-300 rounded-lg overflow-hidden shadow-lg bg-gray-100"
+              style={{ height: '500px' }}
+            >
+              {!mapLoaded && (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-divine-gold mx-auto mb-4"></div>
+                    <p className="text-gray-600">Cargando mapa...</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -150,7 +204,7 @@ const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
                 <span>
                   <strong className="block mb-1">Ubicación seleccionada:</strong>
                   <span className="text-green-800">
-                    Latitud: {position[0].toFixed(6)}, Longitud: {position[1].toFixed(6)}
+                    Latitud: {position.lat.toFixed(6)}, Longitud: {position.lng.toFixed(6)}
                   </span>
                 </span>
               </p>
