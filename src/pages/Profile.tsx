@@ -437,13 +437,32 @@ const Profile = () => {
                   </p>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">
+                      Casa/Edificio
+                    </label>
+                    <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">
+                      {profile.casa_edificio || 'No especificado'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">
+                      Apt/Piso
+                    </label>
+                    <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">
+                      {profile.direccion_referencia || 'No especificado'}
+                    </p>
+                  </div>
+                </div>
+
                 <div>
-                  <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                    <Map className="h-4 w-4 mr-2" />
-                    Referencias y Puntos de Referencia
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Notas adicionales
                   </label>
                   <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg whitespace-pre-wrap">
-                    {profile.direccion_referencia || 'No especificado'}
+                    {profile.notas_adicionales || 'No especificado'}
                   </p>
                 </div>
 
