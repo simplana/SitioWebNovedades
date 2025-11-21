@@ -13,6 +13,7 @@ interface UserProfile {
   direccion_exacta: string;
   direccion_referencia: string;
   casa_edificio?: string;
+  notas_adicionales?: string;
   latitude?: number;
   longitude?: number;
   city: string;
@@ -35,6 +36,7 @@ const Profile = () => {
     direccion_exacta: '',
     direccion_referencia: '',
     casa_edificio: '',
+    notas_adicionales: '',
     latitude: undefined,
     longitude: undefined,
     city: '',
@@ -156,6 +158,7 @@ const Profile = () => {
           direccion_exacta: data.direccion_exacta || '',
           direccion_referencia: data.direccion_referencia || '',
           casa_edificio: data.casa_edificio || '',
+          notas_adicionales: data.notas_adicionales || '',
           latitude: data.latitude,
           longitude: data.longitude,
           city: data.city || '',
@@ -544,6 +547,19 @@ const Profile = () => {
                           placeholder="Ej: Apt 4B"
                         />
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Notas adicionales (opcional)
+                      </label>
+                      <textarea
+                        value={editedProfile.notas_adicionales || ''}
+                        onChange={(e) => setEditedProfile({ ...editedProfile, notas_adicionales: e.target.value })}
+                        rows={3}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent resize-none"
+                        placeholder="Instrucciones especiales para la entrega..."
+                      />
                     </div>
                   </div>
 

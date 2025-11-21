@@ -29,6 +29,7 @@ const Checkout = () => {
     corregimiento: '',
     street: '',
     houseNumber: '',
+    apartmentFloor: '',
     notes: '',
     deliveryMethod: 'delivery',
     latitude: 8.9824,
@@ -74,7 +75,8 @@ const Checkout = () => {
             corregimiento: data.corregimiento,
             street: data.direccion_exacta,
             houseNumber: data.casa_edificio || '',
-            notes: data.direccion_referencia || '',
+            apartmentFloor: data.direccion_referencia || '',
+            notes: data.notas_adicionales || '',
             latitude: data.latitude || 8.9824,
             longitude: data.longitude || -79.5199
           }));
@@ -643,7 +645,8 @@ const Checkout = () => {
                                       corregimiento: savedAddress.corregimiento,
                                       street: savedAddress.direccion_exacta,
                                       houseNumber: savedAddress.casa_edificio || '',
-                                      notes: savedAddress.direccion_referencia || '',
+                                      apartmentFloor: savedAddress.direccion_referencia || '',
+                                      notes: savedAddress.notas_adicionales || '',
                                       latitude: savedAddress.latitude || 8.9824,
                                       longitude: savedAddress.longitude || -79.5199
                                     }));
@@ -741,8 +744,8 @@ const Checkout = () => {
                                 </label>
                                 <input
                                   type="text"
-                                  name="street"
-                                  value={customerInfo.street}
+                                  name="apartmentFloor"
+                                  value={customerInfo.apartmentFloor}
                                   onChange={handleInputChange}
                                   className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
                                   placeholder="Ej: Apt 4B"
