@@ -774,25 +774,25 @@ const Checkout = () => {
                                 height="400px"
                               />
                             </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-stone-prayer mb-2">
+                                Notas adicionales (opcional)
+                              </label>
+                              <textarea
+                                name="notes"
+                                value={customerInfo.notes}
+                                onChange={handleInputChange}
+                                rows={3}
+                                className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent resize-none"
+                                placeholder="Instrucciones especiales para la entrega..."
+                              />
+                            </div>
                           </div>
                         )}
                       </div>
                     </>
                   )}
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-stone-prayer mb-2">
-                      Notas adicionales (opcional)
-                    </label>
-                    <textarea
-                      name="notes"
-                      value={customerInfo.notes}
-                      onChange={handleInputChange}
-                      rows={3}
-                      className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent resize-none"
-                      placeholder="Instrucciones especiales para la entrega..."
-                    />
-                  </div>
                   
                   <button
                     type="submit"
