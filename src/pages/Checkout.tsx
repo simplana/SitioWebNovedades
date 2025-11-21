@@ -716,9 +716,8 @@ const Checkout = () => {
                                 name="corregimiento"
                                 value={customerInfo.corregimiento}
                                 onChange={handleInputChange}
-                                className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent bg-gray-50"
-                                placeholder="Se llenará automáticamente"
-                                readOnly
+                                className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                                placeholder="Ingresa el corregimiento"
                                 required
                               />
                             </div>

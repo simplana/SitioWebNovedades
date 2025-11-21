@@ -534,9 +534,9 @@ const Profile = () => {
                       <input
                         type="text"
                         value={editedProfile.corregimiento}
-                        readOnly
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
-                        placeholder="Se llenará automáticamente"
+                        onChange={(e) => setEditedProfile({ ...editedProfile, corregimiento: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                        placeholder="Ingresa el corregimiento"
                       />
                     </div>
 
