@@ -8,6 +8,7 @@ import PagueloFacilButton from '../components/PagueloFacilButton';
 import PagueloFacilPaymentCard from '../components/PagueloFacilPaymentCard';
 import CheckoutMap from '../components/CheckoutMap';
 import { supabase } from '../lib/supabase';
+import { getProvinceNames, getCorregimientosByProvince } from '../utils/panamaLocations';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -695,31 +696,43 @@ const Checkout = () => {
                               <label className="block text-sm font-medium text-stone-prayer mb-2">
                                 Provincia *
                               </label>
-                              <input
-                                type="text"
+                              <select
                                 name="province"
                                 value={customerInfo.province}
-                                onChange={handleInputChange}
-                                className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent bg-gray-50"
-                                placeholder="Se llenará automáticamente"
-                                readOnly
+                                onChange={(e) => {
+                                  setCustomerInfo({
+                                    ...customerInfo,
+                                    province: e.target.value,
+                                    corregimiento: '' // Reset corregimiento when province changes
+                                  });
+                                }}
+                                className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
                                 required
-                              />
+                              >
+                                <option value="">Selecciona una provincia</option>
+                                {getProvinceNames().map((province) => (
+                                  <option key={province} value={province}>{province}</option>
+                                ))}
+                              </select>
                             </div>
 
                             <div>
                               <label className="block text-sm font-medium text-stone-prayer mb-2">
                                 Corregimiento / Distrito *
                               </label>
-                              <input
-                                type="text"
+                              <select
                                 name="corregimiento"
                                 value={customerInfo.corregimiento}
                                 onChange={handleInputChange}
                                 className="w-full px-4 py-3 border border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                                placeholder="Ingresa el corregimiento"
+                                disabled={!customerInfo.province}
                                 required
-                              />
+                              >
+                                <option value="">{customerInfo.province ? 'Selecciona un corregimiento' : 'Primero selecciona una provincia'}</option>
+                                {customerInfo.province && getCorregimientosByProvince(customerInfo.province).map((corregimiento) => (
+                                  <option key={corregimiento} value={corregimiento}>{corregimiento}</option>
+                                ))}
+                              </select>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">

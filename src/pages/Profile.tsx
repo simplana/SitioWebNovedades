@@ -4,6 +4,7 @@ import { User, Mail, Calendar, Shield, Package, MapPin, Phone, Edit2, Save, X, L
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import CheckoutMap from '../components/CheckoutMap';
+import { getProvinceNames, getCorregimientosByProvince } from '../utils/panamaLocations';
 
 interface UserProfile {
   full_name: string;
@@ -518,26 +519,41 @@ const Profile = () => {
                       <label className="text-sm font-medium text-gray-700 mb-2 block">
                         Provincia <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={editedProfile.provincia}
-                        readOnly
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
-                        placeholder="Se llenará automáticamente"
-                      />
+                        onChange={(e) => {
+                          setEditedProfile({
+                            ...editedProfile,
+                            provincia: e.target.value,
+                            corregimiento: '' // Reset corregimiento when province changes
+                          });
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                        required
+                      >
+                        <option value="">Selecciona una provincia</option>
+                        {getProvinceNames().map((province) => (
+                          <option key={province} value={province}>{province}</option>
+                        ))}
+                      </select>
                     </div>
 
                     <div>
                       <label className="text-sm font-medium text-gray-700 mb-2 block">
                         Corregimiento / Distrito <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={editedProfile.corregimiento}
                         onChange={(e) => setEditedProfile({ ...editedProfile, corregimiento: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                        placeholder="Ingresa el corregimiento"
-                      />
+                        disabled={!editedProfile.provincia}
+                        required
+                      >
+                        <option value="">{editedProfile.provincia ? 'Selecciona un corregimiento' : 'Primero selecciona una provincia'}</option>
+                        {editedProfile.provincia && getCorregimientosByProvince(editedProfile.provincia).map((corregimiento) => (
+                          <option key={corregimiento} value={corregimiento}>{corregimiento}</option>
+                        ))}
+                      </select>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
