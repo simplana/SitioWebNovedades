@@ -3,9 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Mail, Calendar, Shield, Package, MapPin, Phone, Edit2, Save, X, Loader, Map, AlertCircle, Search } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
-import AddressMapPicker from '../components/AddressMapPicker';
 import CheckoutMap from '../components/CheckoutMap';
-import { getProvinceNames, getCorregimientosByProvince } from '../utils/panamaLocations';
 
 interface UserProfile {
   full_name: string;
@@ -43,7 +41,6 @@ const Profile = () => {
     country: 'Panamá'
   });
   const [editedProfile, setEditedProfile] = useState<UserProfile>(profile);
-  const [availableCorregimientos, setAvailableCorregimientos] = useState<string[]>([]);
   const [autocompleteValue, setAutocompleteValue] = useState('');
   const autocompleteRef = useRef<HTMLInputElement>(null);
   const autocompleteInstanceRef = useRef<any>(null);
@@ -60,16 +57,6 @@ const Profile = () => {
       loadOrderCount();
     }
   }, [user]);
-
-  useEffect(() => {
-    if (editedProfile.provincia) {
-      const corregimientos = getCorregimientosByProvince(editedProfile.provincia);
-      setAvailableCorregimientos(corregimientos);
-      if (!corregimientos.includes(editedProfile.corregimiento)) {
-        setEditedProfile({ ...editedProfile, corregimiento: '' });
-      }
-    }
-  }, [editedProfile.provincia]);
 
   useEffect(() => {
     const loadPlacesAutocomplete = () => {
@@ -176,8 +163,8 @@ const Profile = () => {
         };
         setProfile(profileData);
         setEditedProfile(profileData);
-        if (profileData.provincia) {
-          setAvailableCorregimientos(getCorregimientosByProvince(profileData.provincia));
+        if (profileData.direccion_exacta) {
+          setAutocompleteValue(profileData.direccion_exacta);
         }
       }
     } catch (error) {
@@ -505,6 +492,32 @@ const Profile = () => {
                       </p>
                     </div>
 
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Provincia <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={editedProfile.provincia}
+                        readOnly
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                        placeholder="Se llenará automáticamente"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Corregimiento / Distrito <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={editedProfile.corregimiento}
+                        readOnly
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
+                        placeholder="Se llenará automáticamente"
+                      />
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium text-gray-700 mb-2 block">
@@ -530,53 +543,6 @@ const Profile = () => {
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
                           placeholder="Ej: Apt 4B"
                         />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-2 block">
-                        Panamá
-                      </label>
-                      <input
-                        type="text"
-                        value="Panamá"
-                        readOnly
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">
-                          Provincia de Panamá <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          value={editedProfile.provincia}
-                          onChange={(e) => setEditedProfile({ ...editedProfile, provincia: e.target.value, corregimiento: '' })}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                        >
-                          <option value="">Selecciona una provincia</option>
-                          {getProvinceNames().map((prov) => (
-                            <option key={prov} value={prov}>{prov}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">
-                          Corregimiento <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          value={editedProfile.corregimiento}
-                          onChange={(e) => setEditedProfile({ ...editedProfile, corregimiento: e.target.value })}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                          disabled={!editedProfile.provincia}
-                        >
-                          <option value="">Selecciona un corregimiento</option>
-                          {availableCorregimientos.map((corr) => (
-                            <option key={corr} value={corr}>{corr}</option>
-                          ))}
-                        </select>
                       </div>
                     </div>
                   </div>
