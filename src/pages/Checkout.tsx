@@ -606,7 +606,7 @@ const Checkout = () => {
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex-1">
                                 <p className="text-sm font-semibold text-green-800 mb-1">
-                                  ✓ Dirección guardada en tu perfil
+                                  ✓ Usando tu dirección guardada
                                 </p>
                                 <p className="text-sm text-green-700">
                                   {savedAddress.direccion_exacta}
