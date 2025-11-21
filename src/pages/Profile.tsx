@@ -14,6 +14,7 @@ interface UserProfile {
   corregimiento: string;
   direccion_exacta: string;
   direccion_referencia: string;
+  casa_edificio?: string;
   latitude?: number;
   longitude?: number;
   city: string;
@@ -35,6 +36,7 @@ const Profile = () => {
     corregimiento: '',
     direccion_exacta: '',
     direccion_referencia: '',
+    casa_edificio: '',
     latitude: undefined,
     longitude: undefined,
     city: '',
@@ -166,6 +168,7 @@ const Profile = () => {
           corregimiento: data.corregimiento || '',
           direccion_exacta: data.direccion_exacta || '',
           direccion_referencia: data.direccion_referencia || '',
+          casa_edificio: data.casa_edificio || '',
           latitude: data.latitude,
           longitude: data.longitude,
           city: data.city || '',
@@ -502,17 +505,32 @@ const Profile = () => {
                       </p>
                     </div>
 
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-2 block">
-                        Descripción (opcional)
-                      </label>
-                      <input
-                        type="text"
-                        value={editedProfile.direccion_referencia}
-                        onChange={(e) => setEditedProfile({ ...editedProfile, direccion_referencia: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                        placeholder="Ej: Apt 4B, Piso 5, Casa azul"
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Casa/Edificio
+                        </label>
+                        <input
+                          type="text"
+                          value={editedProfile.casa_edificio || ''}
+                          onChange={(e) => setEditedProfile({ ...editedProfile, casa_edificio: e.target.value })}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                          placeholder="Ej: Casa 123"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Apt/Piso (opcional)
+                        </label>
+                        <input
+                          type="text"
+                          value={editedProfile.direccion_referencia}
+                          onChange={(e) => setEditedProfile({ ...editedProfile, direccion_referencia: e.target.value })}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
+                          placeholder="Ej: Apt 4B"
+                        />
+                      </div>
                     </div>
 
                     <div>

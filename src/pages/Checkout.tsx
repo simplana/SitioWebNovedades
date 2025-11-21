@@ -73,7 +73,8 @@ const Checkout = () => {
             province: data.provincia,
             corregimiento: data.corregimiento,
             street: data.direccion_exacta,
-            houseNumber: data.direccion_referencia || '',
+            houseNumber: data.casa_edificio || '',
+            notes: data.direccion_referencia || '',
             latitude: data.latitude || 8.9824,
             longitude: data.longitude || -79.5199
           }));
@@ -607,6 +608,7 @@ const Checkout = () => {
                                 </p>
                                 <p className="text-sm text-green-700">
                                   {savedAddress.direccion_exacta}
+                                  {savedAddress.casa_edificio && `, ${savedAddress.casa_edificio}`}
                                   {savedAddress.direccion_referencia && `, ${savedAddress.direccion_referencia}`}
                                 </p>
                                 <p className="text-xs text-green-600 mt-1">
@@ -640,7 +642,8 @@ const Checkout = () => {
                                       province: savedAddress.provincia,
                                       corregimiento: savedAddress.corregimiento,
                                       street: savedAddress.direccion_exacta,
-                                      houseNumber: savedAddress.direccion_referencia || '',
+                                      houseNumber: savedAddress.casa_edificio || '',
+                                      notes: savedAddress.direccion_referencia || '',
                                       latitude: savedAddress.latitude || 8.9824,
                                       longitude: savedAddress.longitude || -79.5199
                                     }));
