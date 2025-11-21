@@ -7,6 +7,7 @@ import { ShoppingCart, CreditCard, Truck, CheckCircle, ArrowLeft, User, MapPin, 
 import PagueloFacilButton from '../components/PagueloFacilButton';
 import PagueloFacilPaymentCard from '../components/PagueloFacilPaymentCard';
 import CheckoutMap from '../components/CheckoutMap';
+import { supabase } from '../lib/supabase';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -37,8 +38,56 @@ const Checkout = () => {
   const [autocompleteValue, setAutocompleteValue] = useState('');
   const autocompleteRef = useRef<HTMLInputElement>(null);
   const autocompleteInstanceRef = useRef<any>(null);
+  const [useDifferentAddress, setUseDifferentAddress] = useState(false);
+  const [savedAddress, setSavedAddress] = useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | 'paguelo_facil'>('transfer');
+
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!user) {
+        setLoadingProfile(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error loading profile:', error);
+          setLoadingProfile(false);
+          return;
+        }
+
+        if (data && data.provincia && data.corregimiento && data.direccion_exacta) {
+          setSavedAddress(data);
+          setCustomerInfo(prev => ({
+            ...prev,
+            name: data.full_name || prev.name,
+            phone: data.phone || prev.phone,
+            province: data.provincia,
+            corregimiento: data.corregimiento,
+            street: data.direccion_exacta,
+            houseNumber: data.direccion_referencia || '',
+            latitude: data.latitude || 8.9824,
+            longitude: data.longitude || -79.5199
+          }));
+          setAutocompleteValue(data.direccion_exacta);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+
+    loadUserProfile();
+  }, [user]);
 
   useEffect(() => {
     const loadPlacesAutocomplete = () => {
@@ -549,34 +598,92 @@ const Checkout = () => {
                           Dirección de Entrega
                         </h3>
 
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                          <p className="text-sm text-blue-800 mb-2">
-                            <strong>Busca tu dirección:</strong> Escribe tu dirección en el campo de búsqueda y selecciona de las sugerencias.
-                          </p>
-                          <p className="text-xs text-blue-700">
-                            El mapa se actualizará automáticamente y puedes ajustar el marcador arrastrándolo a tu ubicación exacta.
-                          </p>
-                        </div>
+                        {savedAddress && !useDifferentAddress && (
+                          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-6">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold text-green-800 mb-1">
+                                  ✓ Dirección guardada en tu perfil
+                                </p>
+                                <p className="text-sm text-green-700">
+                                  {savedAddress.direccion_exacta}
+                                  {savedAddress.direccion_referencia && `, ${savedAddress.direccion_referencia}`}
+                                </p>
+                                <p className="text-xs text-green-600 mt-1">
+                                  {savedAddress.corregimiento}, {savedAddress.provincia}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setUseDifferentAddress(true)}
+                              className="text-sm text-blue-600 hover:text-blue-800 font-medium underline"
+                            >
+                              Usar una dirección diferente
+                            </button>
+                          </div>
+                        )}
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                          <div className="space-y-4">
-                            <div>
-                              <label className="block text-sm font-medium text-stone-prayer mb-2">
-                                <Search className="inline h-4 w-4 mr-1" />
-                                Buscar dirección *
-                              </label>
-                              <input
-                                ref={autocompleteRef}
-                                type="text"
-                                value={autocompleteValue}
-                                onChange={(e) => setAutocompleteValue(e.target.value)}
-                                className="w-full px-4 py-3 border-2 border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-divine-gold"
-                                placeholder="Ej: Calle 50, Ciudad de Panamá"
-                              />
-                              <p className="text-xs text-gray-500 mt-1">
-                                Comienza a escribir y selecciona de las sugerencias
+                        {(!savedAddress || useDifferentAddress) && (
+                          <>
+                            {useDifferentAddress && savedAddress && (
+                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 flex items-center justify-between">
+                                <p className="text-sm text-yellow-800">
+                                  Usando una dirección diferente para este pedido
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setUseDifferentAddress(false);
+                                    setCustomerInfo(prev => ({
+                                      ...prev,
+                                      province: savedAddress.provincia,
+                                      corregimiento: savedAddress.corregimiento,
+                                      street: savedAddress.direccion_exacta,
+                                      houseNumber: savedAddress.direccion_referencia || '',
+                                      latitude: savedAddress.latitude || 8.9824,
+                                      longitude: savedAddress.longitude || -79.5199
+                                    }));
+                                    setAutocompleteValue(savedAddress.direccion_exacta);
+                                  }}
+                                  className="text-sm text-blue-600 hover:text-blue-800 font-medium underline"
+                                >
+                                  Usar dirección guardada
+                                </button>
+                              </div>
+                            )}
+
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                              <p className="text-sm text-blue-800 mb-2">
+                                <strong>Busca tu dirección:</strong> Escribe tu dirección en el campo de búsqueda y selecciona de las sugerencias.
+                              </p>
+                              <p className="text-xs text-blue-700">
+                                El mapa se actualizará automáticamente y puedes ajustar el marcador arrastrándolo o haciendo click en tu ubicación exacta.
                               </p>
                             </div>
+                          </>
+                        )}
+
+                        {(!savedAddress || useDifferentAddress) && (
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                              <div>
+                                <label className="block text-sm font-medium text-stone-prayer mb-2">
+                                  <Search className="inline h-4 w-4 mr-1" />
+                                  Buscar dirección *
+                                </label>
+                                <input
+                                  ref={autocompleteRef}
+                                  type="text"
+                                  value={autocompleteValue}
+                                  onChange={(e) => setAutocompleteValue(e.target.value)}
+                                  className="w-full px-4 py-3 border-2 border-divine-gold border-opacity-30 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-divine-gold"
+                                  placeholder="Ej: Calle 50, Ciudad de Panamá"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Comienza a escribir y selecciona de las sugerencias
+                                </p>
+                              </div>
 
                             <div>
                               <label className="block text-sm font-medium text-stone-prayer mb-2">
@@ -641,26 +748,28 @@ const Checkout = () => {
                             </div>
                           </div>
 
-                          <div>
-                            <label className="block text-sm font-medium text-stone-prayer mb-2">
-                              Mapa de ubicación
-                            </label>
-                            <CheckoutMap
-                              latitude={customerInfo.latitude}
-                              longitude={customerInfo.longitude}
-                              onLocationChange={(lat, lng, address, province, district) => {
-                                setCustomerInfo(prev => ({
-                                  ...prev,
-                                  latitude: lat,
-                                  longitude: lng,
-                                  province: province,
-                                  corregimiento: district
-                                }));
-                              }}
-                              height="400px"
-                            />
+                            <div>
+                              <label className="block text-sm font-medium text-stone-prayer mb-2">
+                                Mapa de ubicación
+                              </label>
+                              <CheckoutMap
+                                latitude={customerInfo.latitude}
+                                longitude={customerInfo.longitude}
+                                onLocationChange={(lat, lng, address, province, district) => {
+                                  setCustomerInfo(prev => ({
+                                    ...prev,
+                                    latitude: lat,
+                                    longitude: lng,
+                                    province: province,
+                                    corregimiento: district
+                                  }));
+                                  setAutocompleteValue(address);
+                                }}
+                                height="400px"
+                              />
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     </>
                   )}
