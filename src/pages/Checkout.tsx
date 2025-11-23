@@ -718,7 +718,7 @@ const Checkout = () => {
 
                             <div>
                               <label className="block text-sm font-medium text-stone-prayer mb-2">
-                                Corregimiento / Distrito *
+                                Corregimiento *
                               </label>
                               <select
                                 name="corregimiento"

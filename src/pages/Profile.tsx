@@ -540,7 +540,7 @@ const Profile = () => {
 
                     <div>
                       <label className="text-sm font-medium text-gray-700 mb-2 block">
-                        Corregimiento / Distrito <span className="text-red-500">*</span>
+                        Corregimiento <span className="text-red-500">*</span>
                       </label>
                       <select
                         value={editedProfile.corregimiento}
