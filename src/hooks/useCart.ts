@@ -10,6 +10,7 @@ export interface CartItem {
   image: string;
   options?: string;
   category?: string;
+  weight?: number;
 }
 
 export interface Order {
