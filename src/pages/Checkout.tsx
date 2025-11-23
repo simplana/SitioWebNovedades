@@ -7,6 +7,7 @@ import { ShoppingCart, CreditCard, Truck, CheckCircle, ArrowLeft, User, MapPin, 
 import PagueloFacilButton from '../components/PagueloFacilButton';
 import PagueloFacilPaymentCard from '../components/PagueloFacilPaymentCard';
 import CheckoutMap from '../components/CheckoutMap';
+import ShippingCalculator from '../components/ShippingCalculator';
 import { supabase } from '../lib/supabase';
 import { getProvinceNames, getCorregimientosByProvince } from '../utils/panamaLocations';
 
@@ -45,6 +46,8 @@ const Checkout = () => {
   const [loadingProfile, setLoadingProfile] = useState(true);
 
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | 'paguelo_facil'>('transfer');
+  const [shippingCost, setShippingCost] = useState(0);
+  const [shippingCalculation, setShippingCalculation] = useState<any>(null);
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -216,7 +219,8 @@ const Checkout = () => {
     }
   };
 
-  const total = getTotalPrice();
+  const subtotal = getTotalPrice();
+  const total = subtotal + shippingCost;
 
   // Redirigir si no está autenticado o carrito vacío
   React.useEffect(() => {
@@ -800,12 +804,25 @@ const Checkout = () => {
                                 placeholder="Instrucciones especiales para la entrega..."
                               />
                             </div>
+
+                            {customerInfo.deliveryMethod === 'delivery' && customerInfo.province && (
+                              <div className="mt-6">
+                                <ShippingCalculator
+                                  items={items}
+                                  province={customerInfo.province}
+                                  onCalculated={(calculation) => {
+                                    setShippingCalculation(calculation);
+                                    setShippingCost(calculation.totalShippingCost);
+                                  }}
+                                />
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
                     </>
                   )}
-                  
+
                   <button
                     type="submit"
                     className="w-full bg-gradient-to-r from-divine-gold to-aureola-gold hover:from-aureola-gold hover:to-divine-gold text-navy-devotion font-semibold py-4 px-6 rounded-full transition-all duration-300 shadow-golden hover:shadow-aureola transform hover:scale-105"
@@ -951,11 +968,15 @@ const Checkout = () => {
               <div className="border-t border-divine-gold border-opacity-20 pt-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-stone-prayer">Subtotal:</span>
-                  <span className="font-semibold text-navy-devotion">${total.toFixed(2)}</span>
+                  <span className="font-semibold text-navy-devotion">${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-stone-prayer">Envío:</span>
-                  <span className="font-semibold text-green-600">Gratis</span>
+                  {shippingCost > 0 ? (
+                    <span className="font-semibold text-navy-devotion">${shippingCost.toFixed(2)}</span>
+                  ) : (
+                    <span className="text-xs text-stone-prayer">Calcula en el checkout</span>
+                  )}
                 </div>
                 <div className="flex justify-between items-center text-lg font-bold">
                   <span className="text-navy-devotion">Total:</span>
