@@ -805,18 +805,6 @@ const Checkout = () => {
                               />
                             </div>
 
-                            {customerInfo.deliveryMethod === 'delivery' && customerInfo.province && (
-                              <div className="mt-6">
-                                <ShippingCalculator
-                                  items={items}
-                                  province={customerInfo.province}
-                                  onCalculated={(calculation) => {
-                                    setShippingCalculation(calculation);
-                                    setShippingCost(calculation.totalShippingCost);
-                                  }}
-                                />
-                              </div>
-                            )}
                           </div>
                         )}
                       </div>
@@ -964,7 +952,21 @@ const Checkout = () => {
                   </div>
                 ))}
               </div>
-              
+
+              {/* Shipping Calculator - always visible */}
+              {customerInfo.deliveryMethod === 'delivery' && customerInfo.province && (
+                <div className="mb-4">
+                  <ShippingCalculator
+                    items={items}
+                    province={customerInfo.province}
+                    onCalculated={(calculation) => {
+                      setShippingCalculation(calculation);
+                      setShippingCost(calculation.totalShippingCost);
+                    }}
+                  />
+                </div>
+              )}
+
               <div className="border-t border-divine-gold border-opacity-20 pt-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-stone-prayer">Subtotal:</span>
@@ -974,8 +976,10 @@ const Checkout = () => {
                   <span className="text-stone-prayer">Envío:</span>
                   {shippingCost > 0 ? (
                     <span className="font-semibold text-navy-devotion">${shippingCost.toFixed(2)}</span>
+                  ) : customerInfo.province ? (
+                    <span className="text-xs text-dove-gray italic">Calculando...</span>
                   ) : (
-                    <span className="text-xs text-stone-prayer">Calcula en el checkout</span>
+                    <span className="text-xs text-dove-gray italic">Selecciona provincia</span>
                   )}
                 </div>
                 <div className="flex justify-between items-center text-lg font-bold">

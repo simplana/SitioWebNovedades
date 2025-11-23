@@ -16,12 +16,29 @@ export interface PaymentData {
 export const usePagueloFacil = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const MOCK_MODE = true; // Cambiar a false cuando Paguelo Facil esté activo
 
   const createPayment = async (paymentData: PaymentData): Promise<PagueloFacilResponse> => {
     setLoading(true);
     setError(null);
 
     try {
+      // MOCK MODE - Simula respuesta exitosa
+      if (MOCK_MODE) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simula delay de red
+
+        const mockPaymentId = `MOCK_${Date.now()}`;
+        const mockResponse: PagueloFacilResponse = {
+          success: true,
+          paymentId: mockPaymentId,
+          paymentUrl: `${window.location.origin}/payment/success?orderId=${paymentData.orderId}&mock=true`,
+          message: 'Mock payment created successfully'
+        };
+
+        return mockResponse;
+      }
+
+      // REAL MODE - Usa el servicio real
       const pagueloPayment: PagueloFacilPayment = {
         id: paymentData.orderId,
         amount: paymentData.total,
@@ -42,7 +59,7 @@ export const usePagueloFacil = () => {
       };
 
       const response = await pagueloFacilService.createPayment(pagueloPayment);
-      
+
       if (!response.success) {
         throw new Error(response.error || 'Error creating payment');
       }
@@ -62,6 +79,19 @@ export const usePagueloFacil = () => {
     setError(null);
 
     try {
+      // MOCK MODE - Simula estado aprobado
+      if (MOCK_MODE) {
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        return {
+          success: true,
+          status: 'approved',
+          paymentId: paymentId,
+          message: 'Mock payment approved'
+        };
+      }
+
+      // REAL MODE
       const status = await pagueloFacilService.getPaymentStatus(paymentId);
       return status;
     } catch (err) {
