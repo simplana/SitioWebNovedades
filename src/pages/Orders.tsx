@@ -1,18 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
 import { useOrderStatus } from '../hooks/useOrderStatus';
-import { Package, Calendar, MapPin, RefreshCw, ShoppingCart, ArrowRight, Truck } from 'lucide-react';
+import { Package, Calendar, MapPin, RefreshCw, ShoppingCart, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import OrderStatusTracker from '../components/OrderStatusTracker';
-import OrderTrackingDetail from '../components/OrderTrackingDetail';
 
 const Orders = () => {
   const { orders, reorderItems, isAuthenticated } = useCart();
   const { user } = useAuth();
   const { getLatestOrderStatus, checkPagueloFacilPayment } = useOrderStatus();
   const navigate = useNavigate();
-  const [expandedTracking, setExpandedTracking] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (!isAuthenticated) {
@@ -183,16 +181,6 @@ const Orders = () => {
 
                   {/* Order Actions */}
                   <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-divine-gold border-opacity-20">
-                    {order.trackingNumber && (
-                      <button
-                        onClick={() => setExpandedTracking(expandedTracking === order.id ? null : order.id)}
-                        className="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 px-6 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-2"
-                      >
-                        <Truck className="h-4 w-4" />
-                        <span>{expandedTracking === order.id ? 'Ocultar Tracking' : 'Ver Tracking'}</span>
-                      </button>
-                    )}
-
                     {order.paymentId && order.paymentMethod === 'paguelo_facil' && (
                       <button
                         onClick={() => handleCheckPaymentStatus(order.id, order.paymentId)}
@@ -202,7 +190,7 @@ const Orders = () => {
                         <span>Verificar Pago</span>
                       </button>
                     )}
-
+                    
                     <button
                       onClick={() => reorderItems(order.id)}
                       className="flex-1 bg-gradient-to-r from-marian-blue to-navy-devotion hover:from-navy-devotion hover:to-marian-blue text-sacred-white font-semibold py-3 px-6 rounded-full transition-all duration-300 shadow-marian hover:shadow-divine transform hover:scale-105 flex items-center justify-center space-x-2"
@@ -210,20 +198,13 @@ const Orders = () => {
                       <RefreshCw className="h-4 w-4" />
                       <span>Repetir Compra</span>
                     </button>
-
+                    
                     <button className="flex-1 bg-whisper-gray hover:bg-dove-gray text-stone-prayer font-semibold py-3 px-6 rounded-full transition-all duration-300 flex items-center justify-center space-x-2">
                       <Package className="h-4 w-4" />
                       <span>Ver Detalles</span>
                     </button>
                   </div>
                 </div>
-
-                {/* Tracking Detail */}
-                {expandedTracking === order.id && order.trackingNumber && (
-                  <div className="p-6 bg-holy-glow border-t border-divine-gold border-opacity-20">
-                    <OrderTrackingDetail trackingNumber={order.trackingNumber} orderId={order.id} />
-                  </div>
-                )}
               </div>
             ))}
           </div>

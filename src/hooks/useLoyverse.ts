@@ -24,7 +24,6 @@ export interface LoyverseVariant {
   availableForSale: boolean;
   options: string;
   barcode?: string;
-  weight?: number;
 }
 
 export interface PaginationInfo {
@@ -114,8 +113,7 @@ export const useLoyverseProducts = () => {
             cost: variant.cost,
             availableForSale: variant.stores?.[0]?.available_for_sale ?? true,
             options: variant.option1_value || '',
-            barcode: variant.barcode,
-            weight: variant.weight || 0.5
+            barcode: variant.barcode
           })) || []
         };
       });
