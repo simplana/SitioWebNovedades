@@ -275,9 +275,11 @@ ${creds.dbInsertStatus === 'SUCCESS' ? 'âœ… Credentials saved to database!' : 'â
 
   const disconnect = async () => {
     try {
+      setState(prev => ({ ...prev, loading: true }));
+
       const { error } = await supabase
         .from('loyverse_credentials')
-        .delete()
+        .update({ is_active: false })
         .eq('is_active', true);
 
       if (error) {
@@ -285,23 +287,22 @@ ${creds.dbInsertStatus === 'SUCCESS' ? 'âœ… Credentials saved to database!' : 'â
         setState(prev => ({
           ...prev,
           error: 'Failed to disconnect',
+          loading: false,
         }));
         return;
       }
 
-      setState({
-        isConnected: false,
-        loading: false,
-        error: null,
-        tokenExpiry: null,
-      });
-
       console.log('âœ… Disconnected successfully');
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (err) {
       console.error('Error disconnecting:', err);
       setState(prev => ({
         ...prev,
         error: err instanceof Error ? err.message : 'Unknown error',
+        loading: false,
       }));
     }
   };
