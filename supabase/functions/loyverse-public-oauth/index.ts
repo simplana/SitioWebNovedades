@@ -35,8 +35,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const clientId = Deno.env.get("LOYVERSE_CLIENT_ID");
-    const clientSecret = Deno.env.get("LOYVERSE_CLIENT_SECRET");
+    const clientId = Deno.env.get("LOYVERSE_CLIENT_ID") || "na0tlm2Whq22j3jTPV_l";
+    const clientSecret = Deno.env.get("LOYVERSE_CLIENT_SECRET") || "G02r649qvTDIY2s31K3qE2OhAI_MjgvybotOPwhJgXVKi0KJCeeNJw==";
 
     if (!clientId || !clientSecret) {
       console.error("Loyverse OAuth credentials not configured");
