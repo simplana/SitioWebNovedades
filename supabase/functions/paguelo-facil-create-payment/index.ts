@@ -36,8 +36,19 @@ interface PagueloFacilResponse {
   success: boolean;
   paymentId: string;
   paymentUrl: string;
+  paymentCode?: string;
   message?: string;
   error?: string;
+}
+
+// Helper function to encode string to hexadecimal
+function stringToHex(str: string): string {
+  let hex = '';
+  for (let i = 0; i < str.length; i++) {
+    const charCode = str.charCodeAt(i);
+    hex += charCode.toString(16).padStart(2, '0');
+  }
+  return hex.toUpperCase();
 }
 
 Deno.serve(async (req: Request) => {
@@ -71,13 +82,19 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const pagueloFacilToken = Deno.env.get("PAGUELO_FACIL_ACCESS_TOKEN");
-    const pagueloFacilApiUrl = Deno.env.get("PAGUELO_FACIL_API_URL") || "https://api.paguelofacil.com";
+    // Get Paguelo Facil credentials from environment
+    const pagueloFacilCCLW = Deno.env.get("PAGUELO_FACIL_CCLW");
+    const pagueloFacilEnvironment = Deno.env.get("PAGUELO_FACIL_ENVIRONMENT") || "sandbox";
 
-    if (!pagueloFacilToken) {
-      console.error("PAGUELO_FACIL_ACCESS_TOKEN not configured");
+    // Determine the correct API URL based on environment
+    const pagueloFacilApiUrl = pagueloFacilEnvironment === "production"
+      ? "https://secure.paguelofacil.com"
+      : "https://sandbox.paguelofacil.com";
+
+    if (!pagueloFacilCCLW) {
+      console.error("PAGUELO_FACIL_CCLW not configured");
       return new Response(
-        JSON.stringify({ error: "Payment service not configured" }),
+        JSON.stringify({ error: "Payment service not configured. Please add PAGUELO_FACIL_CCLW to environment variables." }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -85,30 +102,29 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log(`Creating payment with Paguelo Fácil for order: ${paymentData.id}`);
+    console.log(`Creating payment link with Paguelo Fácil for order: ${paymentData.id}`);
+    console.log(`Environment: ${pagueloFacilEnvironment}, API URL: ${pagueloFacilApiUrl}`);
 
-    const pagueloFacilPayload = {
-      amount: paymentData.amount,
-      currency: paymentData.currency || "USD",
-      description: paymentData.description,
-      reference: paymentData.id,
-      customer: paymentData.customer,
-      items: paymentData.items,
-      redirect_urls: paymentData.redirectUrls,
-      metadata: {
-        source: "novedades-catolicas",
-        timestamp: new Date().toISOString(),
-      },
-    };
+    // Encode RETURN_URL in hexadecimal as per documentation
+    const returnUrlHex = stringToHex(paymentData.redirectUrls.success);
 
-    const pagueloFacilResponse = await fetch(`${pagueloFacilApiUrl}/v1/payments`, {
+    // Build form-urlencoded payload according to Paguelo Facil LinkDeamon.cfm documentation
+    const formData = new URLSearchParams();
+    formData.append("CCLW", pagueloFacilCCLW);
+    formData.append("CMTN", paymentData.amount.toFixed(2));
+    formData.append("CDSC", paymentData.description);
+    formData.append("RETURN_URL", returnUrlHex);
+    formData.append("PARM_1", paymentData.id); // Order ID as custom parameter
+    formData.append("EXPIRES_IN", "3600"); // 1 hour expiration
+
+    // Make request to LinkDeamon.cfm endpoint
+    const pagueloFacilResponse = await fetch(`${pagueloFacilApiUrl}/LinkDeamon.cfm`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${pagueloFacilToken}`,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "*/*",
       },
-      body: JSON.stringify(pagueloFacilPayload),
+      body: formData.toString(),
     });
 
     console.log(`Paguelo Fácil response status: ${pagueloFacilResponse.status}`);
@@ -138,26 +154,53 @@ Deno.serve(async (req: Request) => {
     }
 
     const responseData = await pagueloFacilResponse.json();
-    console.log("Payment created successfully");
 
+    // Check if response is successful
+    if (!responseData.success || !responseData.data || !responseData.data.url) {
+      console.error("Invalid response from Paguelo Fácil:", responseData);
+
+      const response: PagueloFacilResponse = {
+        success: false,
+        paymentId: "",
+        paymentUrl: "",
+        error: responseData.message || "Failed to create payment link",
+      };
+
+      return new Response(JSON.stringify(response), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const paymentUrl = responseData.data.url;
+    const paymentCode = responseData.data.code; // Format: LK-XXXXXXXXXXXXX
+
+    console.log(`Payment link created successfully. Code: ${paymentCode}`);
+
+    // Save to database
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (supabaseUrl && supabaseKey) {
       try {
         const supabase = createClient(supabaseUrl, supabaseKey);
+
+        // Log audit event
         await supabase.from("audit_logs").insert({
-          event_type: "payment_initiated",
+          event_type: "payment_link_created",
           user_id: null,
           metadata: {
-            payment_id: responseData.id || responseData.payment_id,
+            payment_code: paymentCode,
             order_reference: paymentData.id,
             amount: paymentData.amount,
-            currency: paymentData.currency,
+            currency: paymentData.currency || "USD",
             timestamp: new Date().toISOString(),
+            environment: pagueloFacilEnvironment,
           },
           severity: "medium",
         });
+
+        console.log("Audit log created successfully");
       } catch (error) {
         console.error("Failed to log audit event:", error);
       }
@@ -165,9 +208,10 @@ Deno.serve(async (req: Request) => {
 
     const response: PagueloFacilResponse = {
       success: true,
-      paymentId: responseData.id || responseData.payment_id,
-      paymentUrl: responseData.payment_url || responseData.checkout_url,
-      message: "Payment created successfully",
+      paymentId: paymentCode,
+      paymentUrl: paymentUrl,
+      paymentCode: paymentCode,
+      message: "Payment link created successfully",
     };
 
     return new Response(JSON.stringify(response), {

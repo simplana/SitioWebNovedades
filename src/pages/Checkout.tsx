@@ -270,7 +270,7 @@ const Checkout = () => {
       if (paymentMethod === 'paguelo_facil') {
         // Procesar pago con Paguelo Fácil
         const orderId = `ORD-${Date.now()}`;
-        
+
         const paymentResponse = await createPayment({
           orderId,
           items,
@@ -283,23 +283,28 @@ const Checkout = () => {
         });
 
         if (paymentResponse.success && paymentResponse.paymentUrl) {
-          // Crear orden con estado de pago pendiente
+          // Crear orden con estado de pago pendiente y guardar payment_code
           const order = await processOrder(
             {
               name: customerInfo.name,
               email: customerInfo.email,
               phone: customerInfo.phone
             },
-            customerInfo.country === 'Panamá' 
+            customerInfo.country === 'Panamá'
               ? `${customerInfo.street} ${customerInfo.houseNumber}, ${customerInfo.corregimiento}, ${customerInfo.district}, ${customerInfo.province}, Panamá`
               : `${customerInfo.street}, ${customerInfo.country}`,
             {
               paymentMethod: 'paguelo_facil',
-              paymentId: paymentResponse.paymentId,
+              paymentId: paymentResponse.paymentCode || paymentResponse.paymentId,
               status: 'payment_pending'
             }
           );
-          
+
+          // Guardar payment_code en la orden para que el webhook pueda encontrarla
+          if (paymentResponse.paymentCode) {
+            localStorage.setItem(`payment_code_${orderId}`, paymentResponse.paymentCode);
+          }
+
           // Redirigir a Paguelo Fácil para completar el pago
           window.location.href = paymentResponse.paymentUrl;
           return;

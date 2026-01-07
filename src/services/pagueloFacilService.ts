@@ -25,6 +25,7 @@ export interface PagueloFacilResponse {
   success: boolean;
   paymentId: string;
   paymentUrl: string;
+  paymentCode?: string;
   message?: string;
   error?: string;
 }
