@@ -202,7 +202,6 @@ Deno.serve(async (req: Request) => {
 
     console.log(`Payment link created successfully. Code: ${paymentCode}`);
 
-    // Save to database
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
