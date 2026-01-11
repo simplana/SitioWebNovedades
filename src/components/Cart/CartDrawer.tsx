@@ -21,7 +21,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   } = useCart();
 
   const handleCheckout = () => {
-    console.log('🛒 Checkout button clicked - Auth:', isAuthenticated, 'Verified:', isVerified);
+    console.log('🛒 Checkout button clicked - Auth:', isAuthenticated);
 
     if (!isAuthenticated) {
       console.log('❌ User not authenticated, opening auth modal');
@@ -31,14 +31,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
       return;
     }
 
-    if (!isVerified) {
-      console.log('❌ User email not verified, redirecting to verify page');
-      onClose();
-      navigate('/auth/verify-email');
-      return;
-    }
-
-    console.log('✅ User authenticated and verified, proceeding to checkout');
+    console.log('✅ User authenticated, proceeding to checkout');
     onClose();
     navigate('/checkout');
   };
