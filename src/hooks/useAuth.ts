@@ -35,7 +35,7 @@ export const useAuth = () => {
           session,
           loading: false,
           error: null,
-          emailVerified: session?.user?.email_confirmed_at ? true : false
+          emailVerified: true
         });
       } catch (error) {
         setAuthState(prev => ({ 
@@ -58,7 +58,7 @@ export const useAuth = () => {
           session,
           loading: false,
           error: null,
-          emailVerified: session?.user?.email_confirmed_at ? true : false
+          emailVerified: true
         });
       }
     );

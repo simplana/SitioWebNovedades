@@ -68,7 +68,7 @@ function App() {
             <Route
               path="/checkout"
               element={
-                <ProtectedRoute requireVerification={true}>
+                <ProtectedRoute requireVerification={false}>
                   <Checkout />
                 </ProtectedRoute>
               }
@@ -76,7 +76,7 @@ function App() {
             <Route
               path="/orders"
               element={
-                <ProtectedRoute requireVerification={true}>
+                <ProtectedRoute requireVerification={false}>
                   <Orders />
                 </ProtectedRoute>
               }
@@ -84,7 +84,7 @@ function App() {
             <Route
               path="/profile"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireVerification={false}>
                   <Profile />
                 </ProtectedRoute>
               }
