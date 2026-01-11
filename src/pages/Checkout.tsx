@@ -219,15 +219,11 @@ const Checkout = () => {
   const total = getTotalPrice();
 
   React.useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/');
-      return;
-    }
     if (items.length === 0) {
       navigate('/productos');
       return;
     }
-  }, [isAuthenticated, items.length, navigate, user]);
+  }, [items.length, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -351,7 +347,7 @@ const Checkout = () => {
     }
   };
 
-  if (!isAuthenticated || items.length === 0) {
+  if (items.length === 0) {
     return null;
   }
 
