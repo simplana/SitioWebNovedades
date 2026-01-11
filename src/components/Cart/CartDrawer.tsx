@@ -21,17 +21,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   } = useCart();
 
   const handleCheckout = () => {
-    console.log('🛒 Checkout button clicked - Auth:', isAuthenticated);
-
-    if (!isAuthenticated) {
-      console.log('❌ User not authenticated, opening auth modal');
-      window.dispatchEvent(new CustomEvent('openAuthModal', {
-        detail: { mode: 'signin' }
-      }));
-      return;
-    }
-
-    console.log('✅ User authenticated, proceeding to checkout');
+    console.log('🛒 Checkout button clicked - proceeding to checkout');
     onClose();
     navigate('/checkout');
   };
