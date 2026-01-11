@@ -1,0 +1,8 @@
+[functions.paguelo-facil-create-payment]
+verify_jwt = false
+
+[functions.paguelo-facil-get-status]
+verify_jwt = false
+
+[functions.paguelo-facil-webhook]
+verify_jwt = false
