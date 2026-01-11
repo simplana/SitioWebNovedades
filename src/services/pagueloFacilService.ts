@@ -53,13 +53,12 @@ class PagueloFacilService {
   }
 
   private async getAuthHeaders(): Promise<HeadersInit> {
-    const { supabase } = await import('../lib/supabase');
-    const { data: { session } } = await supabase.auth.getSession();
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
     return {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+      'Authorization': `Bearer ${anonKey}`,
+      'apikey': anonKey
     };
   }
 
