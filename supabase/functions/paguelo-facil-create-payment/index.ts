@@ -107,18 +107,23 @@ Deno.serve(async (req: Request) => {
     // Encode RETURN_URL in hexadecimal as per documentation
     const returnUrlHex = stringToHex(paymentData.redirectUrls.success);
 
+    // Ensure description doesn't exceed 150 characters (API limit)
+    const description = paymentData.description.length > 150
+      ? paymentData.description.substring(0, 147) + "..."
+      : paymentData.description;
+
     // Build form-urlencoded payload according to Paguelo Facil LinkDeamon.cfm documentation
     const formData = new URLSearchParams();
     formData.append("CCLW", pagueloFacilCCLW);
     formData.append("CMTN", paymentData.amount.toFixed(2));
-    formData.append("CDSC", paymentData.description);
+    formData.append("CDSC", description);
     formData.append("RETURN_URL", returnUrlHex);
     formData.append("PARM_1", paymentData.id); // Order ID as custom parameter
     formData.append("EXPIRES_IN", "3600"); // 1 hour expiration
 
     // Make request to LinkDeamon.cfm endpoint
     console.log(`Sending request to: ${pagueloFacilApiUrl}/LinkDeamon.cfm`);
-    console.log(`Form data: CCLW=${pagueloFacilCCLW.substring(0, 10)}..., CMTN=${paymentData.amount.toFixed(2)}, CDSC=${paymentData.description.substring(0, 30)}...`);
+    console.log(`Form data: CCLW=${pagueloFacilCCLW.substring(0, 10)}..., CMTN=${paymentData.amount.toFixed(2)}, CDSC=${description.substring(0, 30)}...`);
 
     const pagueloFacilResponse = await fetch(`${pagueloFacilApiUrl}/LinkDeamon.cfm`, {
       method: "POST",
@@ -180,7 +185,25 @@ Deno.serve(async (req: Request) => {
 
     console.log("Parsed response:", JSON.stringify(responseData));
 
-    // Check if response is successful
+    // Check response structure according to Paguelo Facil API docs
+    // Response format: { headerStatus: { code, description }, success, data: { url, code } }
+    if (responseData.headerStatus && responseData.headerStatus.code !== 200) {
+      console.error("Paguelo Fácil API error:", responseData);
+
+      const response: PagueloFacilResponse = {
+        success: false,
+        paymentId: "",
+        paymentUrl: "",
+        error: `${responseData.headerStatus.description || "Payment service error"} (Code: ${responseData.headerStatus.code})`,
+      };
+
+      return new Response(JSON.stringify(response), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check if response has the required data
     if (!responseData.success || !responseData.data || !responseData.data.url) {
       console.error("Invalid response structure from Paguelo Fácil:", responseData);
 
