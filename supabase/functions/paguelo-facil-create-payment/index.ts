@@ -27,6 +27,12 @@ interface PagueloFacilPayment {
     email: string;
     phone?: string;
   };
+  items?: Array<{
+    name: string;
+    quantity: number;
+    price: number;
+    sku?: string;
+  }>;
   redirectUrls: {
     success: string;
     cancel?: string;
@@ -80,7 +86,14 @@ Deno.serve(async (req: Request) => {
     ========================= */
     const paymentData: PagueloFacilPayment = await req.json();
 
+    console.log("Received payment data:", JSON.stringify(paymentData, null, 2));
+
     if (!paymentData.id || !paymentData.amount || !paymentData.customer) {
+      console.error("Validation failed:", {
+        hasId: !!paymentData.id,
+        hasAmount: !!paymentData.amount,
+        hasCustomer: !!paymentData.customer,
+      });
       return new Response(
         JSON.stringify({
           error: "Missing required fields: id, amount, customer",

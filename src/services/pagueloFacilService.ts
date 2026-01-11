@@ -88,9 +88,16 @@ class PagueloFacilService {
 
       if (import.meta.env.DEV) {
         console.log('🚀 Creating Paguelo Fácil payment via backend');
+        console.log('Payment data:', paymentData);
       }
 
       const headers = this.getAuthHeaders();
+
+      if (import.meta.env.DEV) {
+        console.log('Request URL:', `${this.functionsBaseUrl}/paguelo-facil-create-payment`);
+        console.log('Request headers:', headers);
+      }
+
       const response = await fetch(`${this.functionsBaseUrl}/paguelo-facil-create-payment`, {
         method: 'POST',
         headers,
@@ -98,16 +105,24 @@ class PagueloFacilService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Payment service error' }));
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText };
+        }
         console.error('Payment creation failed:', {
           status: response.status,
-          error: errorData
+          statusText: response.statusText,
+          error: errorData,
+          headers: Object.fromEntries(response.headers.entries())
         });
         return {
           success: false,
           paymentId: '',
           paymentUrl: '',
-          error: errorData.error || `Payment service error: ${response.status}`
+          error: errorData.error || errorText || `Payment service error: ${response.status}`
         };
       }
 
