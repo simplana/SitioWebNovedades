@@ -118,6 +118,9 @@ Deno.serve(async (req: Request) => {
     formData.append("EXPIRES_IN", "3600"); // 1 hour expiration
 
     // Make request to LinkDeamon.cfm endpoint
+    console.log(`Sending request to: ${pagueloFacilApiUrl}/LinkDeamon.cfm`);
+    console.log(`Form data: CCLW=${pagueloFacilCCLW.substring(0, 10)}..., CMTN=${paymentData.amount.toFixed(2)}, CDSC=${paymentData.description.substring(0, 30)}...`);
+
     const pagueloFacilResponse = await fetch(`${pagueloFacilApiUrl}/LinkDeamon.cfm`, {
       method: "POST",
       headers: {
@@ -128,10 +131,12 @@ Deno.serve(async (req: Request) => {
     });
 
     console.log(`Paguelo Fácil response status: ${pagueloFacilResponse.status}`);
+    console.log(`Response headers: ${JSON.stringify(Object.fromEntries(pagueloFacilResponse.headers.entries()))}`);
 
     if (!pagueloFacilResponse.ok) {
       const errorText = await pagueloFacilResponse.text();
-      console.error("Paguelo Fácil error:", errorText);
+      console.error("Paguelo Fácil error response:", errorText);
+      console.error("Full error details - Status:", pagueloFacilResponse.status, "StatusText:", pagueloFacilResponse.statusText);
 
       let errorData;
       try {
@@ -153,11 +158,32 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const responseData = await pagueloFacilResponse.json();
+    const responseText = await pagueloFacilResponse.text();
+    console.log(`Raw response from Paguelo Fácil: ${responseText.substring(0, 500)}...`);
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error("Failed to parse JSON response:", parseError);
+      console.error("Response was:", responseText);
+
+      return new Response(JSON.stringify({
+        success: false,
+        paymentId: "",
+        paymentUrl: "",
+        error: "Invalid response from payment service. Please contact support."
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("Parsed response:", JSON.stringify(responseData));
 
     // Check if response is successful
     if (!responseData.success || !responseData.data || !responseData.data.url) {
-      console.error("Invalid response from Paguelo Fácil:", responseData);
+      console.error("Invalid response structure from Paguelo Fácil:", responseData);
 
       const response: PagueloFacilResponse = {
         success: false,
