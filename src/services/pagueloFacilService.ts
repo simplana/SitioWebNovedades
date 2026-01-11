@@ -52,8 +52,12 @@ class PagueloFacilService {
     }
   }
 
-  private async getAuthHeaders(): Promise<HeadersInit> {
+  private getAuthHeaders(): HeadersInit {
     const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    if (!anonKey) {
+      console.error('Missing VITE_SUPABASE_ANON_KEY');
+    }
 
     return {
       'Content-Type': 'application/json',
@@ -86,7 +90,7 @@ class PagueloFacilService {
         console.log('🚀 Creating Paguelo Fácil payment via backend');
       }
 
-      const headers = await this.getAuthHeaders();
+      const headers = this.getAuthHeaders();
       const response = await fetch(`${this.functionsBaseUrl}/paguelo-facil-create-payment`, {
         method: 'POST',
         headers,
@@ -154,7 +158,7 @@ class PagueloFacilService {
         console.log('🔍 Checking payment status via backend');
       }
 
-      const headers = await this.getAuthHeaders();
+      const headers = this.getAuthHeaders();
       const response = await fetch(`${this.functionsBaseUrl}/paguelo-facil-get-status`, {
         method: 'POST',
         headers,
