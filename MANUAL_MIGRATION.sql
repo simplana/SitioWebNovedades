@@ -109,6 +109,10 @@ CREATE INDEX IF NOT EXISTS idx_payment_transactions_payment_id ON payment_transa
 -- Enable RLS on payment_transactions
 ALTER TABLE payment_transactions ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view own payment transactions" ON payment_transactions;
+DROP POLICY IF EXISTS "Users can create own payment transactions" ON payment_transactions;
+
 -- Payment transactions policies
 CREATE POLICY "Users can view own payment transactions"
   ON payment_transactions
