@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
+import { supabase } from '../lib/supabase';
 
 export interface CartItem {
   id: string;
@@ -80,32 +81,67 @@ export const useCart = () => {
     setItems([...currentItems]); // Force new array reference
   }, [getStorageKey]);
 
-  // Initialize cart and register for updates
   useEffect(() => {
     const storageKey = getStorageKey();
     const initialItems = loadCartFromStorage(storageKey);
     globalCartItems = initialItems;
     setItems(initialItems);
 
-    // Register this component for cart updates
     cartUpdateCallbacks.push(forceUpdate);
 
-    // Load orders
-    const ordersKey = getOrdersKey();
-    try {
-      const storedOrders = localStorage.getItem(ordersKey);
-      if (storedOrders) {
-        setOrders(JSON.parse(storedOrders));
-      }
-    } catch (error) {
-      console.error('Error loading orders:', error);
-    }
+    const loadOrdersFromSupabase = async () => {
+      if (!isAuthenticated || !user) return;
 
-    // Cleanup
+      try {
+        const { data: ordersData, error } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            order_items (*)
+          `)
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const formattedOrders: Order[] = ordersData.map((orderData: any) => ({
+          id: orderData.id,
+          userId: orderData.user_id,
+          items: orderData.order_items.map((item: any) => ({
+            id: item.product_id,
+            name: item.product_name,
+            sku: item.product_sku,
+            image: item.product_image,
+            price: parseFloat(item.price),
+            quantity: item.quantity,
+            options: item.options
+          })),
+          total: parseFloat(orderData.total),
+          status: orderData.status,
+          createdAt: orderData.created_at,
+          shippingAddress: orderData.shipping_address,
+          customerInfo: {
+            name: orderData.customer_name,
+            email: orderData.customer_email,
+            phone: orderData.customer_phone
+          },
+          paymentMethod: orderData.payment_method,
+          paymentId: orderData.payment_id,
+          paymentStatus: orderData.payment_status
+        }));
+
+        setOrders(formattedOrders);
+      } catch (error) {
+        console.error('Error loading orders from Supabase:', error);
+      }
+    };
+
+    loadOrdersFromSupabase();
+
     return () => {
       cartUpdateCallbacks = cartUpdateCallbacks.filter(cb => cb !== forceUpdate);
     };
-  }, [getStorageKey, getOrdersKey, forceUpdate]);
+  }, [getStorageKey, forceUpdate, isAuthenticated, user]);
 
   const showNotification = (message: string) => {
     const notification = document.createElement('div');
@@ -198,11 +234,13 @@ export const useCart = () => {
   }, [items]);
 
   const processOrder = async (
-    customerInfo: Order['customerInfo'], 
+    customerInfo: Order['customerInfo'],
     shippingAddress?: string,
     orderOptions?: {
       paymentMethod?: 'transfer' | 'paguelo_facil';
       paymentId?: string;
+      paymentCode?: string;
+      paymentUrl?: string;
       status?: Order['status'];
     }
   ) => {
@@ -217,11 +255,53 @@ export const useCart = () => {
     setLoading(true);
 
     try {
+      const orderId = `ORD-${Date.now()}`;
+      const orderTotal = getTotalPrice();
+
+      const { data: createdOrder, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          id: orderId,
+          user_id: user.id,
+          customer_name: customerInfo.name,
+          customer_email: customerInfo.email,
+          customer_phone: customerInfo.phone,
+          shipping_address: shippingAddress,
+          total: orderTotal,
+          status: orderOptions?.status || 'pending',
+          payment_method: orderOptions?.paymentMethod,
+          payment_code: orderOptions?.paymentCode,
+          payment_id: orderOptions?.paymentId,
+          payment_url: orderOptions?.paymentUrl,
+          payment_status: orderOptions?.status === 'payment_pending' ? 'pending' : null
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      const orderItemsData = items.map(item => ({
+        order_id: orderId,
+        product_id: item.id,
+        product_name: item.name,
+        product_sku: item.sku,
+        product_image: item.image,
+        price: item.price,
+        quantity: item.quantity,
+        options: item.options || null
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItemsData);
+
+      if (itemsError) throw itemsError;
+
       const order: Order = {
-        id: `ORD-${Date.now()}`,
+        id: orderId,
         userId: user.id,
         items: [...items],
-        total: getTotalPrice(),
+        total: orderTotal,
         status: orderOptions?.status || 'pending',
         createdAt: new Date().toISOString(),
         customerInfo,
@@ -233,11 +313,7 @@ export const useCart = () => {
 
       const updatedOrders = [order, ...orders];
       setOrders(updatedOrders);
-      
-      const ordersKey = getOrdersKey();
-      localStorage.setItem(ordersKey, JSON.stringify(updatedOrders));
 
-      // Solo limpiar carrito si no es pago con Paguelo Fácil (se limpia después del pago exitoso)
       if (orderOptions?.paymentMethod !== 'paguelo_facil') {
         clearCart();
       }
