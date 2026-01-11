@@ -167,44 +167,13 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   </span>
                 </div>
                 
-                {isAuthenticated && isVerified ? (
-                  <button
-                    onClick={handleCheckout}
-                    className="w-full bg-gradient-to-r from-marian-blue to-navy-devotion hover:from-navy-devotion hover:to-marian-blue text-sacred-white font-semibold py-4 px-6 rounded-full transition-all duration-300 shadow-marian hover:shadow-divine transform hover:scale-105 flex items-center justify-center space-x-2"
-                  >
-                    <span>Proceder al Pago</span>
-                    <ArrowRight className="h-5 w-5" />
-                  </button>
-                ) : isAuthenticated && !isVerified ? (
-                  <div className="space-y-3">
-                    <p className="text-center text-sm text-stone-prayer">
-                      Verifica tu email para continuar con tu compra
-                    </p>
-                    <button
-                      onClick={handleCheckout}
-                      className="w-full bg-gradient-to-r from-divine-gold to-aureola-gold hover:from-aureola-gold hover:to-divine-gold text-navy-devotion font-semibold py-3 px-6 rounded-full transition-all duration-300 shadow-golden hover:shadow-aureola transform hover:scale-105"
-                    >
-                      Verificar Email
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <p className="text-center text-sm text-stone-prayer">
-                      Inicia sesión para continuar con tu compra
-                    </p>
-                    <button
-                      onClick={() => {
-                        onClose();
-                        window.dispatchEvent(new CustomEvent('openAuthModal', {
-                          detail: { mode: 'signin' }
-                        }));
-                      }}
-                      className="w-full bg-gradient-to-r from-divine-gold to-aureola-gold hover:from-aureola-gold hover:to-divine-gold text-navy-devotion font-semibold py-3 px-6 rounded-full transition-all duration-300 shadow-golden hover:shadow-aureola transform hover:scale-105"
-                    >
-                      Iniciar Sesión
-                    </button>
-                  </div>
-                )}
+                <button
+                  onClick={handleCheckout}
+                  className="w-full bg-gradient-to-r from-marian-blue to-navy-devotion hover:from-navy-devotion hover:to-marian-blue text-sacred-white font-semibold py-4 px-6 rounded-full transition-all duration-300 shadow-marian hover:shadow-divine transform hover:scale-105 flex items-center justify-center space-x-2"
+                >
+                  <span>Proceder al Pago</span>
+                  <ArrowRight className="h-5 w-5" />
+                </button>
               </div>
             </>
           )}
