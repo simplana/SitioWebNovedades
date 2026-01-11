@@ -96,6 +96,10 @@ class PagueloFacilService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Payment service error' }));
+        console.error('Payment creation failed:', {
+          status: response.status,
+          error: errorData
+        });
         return {
           success: false,
           paymentId: '',
@@ -105,6 +109,10 @@ class PagueloFacilService {
       }
 
       const result: PagueloFacilResponse = await response.json();
+
+      if (!result.success) {
+        console.error('Payment creation returned error:', result);
+      }
 
       if (import.meta.env.DEV) {
         console.log('✅ Payment created successfully');

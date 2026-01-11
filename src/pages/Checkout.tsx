@@ -294,6 +294,8 @@ const Checkout = () => {
           window.location.href = paymentResponse.paymentUrl;
           return;
         } else {
+          console.error('Payment creation failed:', paymentResponse);
+          alert(`Error al crear el pago: ${paymentResponse.error || 'Error desconocido'}\n\nPor favor verifica la configuración de Paguelo Fácil en tu Dashboard de Supabase.`);
           throw new Error(paymentResponse.error || 'Error al crear el pago con Paguelo Fácil');
         }
       } else {
