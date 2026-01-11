@@ -52,6 +52,17 @@ class PagueloFacilService {
     }
   }
 
+  private async getAuthHeaders(): Promise<HeadersInit> {
+    const { supabase } = await import('../lib/supabase');
+    const { data: { session } } = await supabase.auth.getSession();
+
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+    };
+  }
+
   async createPayment(paymentData: PagueloFacilPayment): Promise<PagueloFacilResponse> {
     try {
       if (this.demoMode) {
@@ -76,13 +87,10 @@ class PagueloFacilService {
         console.log('🚀 Creating Paguelo Fácil payment via backend');
       }
 
+      const headers = await this.getAuthHeaders();
       const response = await fetch(`${this.functionsBaseUrl}/paguelo-facil-create-payment`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
-        },
+        headers,
         body: JSON.stringify(paymentData)
       });
 
@@ -139,13 +147,10 @@ class PagueloFacilService {
         console.log('🔍 Checking payment status via backend');
       }
 
+      const headers = await this.getAuthHeaders();
       const response = await fetch(`${this.functionsBaseUrl}/paguelo-facil-get-status`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
-        },
+        headers,
         body: JSON.stringify({ paymentId })
       });
 
