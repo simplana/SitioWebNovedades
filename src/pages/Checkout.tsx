@@ -218,12 +218,22 @@ const Checkout = () => {
 
   const total = getTotalPrice();
 
+  const [isInitialized, setIsInitialized] = React.useState(false);
+
   React.useEffect(() => {
-    if (items.length === 0) {
+    // Wait a moment for cart to load before redirecting
+    const timer = setTimeout(() => {
+      setIsInitialized(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  React.useEffect(() => {
+    if (isInitialized && items.length === 0) {
       navigate('/productos');
       return;
     }
-  }, [items.length, navigate]);
+  }, [isInitialized, items.length, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -347,8 +357,12 @@ const Checkout = () => {
     }
   };
 
-  if (items.length === 0) {
-    return null;
+  if (!isInitialized) {
+    return (
+      <div className="pt-16 min-h-screen bg-gradient-to-br from-marian-blue via-navy-devotion to-celestial-blue flex items-center justify-center">
+        <div className="text-white text-xl">Cargando...</div>
+      </div>
+    );
   }
 
   if (orderCompleted) {
