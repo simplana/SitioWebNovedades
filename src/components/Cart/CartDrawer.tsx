@@ -10,16 +10,35 @@ interface CartDrawerProps {
 
 const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
-  const { 
-    items, 
-    updateQuantity, 
-    removeFromCart, 
-    getTotalPrice, 
+  const {
+    items,
+    updateQuantity,
+    removeFromCart,
+    getTotalPrice,
     getTotalItems,
-    isAuthenticated 
+    isAuthenticated,
+    isVerified
   } = useCart();
 
   const handleCheckout = () => {
+    console.log('🛒 Checkout button clicked - Auth:', isAuthenticated, 'Verified:', isVerified);
+
+    if (!isAuthenticated) {
+      console.log('❌ User not authenticated, opening auth modal');
+      window.dispatchEvent(new CustomEvent('openAuthModal', {
+        detail: { mode: 'signin' }
+      }));
+      return;
+    }
+
+    if (!isVerified) {
+      console.log('❌ User email not verified, redirecting to verify page');
+      onClose();
+      navigate('/auth/verify-email');
+      return;
+    }
+
+    console.log('✅ User authenticated and verified, proceeding to checkout');
     onClose();
     navigate('/checkout');
   };
@@ -148,7 +167,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   </span>
                 </div>
                 
-                {isAuthenticated ? (
+                {isAuthenticated && isVerified ? (
                   <button
                     onClick={handleCheckout}
                     className="w-full bg-gradient-to-r from-marian-blue to-navy-devotion hover:from-navy-devotion hover:to-marian-blue text-sacred-white font-semibold py-4 px-6 rounded-full transition-all duration-300 shadow-marian hover:shadow-divine transform hover:scale-105 flex items-center justify-center space-x-2"
@@ -156,6 +175,18 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     <span>Proceder al Pago</span>
                     <ArrowRight className="h-5 w-5" />
                   </button>
+                ) : isAuthenticated && !isVerified ? (
+                  <div className="space-y-3">
+                    <p className="text-center text-sm text-stone-prayer">
+                      Verifica tu email para continuar con tu compra
+                    </p>
+                    <button
+                      onClick={handleCheckout}
+                      className="w-full bg-gradient-to-r from-divine-gold to-aureola-gold hover:from-aureola-gold hover:to-divine-gold text-navy-devotion font-semibold py-3 px-6 rounded-full transition-all duration-300 shadow-golden hover:shadow-aureola transform hover:scale-105"
+                    >
+                      Verificar Email
+                    </button>
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     <p className="text-center text-sm text-stone-prayer">
@@ -164,9 +195,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     <button
                       onClick={() => {
                         onClose();
-                        // Trigger auth modal
-                        window.dispatchEvent(new CustomEvent('openAuthModal', { 
-                          detail: { mode: 'signin' } 
+                        window.dispatchEvent(new CustomEvent('openAuthModal', {
+                          detail: { mode: 'signin' }
                         }));
                       }}
                       className="w-full bg-gradient-to-r from-divine-gold to-aureola-gold hover:from-aureola-gold hover:to-divine-gold text-navy-devotion font-semibold py-3 px-6 rounded-full transition-all duration-300 shadow-golden hover:shadow-aureola transform hover:scale-105"

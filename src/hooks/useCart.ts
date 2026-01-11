@@ -64,7 +64,7 @@ export const useCart = () => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isVerified } = useAuth();
 
   const getStorageKey = useCallback(() => {
     return isAuthenticated && user ? `cart_user_${user.id}` : 'novedades-catolicas-cart';
@@ -353,6 +353,7 @@ export const useCart = () => {
     getItemQuantity,
     processOrder,
     reorderItems,
-    isAuthenticated
+    isAuthenticated,
+    isVerified
   };
 };
