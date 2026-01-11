@@ -211,7 +211,6 @@ Deno.serve(async (req: Request) => {
       try {
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        // Log audit event
         await supabase.from("audit_logs").insert({
           event_type: "payment_link_created",
           user_id: null,
