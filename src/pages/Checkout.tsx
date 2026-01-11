@@ -218,26 +218,16 @@ const Checkout = () => {
 
   const total = getTotalPrice();
 
-  // Redirigir si no está autenticado o carrito vacío
   React.useEffect(() => {
-    console.log('🔍 Checkout conditions:', {
-      isAuthenticated,
-      itemsLength: items.length,
-      user: user?.email
-    });
-    
-    // Comentar temporalmente las validaciones para debug
-    // if (!isAuthenticated) {
-    //   console.log('❌ Not authenticated, redirecting to home');
-    //   navigate('/');
-    //   return;
-    // }
-    // if (items.length === 0) {
-    //   console.log('❌ Empty cart, redirecting to products');
-    //   navigate('/productos');
-    //   return;
-    // }
-  }, [isAuthenticated, items.length, navigate]);
+    if (!isAuthenticated) {
+      navigate('/');
+      return;
+    }
+    if (items.length === 0) {
+      navigate('/productos');
+      return;
+    }
+  }, [isAuthenticated, items.length, navigate, user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -359,10 +349,9 @@ const Checkout = () => {
     }
   };
 
-  // Comentar temporalmente para debug
-  // if (!isAuthenticated || items.length === 0) {
-  //   return null;
-  // }
+  if (!isAuthenticated || items.length === 0) {
+    return null;
+  }
 
   if (orderCompleted) {
     return (
