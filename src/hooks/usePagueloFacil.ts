@@ -42,9 +42,9 @@ export const usePagueloFacil = () => {
       };
 
       const response = await pagueloFacilService.createPayment(pagueloPayment);
-      
+
       if (!response.success) {
-        throw new Error(response.error || 'Error creating payment');
+        setError(response.error || 'Error creating payment');
       }
 
       return response;

@@ -301,8 +301,22 @@ const Checkout = () => {
           return;
         } else {
           console.error('Payment creation failed:', paymentResponse);
-          alert(`Error al crear el pago: ${paymentResponse.error || 'Error desconocido'}\n\nPor favor verifica la configuración de Paguelo Fácil en tu Dashboard de Supabase.`);
-          throw new Error(paymentResponse.error || 'Error al crear el pago con Paguelo Fácil');
+          const errorMessage = paymentResponse.error || 'Error desconocido al crear el pago';
+
+          if (errorMessage.includes('credentials not configured') || errorMessage.includes('credentials incomplete')) {
+            alert(
+              'Configuración de Paguelo Fácil pendiente\n\n' +
+              'Para completar la integración de pagos:\n\n' +
+              '1. Ve al SQL Editor de Supabase\n' +
+              '2. Ejecuta el archivo MANUAL_MIGRATION.sql\n' +
+              '3. Ingresa tus credenciales de Paguelo Fácil\n' +
+              '4. Redespliega la función edge\n\n' +
+              'Contacta al administrador si necesitas ayuda.'
+            );
+          } else {
+            alert(`Error al procesar el pago:\n\n${errorMessage}\n\nPor favor intenta de nuevo o contacta al administrador.`);
+          }
+          return;
         }
       } else {
         // Método de transferencia bancaria - enviar por WhatsApp
