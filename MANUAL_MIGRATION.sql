@@ -138,5 +138,38 @@ CREATE POLICY "Users can create own payment transactions"
     )
   );
 
+-- Create paguelo_facil_credentials table for storing payment gateway credentials
+CREATE TABLE IF NOT EXISTS paguelo_facil_credentials (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  environment text NOT NULL CHECK (environment IN ('sandbox', 'production')),
+  store_id text NOT NULL,
+  token text NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE(environment)
+);
+
+-- Enable RLS on paguelo_facil_credentials
+ALTER TABLE paguelo_facil_credentials ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policy if it exists
+DROP POLICY IF EXISTS "Only service role can access credentials" ON paguelo_facil_credentials;
+
+-- Only service role can access credentials (no public access)
+CREATE POLICY "Only service role can access credentials"
+  ON paguelo_facil_credentials
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+-- Insert sandbox credentials (REPLACE WITH YOUR ACTUAL CREDENTIALS)
+INSERT INTO paguelo_facil_credentials (environment, store_id, token)
+VALUES ('sandbox', 'YOUR_STORE_ID_HERE', 'YOUR_TOKEN_HERE')
+ON CONFLICT (environment) DO UPDATE
+SET store_id = EXCLUDED.store_id,
+    token = EXCLUDED.token,
+    updated_at = now();
+
 -- All done!
 SELECT 'Migration completed successfully! You can now close this window and return to your application.' as message;
