@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.paguelo-facil-webhook]
 verify_jwt = false
+
+[functions.servientrega-cotizar]
+verify_jwt = true

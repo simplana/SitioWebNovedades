@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
 import { usePagueloFacil } from '../hooks/usePagueloFacil';
+import { useServientrega } from '../hooks/useServientrega';
 import { ShoppingCart, CreditCard, Truck, CheckCircle, ArrowLeft, User, MapPin, Phone, Mail, MessageCircle, Search, Navigation } from 'lucide-react';
 import PagueloFacilButton from '../components/PagueloFacilButton';
 import PagueloFacilPaymentCard from '../components/PagueloFacilPaymentCard';
@@ -15,6 +16,7 @@ const Checkout = () => {
   const { items, getTotalPrice, processOrder, loading } = useCart();
   const { user, isAuthenticated } = useAuth();
   const { createPayment, loading: pagueloLoading } = usePagueloFacil();
+  const { getCotizacion, loading: cotizacionLoading, cotizacion, error: cotizacionError } = useServientrega();
   
   const [step, setStep] = useState<'info' | 'payment' | 'confirmation'>('info');
   const [orderCompleted, setOrderCompleted] = useState(false);
@@ -45,6 +47,15 @@ const Checkout = () => {
   const [loadingProfile, setLoadingProfile] = useState(true);
 
   const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash' | 'paguelo_facil'>('transfer');
+
+  const [shippingCost, setShippingCost] = useState<number>(0);
+  const [shippingDetails, setShippingDetails] = useState<any>(null);
+  const [packageDimensions, setPackageDimensions] = useState({
+    peso: 5,
+    alto: 20,
+    ancho: 25,
+    largo: 30,
+  });
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -216,7 +227,44 @@ const Checkout = () => {
     }
   };
 
-  const total = getTotalPrice();
+  const subtotal = getTotalPrice();
+  const total = subtotal + shippingCost;
+
+  useEffect(() => {
+    const calculateShipping = async () => {
+      if (
+        customerInfo.deliveryMethod === 'delivery' &&
+        customerInfo.province &&
+        customerInfo.corregimiento &&
+        step === 'payment'
+      ) {
+        const response = await getCotizacion({
+          ciu_ori: '24 DE DICIEMBRE',
+          provincia_ori: 'PANAMA',
+          ciu_des: customerInfo.corregimiento,
+          provincia_des: customerInfo.province,
+          valor_declarado: subtotal,
+          peso: packageDimensions.peso,
+          alto: packageDimensions.alto,
+          ancho: packageDimensions.ancho,
+          largo: packageDimensions.largo,
+        });
+
+        if (response.success && response.cotizacion) {
+          setShippingCost(response.cotizacion.gtotal);
+          setShippingDetails(response.cotizacion);
+        } else {
+          console.error('Error getting cotizacion:', response.error);
+          setShippingCost(0);
+        }
+      } else if (customerInfo.deliveryMethod === 'pickup') {
+        setShippingCost(0);
+        setShippingDetails(null);
+      }
+    };
+
+    calculateShipping();
+  }, [step, customerInfo.province, customerInfo.corregimiento, customerInfo.deliveryMethod, subtotal]);
 
   const [isInitialized, setIsInitialized] = React.useState(false);
 
@@ -293,7 +341,9 @@ const Checkout = () => {
               paymentId: paymentResponse.paymentId,
               paymentCode: paymentResponse.paymentCode,
               paymentUrl: paymentResponse.paymentUrl,
-              status: 'payment_pending'
+              status: 'payment_pending',
+              shippingCost: shippingCost,
+              shippingDetails: shippingDetails
             }
           );
 
@@ -330,11 +380,13 @@ const Checkout = () => {
           `Nombre: ${customerInfo.name}\n` +
           `Email: ${customerInfo.email}\n` +
           `Teléfono: ${customerInfo.phone}\n` +
-          `Dirección: ${customerInfo.country === 'Panamá' 
+          `Dirección: ${customerInfo.country === 'Panamá'
             ? `${customerInfo.street} ${customerInfo.houseNumber}, ${customerInfo.corregimiento}, ${customerInfo.district}, ${customerInfo.province}, Panamá`
             : `${customerInfo.street}, ${customerInfo.country}`
           }\n\n` +
           `📦 PRODUCTOS ORDENADOS:\n${itemsList}\n\n` +
+          `💰 SUBTOTAL: $${subtotal.toFixed(2)}\n` +
+          `🚚 ENVÍO: $${shippingCost.toFixed(2)}${shippingDetails ? ` (${shippingDetails.tiempo} días)` : ''}\n` +
           `💰 TOTAL: $${total.toFixed(2)}\n\n` +
           `💳 MÉTODO DE PAGO: Transferencia Bancaria\n\n` +
           `${customerInfo.notes ? `📝 NOTAS: ${customerInfo.notes}\n\n` : ''}` +
@@ -352,12 +404,14 @@ const Checkout = () => {
             email: customerInfo.email,
             phone: customerInfo.phone
           },
-          customerInfo.country === 'Panamá' 
+          customerInfo.country === 'Panamá'
             ? `${customerInfo.street} ${customerInfo.houseNumber}, ${customerInfo.corregimiento}, ${customerInfo.district}, ${customerInfo.province}, Panamá`
             : `${customerInfo.street}, ${customerInfo.country}`,
           {
             paymentMethod: 'transfer',
-            status: 'payment_pending'
+            status: 'payment_pending',
+            shippingCost: shippingCost,
+            shippingDetails: shippingDetails
           }
         );
         
@@ -966,12 +1020,29 @@ const Checkout = () => {
               <div className="border-t border-divine-gold border-opacity-20 pt-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-stone-prayer">Subtotal:</span>
-                  <span className="font-semibold text-navy-devotion">${total.toFixed(2)}</span>
+                  <span className="font-semibold text-navy-devotion">${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-stone-prayer">Envío:</span>
-                  <span className="font-semibold text-green-600">Gratis</span>
+                  {cotizacionLoading && step === 'payment' && customerInfo.deliveryMethod === 'delivery' ? (
+                    <span className="text-sm text-stone-prayer flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-divine-gold mr-2"></div>
+                      Calculando...
+                    </span>
+                  ) : shippingCost > 0 ? (
+                    <span className="font-semibold text-navy-devotion">${shippingCost.toFixed(2)}</span>
+                  ) : customerInfo.deliveryMethod === 'pickup' ? (
+                    <span className="font-semibold text-green-600">Gratis (Retiro)</span>
+                  ) : (
+                    <span className="font-semibold text-green-600">A calcular</span>
+                  )}
                 </div>
+                {shippingDetails && (
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs text-stone-prayer">Tiempo estimado:</span>
+                    <span className="text-xs font-semibold text-divine-gold">{shippingDetails.tiempo} días</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center text-lg font-bold">
                   <span className="text-navy-devotion">Total:</span>
                   <span className="text-divine-gold">${total.toFixed(2)}</span>
