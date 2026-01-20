@@ -50,7 +50,7 @@ export const useServientrega = () => {
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/calculate-shipping`,
+        `${supabaseUrl}/functions/v1/servientrega-cotizar`,
         {
           method: 'POST',
           headers: {

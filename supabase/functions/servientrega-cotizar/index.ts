@@ -35,7 +35,12 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req: Request) => {
+  console.log("🚀 Servientrega Cotizar - Request received");
+  console.log("📍 Method:", req.method);
+  console.log("📍 URL:", req.url);
+
   if (req.method === "OPTIONS") {
+    console.log("✅ OPTIONS request - returning CORS headers");
     return new Response(null, {
       status: 200,
       headers: corsHeaders,
@@ -43,11 +48,15 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    console.log("🔐 Checking Servientrega credentials...");
     const usuario = Deno.env.get("SERVIENTREGA_USUARIO");
     const contrasena = Deno.env.get("SERVIENTREGA_CONTRASENA");
 
+    console.log("📋 Usuario exists:", !!usuario);
+    console.log("📋 Contrasena exists:", !!contrasena);
+
     if (!usuario || !contrasena) {
-      console.error("Servientrega credentials not configured");
+      console.error("❌ Servientrega credentials not configured");
       return new Response(
         JSON.stringify({
           error: "Servientrega credentials not configured. Please contact administrator.",
@@ -62,7 +71,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    console.log("📦 Parsing request body...");
     const body: CotizacionRequest = await req.json();
+    console.log("📦 Request body:", JSON.stringify(body, null, 2));
 
     const {
       ciu_ori,
@@ -78,7 +89,10 @@ Deno.serve(async (req: Request) => {
       nombre_producto = "PREMIER-RESIDENCIAL",
     } = body;
 
+    console.log("✅ Credentials loaded successfully");
+
     if (!ciu_ori || !provincia_ori || !ciu_des || !provincia_des) {
+      console.error("❌ Missing location fields");
       return new Response(
         JSON.stringify({
           error: "Missing required fields: ciu_ori, provincia_ori, ciu_des, provincia_des",
@@ -94,6 +108,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!valor_declarado || !peso || !alto || !ancho || !largo) {
+      console.error("❌ Missing dimension/value fields");
       return new Response(
         JSON.stringify({
           error: "Missing required fields: valor_declarado, peso, alto, ancho, largo",
@@ -107,6 +122,8 @@ Deno.serve(async (req: Request) => {
         }
       );
     }
+
+    console.log("📋 All required fields present");
 
     const servientregaPayload = {
       tipo: "obtener_tarifa_nacional",
@@ -125,7 +142,7 @@ Deno.serve(async (req: Request) => {
       contrasenha: contrasena,
     };
 
-    console.log("Calling Servientrega API with payload:", {
+    console.log("🌐 Calling Servientrega API with payload:", {
       ...servientregaPayload,
       contrasenha: "***HIDDEN***",
     });
@@ -141,8 +158,12 @@ Deno.serve(async (req: Request) => {
       }
     );
 
+    console.log("📡 Servientrega API response status:", servientregaResponse.status);
+
     if (!servientregaResponse.ok) {
-      console.error("Servientrega API error:", servientregaResponse.status, servientregaResponse.statusText);
+      console.error("❌ Servientrega API error:", servientregaResponse.status, servientregaResponse.statusText);
+      const errorText = await servientregaResponse.text();
+      console.error("❌ Error response body:", errorText);
       return new Response(
         JSON.stringify({
           error: `Servientrega API error: ${servientregaResponse.status} ${servientregaResponse.statusText}`,
@@ -159,7 +180,8 @@ Deno.serve(async (req: Request) => {
 
     const cotizacionData: CotizacionResponse = await servientregaResponse.json();
 
-    console.log("Servientrega API response:", cotizacionData);
+    console.log("✅ Servientrega API response:", JSON.stringify(cotizacionData, null, 2));
+    console.log("💰 Total calculated:", cotizacionData.gtotal);
 
     return new Response(
       JSON.stringify({
@@ -175,7 +197,8 @@ Deno.serve(async (req: Request) => {
       }
     );
   } catch (error) {
-    console.error("Error in servientrega-cotizar function:", error);
+    console.error("❌ Error in servientrega-cotizar function:", error);
+    console.error("❌ Error stack:", error instanceof Error ? error.stack : "No stack trace");
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : "Unknown error occurred",
