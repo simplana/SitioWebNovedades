@@ -46,17 +46,11 @@ export const useServientrega = () => {
     setCotizacion(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        throw new Error('No authenticated session');
-      }
-
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/servientrega-cotizar`,
+        `${supabaseUrl}/functions/v1/calculate-shipping`,
         {
           method: 'POST',
           headers: {
