@@ -75,9 +75,8 @@ const Contact = () => {
                 <div>
                   <h3 className="font-semibold text-navy mb-2">Dirección</h3>
                   <p className="text-gray-700">
-                    Centennial<br />
-                    Ciudad de Panamá, Panamá<br />
-                    Local 15, Plaza Centennial
+                    Rotonda de centennial<br />
+                    Panama City, Panamá Province
                   </p>
                 </div>
               </div>

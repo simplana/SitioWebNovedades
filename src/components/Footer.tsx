@@ -110,8 +110,8 @@ const Footer = () => {
               <div className="flex items-start space-x-3">
                 <MapPin className="h-5 w-5 text-divine-gold mt-0.5 flex-shrink-0" />
                 <span className="text-navy-devotion opacity-80 text-sm">
-                  Centennial, Panamá<br />
-                  Ciudad de Panamá
+                  Rotonda de centennial<br />
+                  Panama City, Panamá Province
                 </span>
               </div>
               <div className="flex items-center space-x-3">
