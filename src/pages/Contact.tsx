@@ -271,14 +271,9 @@ const Contact = () => {
             >
               <div className="h-96 relative overflow-hidden bg-gray-200">
                 <img
-                  src="https://maps.googleapis.com/maps/api/staticmap?center=9.033054,-79.533553&zoom=16&size=1200x400&markers=color:red%7C9.033054,-79.533553&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8"
+                  src="https://images.pexels.com/photos/208277/pexels-photo-208277.jpeg?auto=compress&cs=tinysrgb&w=1200&h=400"
                   alt="Ubicación de Novedades Católicas María Reina de la Paz"
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.onerror = null;
-                    target.src = 'https://images.pexels.com/photos/2881232/pexels-photo-2881232.jpeg?auto=compress&cs=tinysrgb&w=1200';
-                  }}
                 />
                 <div className="absolute inset-0 bg-navy bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300 flex items-center justify-center">
                   <div className="bg-white rounded-full p-4 opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100 transition-all duration-300 shadow-xl">
