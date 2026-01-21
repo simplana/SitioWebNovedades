@@ -118,7 +118,7 @@ const Restauraciones = () => {
                 <div className="grid grid-cols-2">
                   <div className="relative">
                     <img
-                      src="https://images.pexels.com/photos/7045933/pexels-photo-7045933.jpeg?auto=compress&cs=tinysrgb&w=400"
+                      src="/image copy copy.png"
                       alt="Antes"
                       className="w-full h-40 object-cover"
                     />
