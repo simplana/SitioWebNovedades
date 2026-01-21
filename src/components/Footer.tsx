@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Cross, MapPin, Phone, Mail, Clock, Facebook, Instagram } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Facebook, Instagram } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -18,7 +18,11 @@ const Footer = () => {
           <div className="lg:col-span-1">
             <div className="flex items-center space-x-2 mb-4">
               <div className="bg-gradient-to-br from-divine-gold to-aureola-gold p-2 rounded-full shadow-aureola">
-                <Cross className="h-6 w-6 text-navy-devotion" />
+                <img
+                  src="/novedades_catolicas_logo_transparent.png"
+                  alt="Novedades Católicas Logo"
+                  className="h-6 w-auto"
+                />
               </div>
               <h3 className="font-playfair font-bold text-xl">
                 Novedades Católicas
