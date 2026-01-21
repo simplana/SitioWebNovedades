@@ -68,7 +68,7 @@ export const useServientrega = () => {
       console.log('Normalized params:', normalizedParams);
 
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/servientrega-cotizar`,
+        `${supabaseUrl}/functions/v1/calculate-shipping`,
         {
           method: 'POST',
           headers: {
