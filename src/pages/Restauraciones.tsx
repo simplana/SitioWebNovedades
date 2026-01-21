@@ -162,7 +162,7 @@ const Restauraciones = () => {
                       </div>
                       <div className="relative bg-gray-50 rounded-lg p-4">
                         <img
-                          src="https://images.pexels.com/photos/6985072/pexels-photo-6985072.jpeg?auto=compress&cs=tinysrgb&w=800"
+                          src="/image copy copy copy copy.png"
                           alt="Antes de la restauración"
                           className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
                           style={{ maxHeight: '600px' }}
