@@ -80,7 +80,10 @@ const Catalogo: React.FC<CatalogoProps> = ({
 
   const handleWhatsAppOrder = (producto: LoyverseProduct) => {
     const message = encodeURIComponent(
-      `Hola, me interesa el producto: ${producto.name} ${producto.sku ? `(SKU: ${producto.sku})` : ''} - $${producto.price}`
+      'Hola 👋🏼, bendiciones.\n' +
+      'Estoy interesado/a en conocer más sobre los productos de Novedades Católicas María Reina de la Paz.\n' +
+      '¿Podrían brindarme información y disponibilidad, por favor?\n' +
+      'Gracias.'
     );
     const whatsappUrl = `https://wa.me/50769594358?text=${message}`;
     window.open(whatsappUrl, '_blank');

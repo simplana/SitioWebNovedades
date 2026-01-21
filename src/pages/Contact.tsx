@@ -34,7 +34,12 @@ const Contact = () => {
 
   const handleWhatsAppContact = () => {
     const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '50769594358';
-    const message = encodeURIComponent('Hola, me gustaría obtener más información sobre sus productos y servicios.');
+    const message = encodeURIComponent(
+      'Hola 👋🏼, bendiciones.\n' +
+      'Estoy interesado/a en conocer más sobre los productos de Novedades Católicas María Reina de la Paz.\n' +
+      '¿Podrían brindarme información y disponibilidad, por favor?\n' +
+      'Gracias.'
+    );
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
     window.open(whatsappUrl, '_blank');
   };
