@@ -263,17 +263,29 @@ const Contact = () => {
             Visítanos en nuestra tienda
           </h2>
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="h-96">
+            <div className="h-96 relative">
               <iframe
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d4915.159099545873!2d-79.5335534!3d9.033053699999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8faca9001f1482c5%3A0x907d60efedf4f64c!2sNovedades%20Cat%C3%B3licas%20Mar%C3%ADa%20Reina%20de%20la%20Paz!5e1!3m2!1ses-419!2spa!4v1768966034430!5m2!1ses-419!2spa"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
-                allowFullScreen
+                allowFullScreen={true}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
                 title="Ubicación de Novedades Católicas María Reina de la Paz"
+                className="absolute inset-0"
               ></iframe>
+            </div>
+            <div className="p-4 bg-gray-50 text-center">
+              <a
+                href="https://www.google.com/maps/place/Novedades+Cat%C3%B3licas+Mar%C3%ADa+Reina+de+la+Paz/@9.033053699999998,-79.5335534,15z/data=!4m6!3m5!1s0x8faca9001f1482c5:0x907d60efedf4f64c!8m2!3d9.0330537!4d-79.5335534!16s%2Fg%2F11c5q7lp0q"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center space-x-2 text-navy hover:text-gold transition-colors duration-200"
+              >
+                <MapPin className="h-5 w-5" />
+                <span className="font-medium">Abrir en Google Maps</span>
+              </a>
             </div>
           </div>
         </div>
