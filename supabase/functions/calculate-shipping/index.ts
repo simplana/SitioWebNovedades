@@ -179,7 +179,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const cotizacionData: CotizacionResponse = await servientregaResponse.json();
+    // Get response as text first to handle BOM character
+    const responseText = await servientregaResponse.text();
+    console.log("📄 Raw response text length:", responseText.length);
+
+    // Remove BOM character (U+FEFF) if present at the beginning
+    const cleanedText = responseText.replace(/^\uFEFF/, '');
+    console.log("🧹 Cleaned text (first 100 chars):", cleanedText.substring(0, 100));
+
+    // Parse the cleaned JSON
+    const cotizacionData: CotizacionResponse = JSON.parse(cleanedText);
 
     console.log("✅ Servientrega API response:", JSON.stringify(cotizacionData, null, 2));
     console.log("💰 Total calculated:", cotizacionData.gtotal);
