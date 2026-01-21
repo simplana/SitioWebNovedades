@@ -182,10 +182,18 @@ Deno.serve(async (req: Request) => {
     // Get response as text first to handle BOM character
     const responseText = await servientregaResponse.text();
     console.log("📄 Raw response text length:", responseText.length);
+    console.log("📄 First 200 chars:", responseText.substring(0, 200));
+    console.log("📄 First 5 char codes:", Array.from(responseText.substring(0, 5)).map(c => c.charCodeAt(0).toString(16)));
 
-    // Remove BOM character (U+FEFF) if present at the beginning
-    const cleanedText = responseText.replace(/^\uFEFF/, '');
-    console.log("🧹 Cleaned text (first 100 chars):", cleanedText.substring(0, 100));
+    // Remove BOM character (U+FEFF) and any other whitespace at the beginning
+    let cleanedText = responseText.trim();
+    if (cleanedText.charCodeAt(0) === 0xFEFF) {
+      cleanedText = cleanedText.substring(1);
+      console.log("🧹 Removed BOM character");
+    }
+    cleanedText = cleanedText.trim();
+    console.log("🧹 Cleaned text (first 200 chars):", cleanedText.substring(0, 200));
+    console.log("🧹 First 5 char codes after cleaning:", Array.from(cleanedText.substring(0, 5)).map(c => c.charCodeAt(0).toString(16)));
 
     // Parse the cleaned JSON
     const cotizacionData: CotizacionResponse = JSON.parse(cleanedText);

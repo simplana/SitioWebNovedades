@@ -1,3 +1,6 @@
+[functions.calculate-shipping]
+verify_jwt = false
+
 [functions.paguelo-facil-create-payment]
 verify_jwt = false
 
