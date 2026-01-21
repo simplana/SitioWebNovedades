@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Heart, MessageCircle, Share2, Shield, Truck, ShoppingCart, Plus, Minus } from 'lucide-react';
 import { useLoyverseProducts } from '../hooks/useLoyverse';
 import { useCart } from '../hooks/useCart';
+import { useProductComments } from '../hooks/useProductComments';
 import ProductGrid from '../components/ProductGrid';
 import StarRating from '../components/StarRating';
 import ProductComments from '../components/ProductComments';
@@ -13,8 +14,12 @@ const ProductDetail = () => {
   });
   const { addToCart, getItemQuantity } = useCart();
   const product = getProductById(id || '');
+  const { comments, getAverageRating } = useProductComments(id || '');
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'description' | 'comments'>('description');
+
+  const averageRating = getAverageRating();
+  const commentsCount = comments.length;
 
   if (loading) {
     return (
@@ -168,10 +173,12 @@ const ProductDetail = () => {
               </div>
 
               {/* Rating */}
-              <div className="flex items-center space-x-2 mb-6">
-                <StarRating rating={4.5} />
-                <span className="text-gray-600">(23 opiniones)</span>
-              </div>
+              {commentsCount > 0 && (
+                <div className="flex items-center space-x-2 mb-6">
+                  <StarRating rating={averageRating} />
+                  <span className="text-gray-600">({commentsCount} {commentsCount === 1 ? 'opinión' : 'opiniones'})</span>
+                </div>
+              )}
 
               {/* Precio */}
               <div className="text-4xl font-bold text-gold mb-6">
@@ -285,7 +292,7 @@ const ProductDetail = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Opiniones (23)
+                Opiniones {commentsCount > 0 ? `(${commentsCount})` : ''}
               </button>
             </nav>
           </div>
