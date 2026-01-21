@@ -100,7 +100,7 @@ export const useLoyverseProducts = () => {
           category: item.category?.name || 'Sin categoría',
           sku: firstVariant?.sku || item.id,
           image: item.image_url || 'https://images.pexels.com/photos/5206044/pexels-photo-5206044.jpeg?auto=compress&cs=tinysrgb&w=800',
-          description: item.description || 'Artículo religioso de alta calidad.',
+          description: item.description || undefined,
           availableForSale: firstVariant?.stores?.[0]?.available_for_sale ?? true,
           trackStock: item.track_stock ?? false,
           options: firstVariant?.option1_value || undefined,

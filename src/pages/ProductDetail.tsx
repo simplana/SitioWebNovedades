@@ -304,10 +304,16 @@ const ProductDetail = () => {
                   Descripción del Producto
                 </h3>
                 <div className="prose prose-lg max-w-none">
-                  <p className="text-gray-700 leading-relaxed mb-4">
-                    {product.description}
-                  </p>
-                  
+                  {product.description ? (
+                    <p className="text-gray-700 leading-relaxed mb-4">
+                      {product.description}
+                    </p>
+                  ) : (
+                    <p className="text-gray-500 italic mb-4">
+                      No hay descripción disponible para este producto.
+                    </p>
+                  )}
+
                   {/* Información adicional */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                     <div>
