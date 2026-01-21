@@ -171,5 +171,166 @@ SET store_id = EXCLUDED.store_id,
     token = EXCLUDED.token,
     updated_at = now();
 
+-- =============================================================================
+-- PRODUCT COMMENTS AND TESTIMONIALS MIGRATION
+-- =============================================================================
+
+-- Create product_comments table
+CREATE TABLE IF NOT EXISTS product_comments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id text NOT NULL,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  rating integer NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment text NOT NULL,
+  helpful_count integer DEFAULT 0,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Create comment_helpful_votes table
+CREATE TABLE IF NOT EXISTS comment_helpful_votes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  comment_id uuid NOT NULL REFERENCES product_comments(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(comment_id, user_id)
+);
+
+-- Create testimonials table
+CREATE TABLE IF NOT EXISTS testimonials (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  text text NOT NULL,
+  rating integer NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  approved boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE product_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE comment_helpful_votes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE testimonials ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for product_comments
+DROP POLICY IF EXISTS "Anyone can read product comments" ON product_comments;
+CREATE POLICY "Anyone can read product comments"
+  ON product_comments FOR SELECT
+  TO authenticated, anon
+  USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users can create comments" ON product_comments;
+CREATE POLICY "Authenticated users can create comments"
+  ON product_comments FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own comments" ON product_comments;
+CREATE POLICY "Users can update own comments"
+  ON product_comments FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own comments" ON product_comments;
+CREATE POLICY "Users can delete own comments"
+  ON product_comments FOR DELETE
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- RLS Policies for comment_helpful_votes
+DROP POLICY IF EXISTS "Anyone can read helpful votes" ON comment_helpful_votes;
+CREATE POLICY "Anyone can read helpful votes"
+  ON comment_helpful_votes FOR SELECT
+  TO authenticated, anon
+  USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users can create helpful votes" ON comment_helpful_votes;
+CREATE POLICY "Authenticated users can create helpful votes"
+  ON comment_helpful_votes FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own helpful votes" ON comment_helpful_votes;
+CREATE POLICY "Users can delete own helpful votes"
+  ON comment_helpful_votes FOR DELETE
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- RLS Policies for testimonials
+DROP POLICY IF EXISTS "Anyone can read approved testimonials" ON testimonials;
+CREATE POLICY "Anyone can read approved testimonials"
+  ON testimonials FOR SELECT
+  TO authenticated, anon
+  USING (approved = true);
+
+DROP POLICY IF EXISTS "Users can read own testimonials" ON testimonials;
+CREATE POLICY "Users can read own testimonials"
+  ON testimonials FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Authenticated users can create testimonials" ON testimonials;
+CREATE POLICY "Authenticated users can create testimonials"
+  ON testimonials FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own unapproved testimonials" ON testimonials;
+CREATE POLICY "Users can update own unapproved testimonials"
+  ON testimonials FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = user_id AND approved = false)
+  WITH CHECK (auth.uid() = user_id AND approved = false);
+
+DROP POLICY IF EXISTS "Users can delete own testimonials" ON testimonials;
+CREATE POLICY "Users can delete own testimonials"
+  ON testimonials FOR DELETE
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_product_comments_product_id ON product_comments(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_comments_user_id ON product_comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comment_helpful_votes_comment_id ON comment_helpful_votes(comment_id);
+CREATE INDEX IF NOT EXISTS idx_comment_helpful_votes_user_id ON comment_helpful_votes(user_id);
+CREATE INDEX IF NOT EXISTS idx_testimonials_approved ON testimonials(approved);
+CREATE INDEX IF NOT EXISTS idx_testimonials_user_id ON testimonials(user_id);
+
+-- Create triggers to auto-update updated_at
+DROP TRIGGER IF EXISTS update_product_comments_updated_at ON product_comments;
+CREATE TRIGGER update_product_comments_updated_at BEFORE UPDATE ON product_comments
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_testimonials_updated_at ON testimonials;
+CREATE TRIGGER update_testimonials_updated_at BEFORE UPDATE ON testimonials
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Create function to update helpful_count when votes are added/removed
+CREATE OR REPLACE FUNCTION update_comment_helpful_count()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE product_comments
+    SET helpful_count = helpful_count + 1
+    WHERE id = NEW.comment_id;
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE product_comments
+    SET helpful_count = helpful_count - 1
+    WHERE id = OLD.comment_id;
+    RETURN OLD;
+  END IF;
+  RETURN NULL;
+END;
+$$ language 'plpgsql';
+
+-- Create trigger to auto-update helpful_count
+DROP TRIGGER IF EXISTS update_helpful_count_on_vote ON comment_helpful_votes;
+CREATE TRIGGER update_helpful_count_on_vote
+  AFTER INSERT OR DELETE ON comment_helpful_votes
+  FOR EACH ROW EXECUTE FUNCTION update_comment_helpful_count();
+
 -- All done!
 SELECT 'Migration completed successfully! You can now close this window and return to your application.' as message;

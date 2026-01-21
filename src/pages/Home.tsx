@@ -2,14 +2,15 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Star, Heart, Shield, Truck, MessageCircle, Cross, BookOpen, Users } from 'lucide-react';
 import { useLoyverseProducts } from '../hooks/useLoyverse';
+import { useTestimonials } from '../hooks/useTestimonials';
 import ProductGrid from '../components/ProductGrid';
 import Newsletter from '../components/Newsletter';
 
 const Home = () => {
   const { products, loading, error, getFeaturedProducts } = useLoyverseProducts();
+  const { testimonials, loading: testimonialsLoading } = useTestimonials();
 
   const featuredProducts = getFeaturedProducts(6);
-  const newProducts = products.slice(0, 6); // Primeros 6 productos como "nuevos"
 
   const features = [
     {
@@ -31,24 +32,6 @@ const Home = () => {
       icon: Heart,
       title: 'Tradición de Amor',
       description: 'Más de 20 años sirviendo con devoción a familias católicas, preservando la fe de generación en generación.'
-    }
-  ];
-
-  const testimonials = [
-    {
-      name: 'María González',
-      text: 'Un servicio lleno de amor y productos que realmente nutren el alma. Siempre encuentro lo que mi corazón busca para nuestro hogar cristiano.',
-      rating: 5
-    },
-    {
-      name: 'Carlos Mendoza',
-      text: 'La atención es como la de una familia en Cristo, personalizada y llena de comprensión. Precios justos para tesoros religiosos.',
-      rating: 5
-    },
-    {
-      name: 'Ana Rodríguez',
-      text: 'Una hermosa variedad de artículos religiosos que tocan el corazón. Todo llega como una bendición, en perfectas condiciones.',
-      rating: 5
     }
   ];
 
@@ -254,46 +237,48 @@ const Home = () => {
       </section>
 
       {/* Testimonios */}
-      <section className="py-20 bg-gradient-to-br from-celestial-blue/25 via-heavenly-blue/30 via-divine-blue/20 to-marian-blue/15 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-tr from-celestial-blue/15 via-heavenly-blue/12 to-divine-blue/18"></div>
-        <div className="absolute inset-0 bg-gradient-to-bl from-transparent via-marian-blue/15 to-celestial-blue/12"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <div className="bg-gradient-to-br from-divine-gold to-aureola-gold p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-8 shadow-aureola animate-gentle-glow">
-              <Users className="h-8 w-8 text-navy-devotion" />
-            </div>
-            <h2 className="font-playfair text-4xl font-bold text-navy-devotion mb-4 text-shadow-sacred">
-              Testimonios de Nuestra Comunidad
-            </h2>
-            <div className="w-24 h-1 bg-divine-gold mx-auto mb-6 rounded-full shadow-golden"></div>
-            <p className="text-stone-prayer text-lg max-w-2xl mx-auto leading-relaxed">
-              Escucha las voces de nuestra comunidad católica y cómo nuestros artículos 
-              han acompañado su camino de fe.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-sacred-white rounded-2xl p-8 shadow-sacred backdrop-blur-divine border border-divine-gold border-opacity-10">
-                <div className="flex items-center mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 text-divine-gold fill-current" />
-                  ))}
-                </div>
-                <p className="text-stone-prayer mb-6 italic leading-relaxed">
-                  "{testimonial.text}"
-                </p>
-                <div className="flex items-center">
-                  <div className="bg-gradient-to-br from-divine-gold to-aureola-gold p-2 rounded-full mr-3">
-                    <Users className="h-5 w-5 text-navy-devotion" />
-                  </div>
-                  <span className="font-semibold text-navy-devotion">{testimonial.name}</span>
-                </div>
+      {testimonials.length > 0 && (
+        <section className="py-20 bg-gradient-to-br from-celestial-blue/25 via-heavenly-blue/30 via-divine-blue/20 to-marian-blue/15 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-tr from-celestial-blue/15 via-heavenly-blue/12 to-divine-blue/18"></div>
+          <div className="absolute inset-0 bg-gradient-to-bl from-transparent via-marian-blue/15 to-celestial-blue/12"></div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <div className="bg-gradient-to-br from-divine-gold to-aureola-gold p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-8 shadow-aureola animate-gentle-glow">
+                <Users className="h-8 w-8 text-navy-devotion" />
               </div>
-            ))}
+              <h2 className="font-playfair text-4xl font-bold text-navy-devotion mb-4 text-shadow-sacred">
+                Testimonios de Nuestra Comunidad
+              </h2>
+              <div className="w-24 h-1 bg-divine-gold mx-auto mb-6 rounded-full shadow-golden"></div>
+              <p className="text-stone-prayer text-lg max-w-2xl mx-auto leading-relaxed">
+                Escucha las voces de nuestra comunidad católica y cómo nuestros artículos
+                han acompañado su camino de fe.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {testimonials.map((testimonial) => (
+                <div key={testimonial.id} className="bg-sacred-white rounded-2xl p-8 shadow-sacred backdrop-blur-divine border border-divine-gold border-opacity-10">
+                  <div className="flex items-center mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="h-5 w-5 text-divine-gold fill-current" />
+                    ))}
+                  </div>
+                  <p className="text-stone-prayer mb-6 italic leading-relaxed">
+                    "{testimonial.text}"
+                  </p>
+                  <div className="flex items-center">
+                    <div className="bg-gradient-to-br from-divine-gold to-aureola-gold p-2 rounded-full mr-3">
+                      <Users className="h-5 w-5 text-navy-devotion" />
+                    </div>
+                    <span className="font-semibold text-navy-devotion">{testimonial.name}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Newsletter */}
       <Newsletter />
