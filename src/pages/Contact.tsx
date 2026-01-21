@@ -271,7 +271,7 @@ const Contact = () => {
             >
               <div className="h-96 relative overflow-hidden bg-gray-200">
                 <img
-                  src="https://images.pexels.com/photos/208277/pexels-photo-208277.jpeg?auto=compress&cs=tinysrgb&w=1200&h=400"
+                  src="https://images.pexels.com/photos/6956370/pexels-photo-6956370.jpeg?auto=compress&cs=tinysrgb&w=1200&h=400"
                   alt="Ubicación de Novedades Católicas María Reina de la Paz"
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
