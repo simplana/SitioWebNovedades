@@ -232,33 +232,44 @@ const Checkout = () => {
 
   useEffect(() => {
     const calculateShipping = async () => {
+      console.log('🚚 Shipping calculation triggered');
+      console.log('📍 Delivery method:', customerInfo.deliveryMethod);
+      console.log('📍 Province:', customerInfo.province);
+      console.log('📍 Corregimiento:', customerInfo.corregimiento);
+      console.log('💰 Subtotal:', subtotal);
+
       if (
         customerInfo.deliveryMethod === 'delivery' &&
         customerInfo.province &&
         customerInfo.corregimiento
       ) {
+        console.log('✅ All conditions met - calling getCotizacion');
+
         const response = await getCotizacion({
           ciu_ori: '24 DE DICIEMBRE',
           provincia_ori: 'PANAMA',
           ciu_des: customerInfo.corregimiento,
           provincia_des: customerInfo.province,
           valor_declarado: subtotal,
-          peso: packageDimensions.peso,
-          alto: packageDimensions.alto,
-          ancho: packageDimensions.ancho,
-          largo: packageDimensions.largo,
+          peso: 5,
         });
 
+        console.log('📦 Cotizacion response:', response);
+
         if (response.success && response.cotizacion) {
+          console.log('✅ Shipping cost calculated:', response.cotizacion.gtotal);
           setShippingCost(response.cotizacion.gtotal);
           setShippingDetails(response.cotizacion);
         } else {
-          console.error('Error getting cotizacion:', response.error);
+          console.error('❌ Error getting cotizacion:', response.error);
           setShippingCost(0);
         }
       } else if (customerInfo.deliveryMethod === 'pickup') {
+        console.log('📍 Pickup method selected - setting shipping to 0');
         setShippingCost(0);
         setShippingDetails(null);
+      } else {
+        console.log('⏸️ Waiting for delivery method and location selection');
       }
     };
 

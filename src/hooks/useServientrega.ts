@@ -12,9 +12,9 @@ export interface CotizacionParams {
   provincia_des: string;
   valor_declarado: number;
   peso: number;
-  alto: number;
-  ancho: number;
-  largo: number;
+  alto?: number;
+  ancho?: number;
+  largo?: number;
   recoleccion?: string;
   nombre_producto?: string;
 }

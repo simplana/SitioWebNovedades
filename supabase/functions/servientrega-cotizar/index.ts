@@ -7,9 +7,9 @@ interface CotizacionRequest {
   provincia_des: string;
   valor_declarado: number;
   peso: number;
-  alto: number;
-  ancho: number;
-  largo: number;
+  alto?: number;
+  ancho?: number;
+  largo?: number;
   recoleccion?: string;
   nombre_producto?: string;
 }
@@ -82,14 +82,15 @@ Deno.serve(async (req: Request) => {
       provincia_des,
       valor_declarado,
       peso,
-      alto,
-      ancho,
-      largo,
+      alto = 20,
+      ancho = 25,
+      largo = 30,
       recoleccion = "NO",
       nombre_producto = "PREMIER-RESIDENCIAL",
     } = body;
 
     console.log("✅ Credentials loaded successfully");
+    console.log("📦 Using dimensions - alto:", alto, "ancho:", ancho, "largo:", largo);
 
     if (!ciu_ori || !provincia_ori || !ciu_des || !provincia_des) {
       console.error("❌ Missing location fields");
@@ -107,11 +108,11 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (!valor_declarado || !peso || !alto || !ancho || !largo) {
-      console.error("❌ Missing dimension/value fields");
+    if (!valor_declarado || !peso) {
+      console.error("❌ Missing valor_declarado or peso");
       return new Response(
         JSON.stringify({
-          error: "Missing required fields: valor_declarado, peso, alto, ancho, largo",
+          error: "Missing required fields: valor_declarado, peso",
         }),
         {
           status: 400,
