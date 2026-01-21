@@ -33,7 +33,7 @@ const Contact = () => {
   };
 
   const handleWhatsAppContact = () => {
-    const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '50760000000';
+    const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '50769594358';
     const message = encodeURIComponent('Hola, me gustaría obtener más información sobre sus productos y servicios.');
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
     window.open(whatsappUrl, '_blank');
@@ -88,8 +88,7 @@ const Contact = () => {
                 <div>
                   <h3 className="font-semibold text-navy mb-2">Teléfono</h3>
                   <p className="text-gray-700">
-                    +507 6000-0000<br />
-                    +507 2000-0000
+                    +507 6959-4358
                   </p>
                 </div>
               </div>

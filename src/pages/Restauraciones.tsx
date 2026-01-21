@@ -40,8 +40,8 @@ const Restauraciones = () => {
       `${formData.photos ? `📸 Fotos adjuntas: ${formData.photos.length} archivo(s)` : '📸 Sin fotos adjuntas'}\n\n` +
       `Por favor, proporcione una cotización para la restauración.`
     );
-    
-    const whatsappUrl = `https://wa.me/50760000000?text=${message}`;
+
+    const whatsappUrl = `https://wa.me/50769594358?text=${message}`;
     window.open(whatsappUrl, '_blank');
     
     setIsSubmitted(true);

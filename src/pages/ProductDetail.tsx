@@ -79,7 +79,7 @@ const ProductDetail = () => {
   };
 
   const handleWhatsAppOrder = () => {
-    const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '50760000000';
+    const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '50769594358';
     const message = encodeURIComponent(
       `Hola, me interesa el producto: ${product.name} (SKU: ${product.sku}) - $${product.price.toFixed(2)}`
     );

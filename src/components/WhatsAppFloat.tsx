@@ -3,7 +3,7 @@ import { MessageCircle } from 'lucide-react';
 
 const WhatsAppFloat = () => {
   const handleWhatsAppClick = () => {
-    const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '50760000000';
+    const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '50769594358';
     const message = encodeURIComponent('¡Hola! Me interesa conocer más sobre sus productos religiosos.');
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
     window.open(whatsappUrl, '_blank');

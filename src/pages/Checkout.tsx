@@ -392,9 +392,9 @@ const Checkout = () => {
           `${customerInfo.notes ? `📝 NOTAS: ${customerInfo.notes}\n\n` : ''}` +
           `Por favor confirme esta orden y proporcione los datos bancarios para completar la transferencia.`
         );
-        
+
         // Abrir WhatsApp con el mensaje
-        const whatsappUrl = `https://wa.me/50760000000?text=${whatsappMessage}`;
+        const whatsappUrl = `https://wa.me/50769594358?text=${whatsappMessage}`;
         window.open(whatsappUrl, '_blank');
         
         // Crear orden con estado de pago pendiente para transferencia

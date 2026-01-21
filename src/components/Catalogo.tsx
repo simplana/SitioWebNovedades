@@ -82,7 +82,7 @@ const Catalogo: React.FC<CatalogoProps> = ({
     const message = encodeURIComponent(
       `Hola, me interesa el producto: ${producto.name} ${producto.sku ? `(SKU: ${producto.sku})` : ''} - $${producto.price}`
     );
-    const whatsappUrl = `https://wa.me/50760000000?text=${message}`;
+    const whatsappUrl = `https://wa.me/50769594358?text=${message}`;
     window.open(whatsappUrl, '_blank');
   };
 

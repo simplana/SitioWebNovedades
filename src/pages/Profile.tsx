@@ -391,7 +391,7 @@ const Profile = () => {
                     value={editedProfile.phone}
                     onChange={(e) => setEditedProfile({ ...editedProfile, phone: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-divine-gold focus:border-transparent"
-                    placeholder="+507 6000-0000"
+                    placeholder="+507 6959-4358"
                   />
                 ) : (
                   <p className="text-gray-900 px-4 py-2 bg-gray-50 rounded-lg">
