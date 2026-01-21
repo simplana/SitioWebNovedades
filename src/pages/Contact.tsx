@@ -33,8 +33,9 @@ const Contact = () => {
   };
 
   const handleWhatsAppContact = () => {
+    const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '50760000000';
     const message = encodeURIComponent('Hola, me gustaría obtener más información sobre sus productos y servicios.');
-    const whatsappUrl = `https://wa.me/50760000000?text=${message}`;
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
     window.open(whatsappUrl, '_blank');
   };
 

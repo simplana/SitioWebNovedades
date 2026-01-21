@@ -74,10 +74,11 @@ const ProductDetail = () => {
   };
 
   const handleWhatsAppOrder = () => {
+    const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '50760000000';
     const message = encodeURIComponent(
       `Hola, me interesa el producto: ${product.name} (SKU: ${product.sku}) - $${product.price.toFixed(2)}`
     );
-    const whatsappUrl = `https://wa.me/50760000000?text=${message}`;
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
     window.open(whatsappUrl, '_blank');
   };
 
