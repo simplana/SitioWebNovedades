@@ -125,8 +125,7 @@ const Footer = () => {
               <div className="flex items-start space-x-3">
                 <Clock className="h-5 w-5 text-divine-gold mt-0.5 flex-shrink-0" />
                 <span className="text-navy-devotion opacity-80 text-sm">
-                  Lun - Vie: 9:00 AM - 6:00 PM<br />
-                  Sáb: 9:00 AM - 4:00 PM<br />
+                  Lun - Sáb: 9:00 AM - 6:00 PM<br />
                   Dom: 9:00 AM - 2:00 PM
                 </span>
               </div>
