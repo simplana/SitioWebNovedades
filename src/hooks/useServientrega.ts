@@ -53,12 +53,15 @@ export const useServientrega = () => {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+      const provincia_ori_mapped = formatProvinciaForServientrega(params.provincia_ori);
+      const provincia_des_mapped = formatProvinciaForServientrega(params.provincia_des);
+
       const normalizedParams = {
         ...params,
-        ciu_ori: formatCiudadForServientrega(params.ciu_ori),
-        provincia_ori: formatProvinciaForServientrega(params.provincia_ori),
-        ciu_des: formatCiudadForServientrega(params.ciu_des),
-        provincia_des: formatProvinciaForServientrega(params.provincia_des),
+        ciu_ori: formatCiudadForServientrega(params.ciu_ori, params.provincia_ori),
+        provincia_ori: provincia_ori_mapped,
+        ciu_des: formatCiudadForServientrega(params.ciu_des, params.provincia_des),
+        provincia_des: provincia_des_mapped,
       };
 
       console.log('Original params:', params);

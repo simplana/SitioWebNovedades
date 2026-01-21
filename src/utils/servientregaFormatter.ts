@@ -1,9 +1,27 @@
+import { locationMapper } from './servientregaLocationMapper';
+
 /**
  * Normaliza nombres de provincias y corregimientos para la API de Servientrega
- * Convierte a mayúsculas y elimina tildes/acentos
+ * Usa el mapeador inteligente basado en el CSV de Servientrega
  */
-export function normalizeForServientrega(text: string): string {
-  return text
+
+/**
+ * Formatea una provincia para Servientrega usando el mapeador inteligente
+ */
+export function formatProvinciaForServientrega(provincia: string): string {
+  return locationMapper.mapProvince(provincia);
+}
+
+/**
+ * Formatea un corregimiento para Servientrega usando el mapeador inteligente
+ * Requiere la provincia para hacer el mapeo correcto
+ */
+export function formatCorregimientoForServientrega(corregimiento: string, provincia?: string): string {
+  if (provincia) {
+    return locationMapper.mapCorregimiento(corregimiento, provincia);
+  }
+
+  return corregimiento
     .toUpperCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -12,37 +30,16 @@ export function normalizeForServientrega(text: string): string {
 }
 
 /**
- * Mapeo de nombres especiales que requieren formato específico
- */
-const SPECIAL_MAPPINGS: Record<string, string> = {
-  'PANAMA OESTE': 'PANAMA',
-  'COMARCA GUNA YALA': 'COMARCA KUNA YALA',
-  'COMARCA EMBERA-WOUNAAN': 'COMARCA EMBERA',
-  'COMARCA NGABE-BUGLE': 'COMARCA NGOBE BUGLE',
-  'LA VILLA DE LOS SANTOS': 'LOS SANTOS',
-  'PUERTO ARMUELLES': 'PUERTO ARMUELLESABECER',
-};
-
-/**
- * Formatea una provincia para Servientrega
- */
-export function formatProvinciaForServientrega(provincia: string): string {
-  const normalized = normalizeForServientrega(provincia);
-  return SPECIAL_MAPPINGS[normalized] || normalized;
-}
-
-/**
- * Formatea un corregimiento para Servientrega
- */
-export function formatCorregimientoForServientrega(corregimiento: string): string {
-  const normalized = normalizeForServientrega(corregimiento);
-  return SPECIAL_MAPPINGS[normalized] || normalized;
-}
-
-/**
  * Formatea una ciudad/distrito para Servientrega
+ * En Servientrega, la ciudad es el corregimiento
  */
-export function formatCiudadForServientrega(ciudad: string): string {
-  const normalized = normalizeForServientrega(ciudad);
-  return SPECIAL_MAPPINGS[normalized] || normalized;
+export function formatCiudadForServientrega(ciudad: string, provincia?: string): string {
+  return formatCorregimientoForServientrega(ciudad, provincia);
+}
+
+/**
+ * Valida que una combinación de provincia y corregimiento existe en Servientrega
+ */
+export function validateServientregaLocation(corregimiento: string, provincia: string): boolean {
+  return locationMapper.validateLocation(corregimiento, provincia);
 }

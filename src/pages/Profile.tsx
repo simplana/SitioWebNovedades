@@ -203,10 +203,12 @@ const Profile = () => {
     try {
       setSaving(true);
 
+      const provincia_mapped = formatProvinciaForServientrega(editedProfile.provincia);
+
       const normalizedProfile = {
         ...editedProfile,
-        provincia: formatProvinciaForServientrega(editedProfile.provincia),
-        corregimiento: formatCorregimientoForServientrega(editedProfile.corregimiento),
+        provincia: provincia_mapped,
+        corregimiento: formatCorregimientoForServientrega(editedProfile.corregimiento, editedProfile.provincia),
       };
 
       console.log('Original profile:', editedProfile);
