@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import {
+  formatCiudadForServientrega,
+  formatProvinciaForServientrega,
+} from '../utils/servientregaFormatter';
 
 export interface CotizacionParams {
   ciu_ori: string;
@@ -49,6 +53,17 @@ export const useServientrega = () => {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+      const normalizedParams = {
+        ...params,
+        ciu_ori: formatCiudadForServientrega(params.ciu_ori),
+        provincia_ori: formatProvinciaForServientrega(params.provincia_ori),
+        ciu_des: formatCiudadForServientrega(params.ciu_des),
+        provincia_des: formatProvinciaForServientrega(params.provincia_des),
+      };
+
+      console.log('Original params:', params);
+      console.log('Normalized params:', normalizedParams);
+
       const response = await fetch(
         `${supabaseUrl}/functions/v1/servientrega-cotizar`,
         {
@@ -57,7 +72,7 @@ export const useServientrega = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${supabaseAnonKey}`,
           },
-          body: JSON.stringify(params),
+          body: JSON.stringify(normalizedParams),
         }
       );
 

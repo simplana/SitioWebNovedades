@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import CheckoutMap from '../components/CheckoutMap';
 import { getProvinceNames, getCorregimientosByProvince } from '../utils/panamaLocations';
+import { formatProvinciaForServientrega, formatCorregimientoForServientrega } from '../utils/servientregaFormatter';
 
 interface UserProfile {
   full_name: string;
@@ -202,6 +203,15 @@ const Profile = () => {
     try {
       setSaving(true);
 
+      const normalizedProfile = {
+        ...editedProfile,
+        provincia: formatProvinciaForServientrega(editedProfile.provincia),
+        corregimiento: formatCorregimientoForServientrega(editedProfile.corregimiento),
+      };
+
+      console.log('Original profile:', editedProfile);
+      console.log('Normalized profile:', normalizedProfile);
+
       const { data: existing } = await supabase
         .from('profiles')
         .select('id')
@@ -211,19 +221,19 @@ const Profile = () => {
       if (existing) {
         const { error } = await supabase
           .from('profiles')
-          .update(editedProfile)
+          .update(normalizedProfile)
           .eq('id', user.id);
 
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('profiles')
-          .insert([{ ...editedProfile, id: user.id }]);
+          .insert([{ ...normalizedProfile, id: user.id }]);
 
         if (error) throw error;
       }
 
-      setProfile(editedProfile);
+      setProfile(normalizedProfile);
       setIsEditing(false);
     } catch (error) {
       console.error('Error saving profile:', error);
