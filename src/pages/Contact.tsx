@@ -133,7 +133,9 @@ const Contact = () => {
                   <Facebook className="h-5 w-5" />
                 </a>
                 <a
-                  href="#"
+                  href="https://www.instagram.com/novedades_catolicas/?hl=es-la"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="bg-pink-600 hover:bg-pink-700 text-white p-3 rounded-full transition-colors duration-200"
                 >
                   <Instagram className="h-5 w-5" />
