@@ -235,8 +235,7 @@ const Checkout = () => {
       if (
         customerInfo.deliveryMethod === 'delivery' &&
         customerInfo.province &&
-        customerInfo.corregimiento &&
-        step === 'payment'
+        customerInfo.corregimiento
       ) {
         const response = await getCotizacion({
           ciu_ori: '24 DE DICIEMBRE',
@@ -264,7 +263,7 @@ const Checkout = () => {
     };
 
     calculateShipping();
-  }, [step, customerInfo.province, customerInfo.corregimiento, customerInfo.deliveryMethod, subtotal]);
+  }, [customerInfo.province, customerInfo.corregimiento, customerInfo.deliveryMethod, subtotal]);
 
   const [isInitialized, setIsInitialized] = React.useState(false);
 
@@ -1024,25 +1023,21 @@ const Checkout = () => {
                 </div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-stone-prayer">Envío:</span>
-                  {cotizacionLoading && step === 'payment' && customerInfo.deliveryMethod === 'delivery' ? (
+                  {cotizacionLoading && customerInfo.deliveryMethod === 'delivery' ? (
                     <span className="text-sm text-stone-prayer flex items-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-divine-gold mr-2"></div>
                       Calculando...
                     </span>
-                  ) : shippingCost > 0 ? (
-                    <span className="font-semibold text-navy-devotion">${shippingCost.toFixed(2)}</span>
+                  ) : shippingCost > 0 && shippingDetails ? (
+                    <span className="font-semibold text-navy-devotion">${shippingCost.toFixed(2)} ({shippingDetails.tiempo} días)</span>
                   ) : customerInfo.deliveryMethod === 'pickup' ? (
                     <span className="font-semibold text-green-600">Gratis (Retiro)</span>
+                  ) : customerInfo.deliveryMethod === 'delivery' ? (
+                    <span className="text-sm text-stone-prayer">Pendiente</span>
                   ) : (
-                    <span className="font-semibold text-green-600">A calcular</span>
+                    <span className="text-sm text-stone-prayer">-</span>
                   )}
                 </div>
-                {shippingDetails && (
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-stone-prayer">Tiempo estimado:</span>
-                    <span className="text-xs font-semibold text-divine-gold">{shippingDetails.tiempo} días</span>
-                  </div>
-                )}
                 <div className="flex justify-between items-center text-lg font-bold">
                   <span className="text-navy-devotion">Total:</span>
                   <span className="text-divine-gold">${total.toFixed(2)}</span>
