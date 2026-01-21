@@ -265,7 +265,7 @@ const Contact = () => {
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="h-96">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3940.5470962647894!2d-79.53289862595716!3d9.016704488806647!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8faca8f1e9e6c5e5%3A0x7e9c9e8e0e7e7e7e!2sCentennial%2C%20Panama%20City%2C%20Panama!5e0!3m2!1sen!2spa!4v1703875200000!5m2!1sen!2spa"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15762.309736!2d-79.535!3d9.017!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOcKwMDEnMDEuMyJOIDc5wrAzMicwNi4wIlc!5e0!3m2!1ses!2spa!4v1637000000000!5m2!1ses!2spa"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
