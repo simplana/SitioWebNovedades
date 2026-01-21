@@ -35,7 +35,7 @@ const Footer = () => {
               y acompañar tu camino de fe y oración.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-navy-devotion opacity-70 hover:text-divine-gold hover:opacity-100 transition-all duration-200">
+              <a href="https://www.facebook.com/novedadescatolicas/?locale=es_LA" target="_blank" rel="noopener noreferrer" className="text-navy-devotion opacity-70 hover:text-divine-gold hover:opacity-100 transition-all duration-200">
                 <Facebook className="h-5 w-5" />
               </a>
               <a href="https://www.instagram.com/novedades_catolicas/?hl=es-la" target="_blank" rel="noopener noreferrer" className="text-navy-devotion opacity-70 hover:text-divine-gold hover:opacity-100 transition-all duration-200">

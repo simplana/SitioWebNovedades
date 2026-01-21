@@ -127,7 +127,9 @@ const Contact = () => {
               </h3>
               <div className="flex space-x-4">
                 <a
-                  href="#"
+                  href="https://www.facebook.com/novedadescatolicas/?locale=es_LA"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full transition-colors duration-200"
                 >
                   <Facebook className="h-5 w-5" />
