@@ -115,49 +115,40 @@ const Restauraciones = () => {
                     Restauración de Imagen del Sagrado Corazón
                   </h3>
                 </div>
-                <div className="p-6 space-y-8">
-                  {/* ANTES */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-center">
-                      <div className="bg-red-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
-                        ANTES DE LA RESTAURACIÓN
+                <div className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* ANTES */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-center">
+                        <div className="bg-red-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
+                          ANTES DE LA RESTAURACIÓN
+                        </div>
+                      </div>
+                      <div className="relative bg-gray-50 rounded-lg p-4">
+                        <img
+                          src="/image copy copy.png"
+                          alt="Antes de la restauración"
+                          className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
+                          style={{ maxHeight: '600px' }}
+                        />
                       </div>
                     </div>
-                    <div className="relative bg-gray-50 rounded-lg p-4">
-                      <img
-                        src="/image copy copy.png"
-                        alt="Antes de la restauración"
-                        className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
-                        style={{ maxHeight: '600px' }}
-                      />
-                    </div>
-                  </div>
 
-                  {/* Separador */}
-                  <div className="flex items-center justify-center py-4">
-                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-divine-gold to-transparent"></div>
-                    <div className="px-4 text-divine-gold">
-                      <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                      </svg>
-                    </div>
-                    <div className="flex-1 h-px bg-gradient-to-r from-divine-gold via-divine-gold to-transparent"></div>
-                  </div>
-
-                  {/* DESPUÉS */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-center">
-                      <div className="bg-green-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
-                        DESPUÉS DE LA RESTAURACIÓN
+                    {/* DESPUÉS */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-center">
+                        <div className="bg-green-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
+                          DESPUÉS DE LA RESTAURACIÓN
+                        </div>
                       </div>
-                    </div>
-                    <div className="relative bg-gray-50 rounded-lg p-4">
-                      <img
-                        src="https://images.pexels.com/photos/8989574/pexels-photo-8989574.jpeg?auto=compress&cs=tinysrgb&w=800"
-                        alt="Después de la restauración"
-                        className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
-                        style={{ maxHeight: '600px' }}
-                      />
+                      <div className="relative bg-gray-50 rounded-lg p-4">
+                        <img
+                          src="https://images.pexels.com/photos/8989574/pexels-photo-8989574.jpeg?auto=compress&cs=tinysrgb&w=800"
+                          alt="Después de la restauración"
+                          className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
+                          style={{ maxHeight: '600px' }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -170,49 +161,40 @@ const Restauraciones = () => {
                     Reparación de Crucifijo Antiguo
                   </h3>
                 </div>
-                <div className="p-6 space-y-8">
-                  {/* ANTES */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-center">
-                      <div className="bg-red-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
-                        ANTES DE LA RESTAURACIÓN
+                <div className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* ANTES */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-center">
+                        <div className="bg-red-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
+                          ANTES DE LA RESTAURACIÓN
+                        </div>
+                      </div>
+                      <div className="relative bg-gray-50 rounded-lg p-4">
+                        <img
+                          src="https://images.pexels.com/photos/6985072/pexels-photo-6985072.jpeg?auto=compress&cs=tinysrgb&w=800"
+                          alt="Antes de la restauración"
+                          className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
+                          style={{ maxHeight: '600px' }}
+                        />
                       </div>
                     </div>
-                    <div className="relative bg-gray-50 rounded-lg p-4">
-                      <img
-                        src="https://images.pexels.com/photos/6985072/pexels-photo-6985072.jpeg?auto=compress&cs=tinysrgb&w=800"
-                        alt="Antes de la restauración"
-                        className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
-                        style={{ maxHeight: '600px' }}
-                      />
-                    </div>
-                  </div>
 
-                  {/* Separador */}
-                  <div className="flex items-center justify-center py-4">
-                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-divine-gold to-transparent"></div>
-                    <div className="px-4 text-divine-gold">
-                      <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                      </svg>
-                    </div>
-                    <div className="flex-1 h-px bg-gradient-to-r from-divine-gold via-divine-gold to-transparent"></div>
-                  </div>
-
-                  {/* DESPUÉS */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-center">
-                      <div className="bg-green-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
-                        DESPUÉS DE LA RESTAURACIÓN
+                    {/* DESPUÉS */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-center">
+                        <div className="bg-green-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
+                          DESPUÉS DE LA RESTAURACIÓN
+                        </div>
                       </div>
-                    </div>
-                    <div className="relative bg-gray-50 rounded-lg p-4">
-                      <img
-                        src="https://images.pexels.com/photos/6985003/pexels-photo-6985003.jpeg?auto=compress&cs=tinysrgb&w=800"
-                        alt="Después de la restauración"
-                        className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
-                        style={{ maxHeight: '600px' }}
-                      />
+                      <div className="relative bg-gray-50 rounded-lg p-4">
+                        <img
+                          src="https://images.pexels.com/photos/6985003/pexels-photo-6985003.jpeg?auto=compress&cs=tinysrgb&w=800"
+                          alt="Después de la restauración"
+                          className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
+                          style={{ maxHeight: '600px' }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -225,49 +207,40 @@ const Restauraciones = () => {
                     Restauración de Rosario de Perlas
                   </h3>
                 </div>
-                <div className="p-6 space-y-8">
-                  {/* ANTES */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-center">
-                      <div className="bg-red-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
-                        ANTES DE LA RESTAURACIÓN
+                <div className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* ANTES */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-center">
+                        <div className="bg-red-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
+                          ANTES DE LA RESTAURACIÓN
+                        </div>
+                      </div>
+                      <div className="relative bg-gray-50 rounded-lg p-4">
+                        <img
+                          src="https://images.pexels.com/photos/7045925/pexels-photo-7045925.jpeg?auto=compress&cs=tinysrgb&w=800"
+                          alt="Antes de la restauración"
+                          className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
+                          style={{ maxHeight: '600px' }}
+                        />
                       </div>
                     </div>
-                    <div className="relative bg-gray-50 rounded-lg p-4">
-                      <img
-                        src="https://images.pexels.com/photos/7045925/pexels-photo-7045925.jpeg?auto=compress&cs=tinysrgb&w=800"
-                        alt="Antes de la restauración"
-                        className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
-                        style={{ maxHeight: '600px' }}
-                      />
-                    </div>
-                  </div>
 
-                  {/* Separador */}
-                  <div className="flex items-center justify-center py-4">
-                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-divine-gold to-transparent"></div>
-                    <div className="px-4 text-divine-gold">
-                      <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                      </svg>
-                    </div>
-                    <div className="flex-1 h-px bg-gradient-to-r from-divine-gold via-divine-gold to-transparent"></div>
-                  </div>
-
-                  {/* DESPUÉS */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-center">
-                      <div className="bg-green-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
-                        DESPUÉS DE LA RESTAURACIÓN
+                    {/* DESPUÉS */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-center">
+                        <div className="bg-green-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
+                          DESPUÉS DE LA RESTAURACIÓN
+                        </div>
                       </div>
-                    </div>
-                    <div className="relative bg-gray-50 rounded-lg p-4">
-                      <img
-                        src="https://images.pexels.com/photos/6546283/pexels-photo-6546283.jpeg?auto=compress&cs=tinysrgb&w=800"
-                        alt="Después de la restauración"
-                        className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
-                        style={{ maxHeight: '600px' }}
-                      />
+                      <div className="relative bg-gray-50 rounded-lg p-4">
+                        <img
+                          src="https://images.pexels.com/photos/6546283/pexels-photo-6546283.jpeg?auto=compress&cs=tinysrgb&w=800"
+                          alt="Después de la restauración"
+                          className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
+                          style={{ maxHeight: '600px' }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
