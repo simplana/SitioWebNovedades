@@ -110,11 +110,6 @@ const Restauraciones = () => {
             <div className="space-y-12">
               {/* Ejemplo 1: Imagen del Sagrado Corazón */}
               <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                <div className="p-6 border-b bg-gradient-to-r from-lavender-peace to-celestial-blue">
-                  <h3 className="font-playfair text-2xl font-semibold text-navy-devotion text-center">
-                    Restauración de Imagen del Sagrado Corazón
-                  </h3>
-                </div>
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* ANTES */}
@@ -156,11 +151,6 @@ const Restauraciones = () => {
 
               {/* Ejemplo 2: Crucifijo Antiguo */}
               <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                <div className="p-6 border-b bg-gradient-to-r from-lavender-peace to-celestial-blue">
-                  <h3 className="font-playfair text-2xl font-semibold text-navy-devotion text-center">
-                    Reparación de Crucifijo Antiguo
-                  </h3>
-                </div>
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* ANTES */}
@@ -202,11 +192,6 @@ const Restauraciones = () => {
 
               {/* Ejemplo 3: Rosario de Perlas */}
               <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                <div className="p-6 border-b bg-gradient-to-r from-lavender-peace to-celestial-blue">
-                  <h3 className="font-playfair text-2xl font-semibold text-navy-devotion text-center">
-                    Restauración de Rosario de Perlas
-                  </h3>
-                </div>
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* ANTES */}
