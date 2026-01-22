@@ -336,7 +336,7 @@ const Checkout = () => {
           total
         });
 
-        if (paymentResponse.success && paymentResponse.paymentUrl) {
+        if (paymentResponse.success && paymentResponse.url) {
           const order = await processOrder(
             {
               name: customerInfo.name,
@@ -350,14 +350,14 @@ const Checkout = () => {
               paymentMethod: 'paguelo_facil',
               paymentId: paymentResponse.paymentId,
               paymentCode: paymentResponse.paymentCode,
-              paymentUrl: paymentResponse.paymentUrl,
+              paymentUrl: paymentResponse.url,
               status: 'payment_pending',
               shippingCost: shippingCost,
               shippingDetails: shippingDetails
             }
           );
 
-          window.location.href = paymentResponse.paymentUrl;
+          window.location.href = paymentResponse.url;
           return;
         } else {
           console.error('Payment creation failed:', paymentResponse);
