@@ -23,12 +23,11 @@ export interface PagueloFacilPayment {
 
 export interface PagueloFacilResponse {
   success: boolean;
-  url: string;
-  paymentId?: string;
+  paymentId: string;
+  paymentUrl: string;
   paymentCode?: string;
   message?: string;
   error?: string;
-  debug?: any;
 }
 
 export interface PagueloFacilStatus {
@@ -82,7 +81,7 @@ class PagueloFacilService {
         return {
           success: true,
           paymentId: demoPaymentId,
-          url: demoPaymentUrl,
+          paymentUrl: demoPaymentUrl,
           message: 'Demo payment created successfully'
         };
       }
@@ -94,28 +93,15 @@ class PagueloFacilService {
 
       const headers = this.getAuthHeaders();
 
-      // Calculate tax (7% ITBMS for Panama)
-      const tax = paymentData.amount * 0.07;
-
-      // Prepare request body for enlace-de-pago endpoint
-      const requestBody = {
-        amount: paymentData.amount,
-        tax: tax,
-        description: paymentData.description,
-        card_type: 'CARD',
-        redirectUrls: paymentData.redirectUrls
-      };
-
       if (import.meta.env.DEV) {
-        console.log('Request URL:', `${this.functionsBaseUrl}/enlace-de-pago`);
-        console.log('Request body:', requestBody);
+        console.log('Request URL:', `${this.functionsBaseUrl}/paguelo-facil-create-payment`);
         console.log('Request headers:', headers);
       }
 
-      const response = await fetch(`${this.functionsBaseUrl}/enlace-de-pago`, {
+      const response = await fetch(`${this.functionsBaseUrl}/paguelo-facil-create-payment`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(paymentData)
       });
 
       if (!response.ok) {
@@ -134,7 +120,8 @@ class PagueloFacilService {
         });
         return {
           success: false,
-          url: '',
+          paymentId: '',
+          paymentUrl: '',
           error: errorData.error || errorText || `Payment service error: ${response.status}`
         };
       }
@@ -156,7 +143,8 @@ class PagueloFacilService {
       }
       return {
         success: false,
-        url: '',
+        paymentId: '',
+        paymentUrl: '',
         error: error instanceof Error ? error.message : 'Unknown error occurred'
       };
     }
