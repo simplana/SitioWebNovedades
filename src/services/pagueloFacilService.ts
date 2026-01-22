@@ -126,17 +126,24 @@ class PagueloFacilService {
         };
       }
 
-      const result: PagueloFacilResponse = await response.json();
+      const result = await response.json();
 
       if (!result.success) {
         console.error('Payment creation returned error:', result);
       }
 
       if (import.meta.env.DEV) {
-        console.log('✅ Payment created successfully');
+        console.log('✅ Payment created successfully', result);
       }
 
-      return result;
+      return {
+        success: result.success,
+        paymentId: result.paymentId || '',
+        paymentUrl: result.url || result.paymentUrl || '',
+        paymentCode: result.paymentCode,
+        message: result.message,
+        error: result.error
+      };
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('❌ Error creating payment:', error);
