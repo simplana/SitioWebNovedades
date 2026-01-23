@@ -323,12 +323,12 @@ const Checkout = () => {
       ).join('\n');
       if (paymentMethod === 'paguelo_facil') {
         // Procesar pago con Paguelo Fácil
-        const orderId = `ORD-${Date.now()}`;
+        const orderNumber = `NC-${Date.now()}`;
 
-        console.log('🚀 Creating payment for order:', orderId);
+        console.log('🚀 Creating payment for order:', orderNumber);
 
         const paymentResponse = await createPayment({
-          orderId,
+          orderId: orderNumber,
           items,
           customer: {
             name: customerInfo.name,
@@ -466,7 +466,7 @@ const Checkout = () => {
             </h1>
             
             <p className="text-stone-prayer text-lg mb-6">
-              Tu orden <span className="font-semibold text-divine-gold">{completedOrder?.id}</span> ha sido procesada exitosamente.
+              Tu orden <span className="font-semibold text-divine-gold">{completedOrder?.orderNumber}</span> ha sido procesada exitosamente.
             </p>
             
             <div className="bg-celestial-gradient rounded-xl p-6 mb-8">

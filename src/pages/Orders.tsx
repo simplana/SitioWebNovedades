@@ -111,7 +111,7 @@ const Orders = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <h3 className="font-playfair text-xl font-bold text-navy-devotion">
-                        Orden {order.id}
+                        Orden {order.orderNumber}
                       </h3>
                       <div className="flex items-center space-x-4 mt-2 text-sm text-stone-prayer">
                         <div className="flex items-center space-x-1">

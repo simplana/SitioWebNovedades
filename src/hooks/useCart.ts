@@ -15,6 +15,7 @@ export interface CartItem {
 
 export interface Order {
   id: string;
+  orderNumber: string;
   userId: string;
   items: CartItem[];
   total: number;
@@ -106,6 +107,7 @@ export const useCart = () => {
 
         const formattedOrders: Order[] = ordersData.map((orderData: any) => ({
           id: orderData.id,
+          orderNumber: orderData.order_number,
           userId: orderData.user_id,
           items: orderData.order_items.map((item: any) => ({
             id: item.product_id,
@@ -255,13 +257,13 @@ export const useCart = () => {
     setLoading(true);
 
     try {
-      const orderId = `ORD-${Date.now()}`;
+      const orderNumber = `NC-${Date.now()}`;
       const orderTotal = getTotalPrice();
 
       const { data: createdOrder, error: orderError } = await supabase
         .from('orders')
         .insert({
-          id: orderId,
+          order_number: orderNumber,
           user_id: user.id,
           customer_name: customerInfo.name,
           customer_email: customerInfo.email,
@@ -281,7 +283,7 @@ export const useCart = () => {
       if (orderError) throw orderError;
 
       const orderItemsData = items.map(item => ({
-        order_id: orderId,
+        order_id: createdOrder.id,
         product_id: item.id,
         product_name: item.name,
         product_sku: item.sku,
@@ -298,7 +300,8 @@ export const useCart = () => {
       if (itemsError) throw itemsError;
 
       const order: Order = {
-        id: orderId,
+        id: createdOrder.id,
+        orderNumber: orderNumber,
         userId: user.id,
         items: [...items],
         total: orderTotal,
