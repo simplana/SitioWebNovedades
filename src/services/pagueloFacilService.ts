@@ -128,22 +128,26 @@ class PagueloFacilService {
 
       const result = await response.json();
 
+      console.log('📥 Raw edge function response:', result);
+      console.log('🔗 Extracted URL:', result.url || result.paymentUrl);
+
       if (!result.success) {
         console.error('Payment creation returned error:', result);
       }
 
-      if (import.meta.env.DEV) {
-        console.log('✅ Payment created successfully', result);
-      }
-
-      return {
+      const mappedResponse = {
         success: result.success,
         paymentId: result.paymentId || '',
         paymentUrl: result.url || result.paymentUrl || '',
-        paymentCode: result.paymentCode,
+        paymentCode: result.paymentCode || result.code,
         message: result.message,
         error: result.error
       };
+
+      console.log('📤 Mapped response:', mappedResponse);
+      console.log('✅ Payment URL exists?', !!mappedResponse.paymentUrl);
+
+      return mappedResponse;
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('❌ Error creating payment:', error);

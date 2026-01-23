@@ -325,6 +325,8 @@ const Checkout = () => {
         // Procesar pago con Paguelo Fácil
         const orderId = `ORD-${Date.now()}`;
 
+        console.log('🚀 Creating payment for order:', orderId);
+
         const paymentResponse = await createPayment({
           orderId,
           items,
@@ -335,6 +337,10 @@ const Checkout = () => {
           },
           total
         });
+
+        console.log('💳 Payment response received:', paymentResponse);
+        console.log('✅ Success?', paymentResponse.success);
+        console.log('🔗 Payment URL?', paymentResponse.paymentUrl);
 
         if (paymentResponse.success && paymentResponse.paymentUrl) {
           const order = await processOrder(
@@ -360,7 +366,10 @@ const Checkout = () => {
           window.location.href = paymentResponse.paymentUrl;
           return;
         } else {
-          console.error('Payment creation failed:', paymentResponse);
+          console.error('❌ Payment creation failed or missing URL');
+          console.error('Full response:', JSON.stringify(paymentResponse, null, 2));
+          console.error('success:', paymentResponse.success);
+          console.error('paymentUrl:', paymentResponse.paymentUrl);
           const errorMessage = paymentResponse.error || 'Error desconocido al crear el pago';
 
           if (errorMessage.includes('credentials not configured') || errorMessage.includes('credentials incomplete')) {
