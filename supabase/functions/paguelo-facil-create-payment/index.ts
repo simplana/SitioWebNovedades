@@ -1,58 +1,34 @@
-// deno-lint-ignore-file no-explicit-any
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js@2";
+
+const ALLOWED_ORIGIN =
+  Deno.env.get("ALLOWED_ORIGIN") ??
+  "https://precious-queijadas-227d35.netlify.app";
+
+const PAGUELO_FACIL_CCLW = Deno.env.get("PAGUELO_FACIL_CCLW");
+const ENV = Deno.env.get("PAGUELO_FACIL_ENVIRONMENT") ?? "sandbox";
+
+if (!PAGUELO_FACIL_CCLW) {
+  throw new Error("Missing Paguelofacil CCLW");
+}
+
+const PAGUELO_FACIL_API_URL =
+  ENV === "production"
+    ? "https://paguelofacil.com/LinkDeamon.cfm"
+    : "https://sandbox.paguelofacil.com/LinkDeamon.cfm";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-interface PagueloFacilPayment {
-  id: string;
-  amount: number;
-  currency?: string;
-  description: string;
-  customer: {
-    name: string;
-    email: string;
-    phone?: string;
-  };
-  items?: Array<{
-    name: string;
-    quantity: number;
-    price: number;
-    sku?: string;
-  }>;
-  redirectUrls: {
-    success: string;
-    cancel?: string;
-    notify?: string;
-  };
-}
-
-interface PagueloFacilResponse {
-  success: boolean;
-  paymentId: string;
-  paymentUrl: string;
-  paymentCode?: string;
-  message?: string;
-  error?: string;
-}
-
-function stringToHex(str: string): string {
-  return Array.from(str)
-    .map((c) => c.charCodeAt(0).toString(16).padStart(2, "0"))
-    .join("")
-    .toUpperCase();
-}
-
 Deno.serve(async (req: Request) => {
+  console.log("🔥 HIT", req.method);
+
+  /* ---------- CORS ---------- */
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   if (req.method !== "POST") {
@@ -61,207 +37,124 @@ Deno.serve(async (req: Request) => {
       {
         status: 405,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      }
     );
   }
 
+  /* ---------- Parse body ---------- */
+  let body: any;
   try {
-    const paymentData: PagueloFacilPayment = await req.json();
-
-    console.log("Received payment data:", JSON.stringify(paymentData, null, 2));
-
-    if (!paymentData.id || !paymentData.amount || !paymentData.customer) {
-      console.error("Validation failed:", {
-        hasId: !!paymentData.id,
-        hasAmount: !!paymentData.amount,
-        hasCustomer: !!paymentData.customer,
-      });
-      return new Response(
-        JSON.stringify({
-          error: "Missing required fields: id, amount, customer",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error("Missing Supabase environment variables");
-      return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const { data: credentials, error: credError } = await supabase
-      .from("paguelo_facil_credentials")
-      .select("*")
-      .eq("environment", "sandbox")
-      .maybeSingle();
-
-    if (credError || !credentials) {
-      console.error("Failed to fetch credentials:", credError);
-      return new Response(
-        JSON.stringify({
-          error: "Payment gateway credentials not configured",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    const { store_id, token } = credentials;
-
-    if (!store_id || !token) {
-      console.error("Incomplete credentials:", { hasStore: !!store_id, hasToken: !!token });
-      return new Response(
-        JSON.stringify({
-          error: "Payment gateway credentials incomplete",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    const amountFormatted = (paymentData.amount * 100).toFixed(0);
-    const nameHex = stringToHex(paymentData.customer.name);
-    const emailHex = stringToHex(paymentData.customer.email);
-    const amountHex = stringToHex(amountFormatted);
-    const descriptionHex = stringToHex(paymentData.description);
-
-    const concatenated = `${store_id}${nameHex}${emailHex}${amountHex}${descriptionHex}${token}`.toUpperCase();
-    const encoder = new TextEncoder();
-    const data = encoder.encode(concatenated);
-    const hashBuffer = await crypto.subtle.digest("SHA-512", data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const authHash = hashArray
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("")
-      .toUpperCase();
-
-    console.log("Payment request details:", {
-      store_id,
-      amount: amountFormatted,
-      nameHex,
-      emailHex,
-      authHash: authHash.substring(0, 20) + "...",
-    });
-
-    const pagueloPayload = {
-      nombre: paymentData.customer.name,
-      apellido: "",
-      email: paymentData.customer.email,
-      monto: amountFormatted,
-      direccion: "",
-      telefono: paymentData.customer.phone || "",
-      concepto: paymentData.description,
-      estado: "PE",
-      pais: "PA",
-      success_url: paymentData.redirectUrls.success,
-      cancel_url: paymentData.redirectUrls.cancel || paymentData.redirectUrls.success,
-      error_url: paymentData.redirectUrls.cancel || paymentData.redirectUrls.success,
-      autorizacion: authHash,
-      id_store: store_id,
-    };
-
-    console.log("Sending to Paguelo Fácil:", {
-      ...pagueloPayload,
-      autorizacion: pagueloPayload.autorizacion.substring(0, 20) + "...",
-    });
-
-    const pagueloResponse = await fetch(
-      "https://sandbox.paguelofacil.com/Paycomet/rest/procesar_pago",
+    body = await req.json();
+  } catch {
+    return new Response(
+      JSON.stringify({ error: "Invalid JSON" }),
       {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams(pagueloPayload as any).toString(),
-      },
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
+  }
 
-    const responseText = await pagueloResponse.text();
-    console.log("Paguelo Fácil raw response:", responseText);
+  console.log("📦 REQUEST BODY:", body);
 
-    let pagueloResult;
-    try {
-      pagueloResult = JSON.parse(responseText);
-    } catch (e) {
-      console.error("Failed to parse Paguelo Fácil response:", e);
-      return new Response(
-        JSON.stringify({
-          error: "Invalid response from payment gateway",
-          details: responseText,
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
+  if (!body.amount || !body.description) {
+    return new Response(
+      JSON.stringify({ error: "Missing amount or description" }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
 
-    console.log("Paguelo Fácil parsed response:", pagueloResult);
+  /* ---------- Build POST form ---------- */
+  const formBody = new URLSearchParams({
+    CCLW: PAGUELO_FACIL_CCLW,
+    CMTN: String(body.amount),
+    CTAX: String(body.tax ?? 0),
+    CDSC: body.description,
+    RETURN_URL:
+      body.redirectUrls?.success ??
+      "https://precious-queijadas-227d35.netlify.app",
+    CARD_TYPE: body.card_type ?? "CARD",
+    FORMAT: "JSON",
+  });
 
-    if (!pagueloResponse.ok || !pagueloResult.url) {
-      console.error("Paguelo Fácil API error:", {
-        status: pagueloResponse.status,
-        result: pagueloResult,
-      });
-      return new Response(
-        JSON.stringify({
-          success: false,
-          paymentId: "",
-          paymentUrl: "",
-          error: pagueloResult.message || "Payment gateway error",
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
+  console.log(
+    "➡️ POSTING TO PAGUELOFACIL:",
+    PAGUELO_FACIL_API_URL,
+    formBody.toString()
+  );
 
-    const response: PagueloFacilResponse = {
-      success: true,
-      paymentId: pagueloResult.clave || paymentData.id,
-      paymentUrl: pagueloResult.url,
-      paymentCode: pagueloResult.clave,
-      message: "Payment created successfully",
-    };
+  /* ---------- Call Paguelofacil ---------- */
+  const pfResponse = await fetch(PAGUELO_FACIL_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+      "User-Agent": "Supabase-Edge-Function",
+    },
+    body: formBody.toString(),
+  });
 
-    console.log("Success! Returning response:", response);
+  const contentType = pfResponse.headers.get("content-type") || "";
+  const rawBody = await pfResponse.text();
 
-    return new Response(JSON.stringify(response), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("Error processing payment:", error);
+  console.log("⬅️ PAGUELOFACIL RAW RESPONSE:", rawBody);
+
+  if (!contentType.includes("application/json")) {
     return new Response(
       JSON.stringify({
         success: false,
-        paymentId: "",
-        paymentUrl: "",
-        error: error instanceof Error ? error.message : "Unknown error",
+        message: "Paguelofacil returned non-JSON response",
+        debug: {
+          status: pfResponse.status,
+          contentType,
+          preview: rawBody.slice(0, 300),
+        },
       }),
       {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+        status: 502,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
     );
   }
+
+  const result = JSON.parse(rawBody);
+  const checkoutUrl = result?.data?.url;
+
+  if (!checkoutUrl) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        message: "Missing checkout URL in Paguelofacil response",
+        debug: result,
+      }),
+      {
+        status: 502,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  }
+
+  /* ---------- FINAL RESPONSE ---------- */
+  return new Response(
+    JSON.stringify({
+      success: true,
+      url: checkoutUrl,
+    }),
+    {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+      },
+    }
+  );
 });
