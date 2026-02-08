@@ -125,6 +125,7 @@ Deno.serve(async (req: Request) => {
 
   const result = JSON.parse(rawBody);
   const checkoutUrl = result?.data?.url;
+  const code = result?.data?.code;
 
   if (!checkoutUrl) {
     return new Response(
@@ -148,6 +149,7 @@ Deno.serve(async (req: Request) => {
     JSON.stringify({
       success: true,
       url: checkoutUrl,
+      code: code
     }),
     {
       status: 200,
