@@ -405,7 +405,7 @@ const Checkout = () => {
           }\n\n` +
           `📦 PRODUCTOS ORDENADOS:\n${itemsList}\n\n` +
           `💰 SUBTOTAL: $${subtotal.toFixed(2)}\n` +
-          `🚚 ENVÍO: $${shippingCost.toFixed(2)}${shippingDetails ? ` (${shippingDetails.tiempo} días)` : ''}\n` +
+          `🚚 ENVÍO: $${shippingCost.toFixed(2)}\n` +
           `💰 TOTAL: $${total.toFixed(2)}\n\n` +
           `💳 MÉTODO DE PAGO: Transferencia Bancaria\n\n` +
           `${customerInfo.notes ? `📝 NOTAS: ${customerInfo.notes}\n\n` : ''}` +
@@ -1049,7 +1049,7 @@ const Checkout = () => {
                       Calculando...
                     </span>
                   ) : shippingCost > 0 && shippingDetails ? (
-                    <span className="font-semibold text-navy-devotion">${shippingCost.toFixed(2)} ({shippingDetails.tiempo} días)</span>
+                    <span className="font-semibold text-navy-devotion">${shippingCost.toFixed(2)}</span>
                   ) : customerInfo.deliveryMethod === 'pickup' ? (
                     <span className="font-semibold text-green-600">Gratis (Retiro)</span>
                   ) : customerInfo.deliveryMethod === 'delivery' ? (
