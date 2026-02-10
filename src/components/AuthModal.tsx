@@ -71,6 +71,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
         const { error } = await signInWithEmail(formData.email, formData.password);
         if (!error) {
           onClose();
+
+          const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+          if (redirectPath) {
+            sessionStorage.removeItem('redirectAfterLogin');
+            navigate(redirectPath);
+          }
         } else {
           console.error('Error de inicio de sesión:', error.message);
         }
@@ -80,7 +86,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
         });
         if (!error) {
           onClose();
-          navigate('/auth/verify-email');
+
+          const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+          if (redirectPath) {
+            sessionStorage.removeItem('redirectAfterLogin');
+            navigate(redirectPath);
+          } else {
+            navigate('/auth/verify-email');
+          }
         } else {
           console.error('Error de registro:', error.message);
         }

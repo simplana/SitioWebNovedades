@@ -1,5 +1,5 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 interface ProtectedRouteProps {
@@ -12,6 +12,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireVerification = true
 }) => {
   const { isAuthenticated, isVerified, loading } = useAuth();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      sessionStorage.setItem('redirectAfterLogin', location.pathname);
+
+      const event = new CustomEvent('openAuthModal', {
+        detail: { mode: 'signin' }
+      });
+      window.dispatchEvent(event);
+    }
+  }, [loading, isAuthenticated, location.pathname]);
 
   if (loading) {
     return (
