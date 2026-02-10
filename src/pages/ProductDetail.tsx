@@ -91,16 +91,12 @@ const ProductDetail = () => {
   };
 
   const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: product.name,
-        text: `Mira este producto de Novedades Católicas: ${product.name}`,
-        url: window.location.href,
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert('Enlace copiado al portapapeles');
-    }
+    const productUrl = window.location.href;
+    const message = encodeURIComponent(
+      `¡Mira este producto de Novedades Católicas!\n\n*${product.name}*\n\nPrecio: $${product.price.toFixed(2)}\n\n${productUrl}`
+    );
+    const whatsappUrl = `https://wa.me/?text=${message}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const incrementQuantity = () => {
