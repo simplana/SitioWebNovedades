@@ -218,11 +218,11 @@ const ProductDetail = () => {
               )}
 
               {/* Acciones */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                 <button
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
-                  className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center space-x-2 ${
+                  className={`py-3 px-6 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center space-x-2 ${
                     isOutOfStock
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed border border-gray-400'
                       : 'bg-gradient-to-r from-divine-gold to-aureola-gold hover:from-aureola-gold hover:to-divine-gold text-navy-devotion font-bold border-2 border-divine-gold shadow-golden hover:shadow-aureola transform hover:scale-105'
@@ -234,20 +234,20 @@ const ProductDetail = () => {
 
                 <button
                   onClick={handleWhatsAppOrder}
-                  className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 px-6 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center space-x-2"
+                  className="bg-green-500 hover:bg-green-600 text-white py-3 px-6 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center space-x-2"
                 >
                   <MessageCircle className="h-5 w-5" />
                   <span>WhatsApp</span>
                 </button>
 
-                <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center space-x-2">
+                <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center space-x-2">
                   <Heart className="h-5 w-5" />
                   <span>Favoritos</span>
                 </button>
 
                 <button
                   onClick={handleShare}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center space-x-2"
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center space-x-2"
                 >
                   <Share2 className="h-5 w-5" />
                   <span>Compartir</span>
