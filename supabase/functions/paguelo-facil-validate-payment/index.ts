@@ -176,7 +176,7 @@ Deno.serve(async (req: Request) => {
       const { error: deleteError } = await supabase
         .from("orders")
         .delete()
-        .eq("id", orderId);
+        .eq("order_number", orderId);
 
       if (deleteError) {
         console.error("❌ Error deleting order:", deleteError);
@@ -210,7 +210,7 @@ Deno.serve(async (req: Request) => {
         payment_status: finalStatus,
         status: finalStatus === "approved" ? "processing" : "cancelled",
       })
-      .eq("id", orderId);
+      .eq("order_number", orderId);
 
     if (updateError) {
       console.error("❌ Error updating order:", updateError);
