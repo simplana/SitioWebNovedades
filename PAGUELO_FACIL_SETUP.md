@@ -40,14 +40,21 @@ Add these variables to your Supabase Edge Functions:
 
 ```
 PAGUELO_FACIL_CCLW=your-cclw-code-here
+PAGUELO_FACIL_API_KEY=your-api-key-here
 PAGUELO_FACIL_ENVIRONMENT=sandbox
 ```
 
 **Important Notes:**
+- `CCLW` is used for creating payment links
+- `API_KEY` is used for validating transactions via Management API
 - Start with `sandbox` environment for testing
 - Change to `production` when ready to go live
 - NEVER use `VITE_` prefix for these variables (they are backend-only)
 - NEVER commit these values to git
+
+**Where to find your API Key:**
+- Sandbox: https://sandbox.paguelofacil.com > Settings > API Keys
+- Production: https://admin.paguelofacil.com > Settings > API Keys
 
 ## Step 3: Configure Webhook URL
 
@@ -168,9 +175,14 @@ Deploy the updated Edge Functions:
 # Deploy create payment function
 supabase functions deploy paguelo-facil-create-payment
 
+# Deploy payment validation function
+supabase functions deploy paguelo-facil-validate-payment
+
 # Deploy webhook function
 supabase functions deploy paguelo-facil-webhook
 ```
+
+**Note:** The validation function queries Páguelo Fácil's Management API to verify transaction status after payment.
 
 ## Step 6: Testing with Sandbox
 
@@ -221,10 +233,40 @@ Use these test cards for sandbox testing:
    - Creates transaction record for auditing
 
 5. **User returns:**
-   - Redirected to success or cancel page
+   - Redirected to success or cancel page with payment code (Oper parameter)
+   - Edge Function `paguelo-facil-validate-payment` validates transaction
+   - Queries Management API using payment code
+   - Updates order status based on validation result
+   - In sandbox mode: accepts denied transactions for testing
+   - In production: rejects and deletes denied transactions
    - Order status shown with payment details
 
-## Response Parameters
+## Payment Validation
+
+After payment completion, the system validates the transaction using Páguelo Fácil's Management API.
+
+### Validation Process
+
+1. User returns from Páguelo Fácil with payment code (Oper parameter)
+2. System calls `paguelo-facil-validate-payment` edge function
+3. Function queries: `https://admin.paguelofacil.com/PFManagementServices/api/v1/MerchantTransactions?filter=codOper::AUTH_CAP-{paymentCode}`
+4. Response contains transaction details and status
+
+### Environment Behavior
+
+**Sandbox Mode (Testing):**
+- Accepts all transactions, even if denied
+- Allows testing negative scenarios
+- Useful for development and QA
+- Order status updated to "processing"
+
+**Production Mode:**
+- Only accepts approved transactions
+- Denied transactions result in order deletion
+- Protects against fraudulent payments
+- Maintains data integrity
+
+### Response Parameters
 
 ### Successful Payment (Approved)
 ```
@@ -243,8 +285,12 @@ PARM_1: "ORD-1234567890"
 ```
 TotalPagado: "0"
 Estado: "Denegada"
-Razon: "Fondos insuficientes"
+Razon: "Fondos insuficientes / Issuer is rejecting authentication"
+Tipo: "VISA"
+Oper: "LK-XYZ123"
 ```
+
+**Note:** The `Oper` field (payment code) is used to validate transactions via the Management API.
 
 ## Security Notes
 

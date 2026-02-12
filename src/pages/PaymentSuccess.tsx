@@ -1,21 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, ArrowRight, Package } from 'lucide-react';
-import { usePagueloFacil } from '../hooks/usePagueloFacil';
 import { useOrderStatus } from '../hooks/useOrderStatus';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { checkPaymentStatus } = usePagueloFacil();
   const { updateOrderStatus } = useOrderStatus();
-  
+
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const [transactionDetails, setTransactionDetails] = useState<any>(null);
+
   const orderId = searchParams.get('orderId');
-  const paymentId = searchParams.get('paymentId');
+  const paymentCode = searchParams.get('Oper');
+  const estado = searchParams.get('Estado');
   const isDemo = searchParams.get('demo') === 'true';
 
   useEffect(() => {
@@ -23,7 +23,7 @@ const PaymentSuccess = () => {
       if (isDemo) {
         console.log('🎭 DEMO MODE - Simulando verificación exitosa');
         setPaymentVerified(true);
-        
+
         if (orderId) {
           updateOrderStatus({
             orderId,
@@ -32,65 +32,81 @@ const PaymentSuccess = () => {
             notes: `Pago DEMO confirmado exitosamente - Modo demostración`
           });
         }
-        
+
         setLoading(false);
         return;
       }
 
-      if (!paymentId) {
-        setError('ID de pago no encontrado');
+      if (!paymentCode || !orderId) {
+        setError('Código de pago u orden no encontrado');
         setLoading(false);
         return;
       }
+
+      console.log('🔍 Validating payment:', { paymentCode, orderId, estado });
 
       try {
-        const status = await checkPaymentStatus(paymentId);
-        
-        if (status.status === 'completed') {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        const response = await fetch(
+          `${supabaseUrl}/functions/v1/paguelo-facil-validate-payment`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${anonKey}`,
+              'apikey': anonKey,
+            },
+            body: JSON.stringify({
+              paymentCode,
+              orderId,
+            }),
+          }
+        );
+
+        const result = await response.json();
+        console.log('✅ Validation result:', result);
+
+        if (result.success && result.paymentStatus === 'approved') {
           setPaymentVerified(true);
-          
-          // Actualizar estado de la orden
-          if (orderId) {
-            updateOrderStatus({
-              orderId,
-              status: 'payment_confirmed',
-              paymentStatus: 'completed',
-              notes: `Pago confirmado exitosamente - Paguelo Fácil (${paymentId})`
-            });
-          }
+          setTransactionDetails(result.transaction);
+
+          updateOrderStatus({
+            orderId,
+            status: 'payment_confirmed',
+            paymentStatus: 'completed',
+            notes: `Pago confirmado - ${result.transaction.tipo} (${paymentCode})`
+          });
+        } else if (result.orderDeleted) {
+          setError('Tu pago fue rechazado y la orden ha sido cancelada. Por favor intenta nuevamente.');
         } else {
-          setError(`Pago no completado. Estado: ${status.status}`);
-          
-          // Actualizar estado como pago fallido
-          if (orderId) {
-            updateOrderStatus({
-              orderId,
-              status: 'payment_failed',
-              paymentStatus: status.status,
-              notes: `Pago no completado - Estado: ${status.status}`
-            });
-          }
-        }
-      } catch (err) {
-        setError('Error verificando el pago');
-        console.error('Payment verification error:', err);
-        
-        // Actualizar estado como error de pago
-        if (orderId) {
+          setError(`Pago no aprobado. Estado: ${result.transaction?.estado || 'desconocido'}`);
+
           updateOrderStatus({
             orderId,
             status: 'payment_failed',
             paymentStatus: 'failed',
-            notes: 'Error verificando el estado del pago'
+            notes: `Pago rechazado: ${result.transaction?.razon || 'Sin razón especificada'}`
           });
         }
+      } catch (err) {
+        setError('Error verificando el pago');
+        console.error('Payment verification error:', err);
+
+        updateOrderStatus({
+          orderId,
+          status: 'payment_failed',
+          paymentStatus: 'failed',
+          notes: 'Error verificando el estado del pago'
+        });
       } finally {
         setLoading(false);
       }
     };
 
     verifyPayment();
-  }, [paymentId, orderId, checkPaymentStatus, updateOrderStatus]);
+  }, [paymentCode, orderId, updateOrderStatus]);
 
   if (loading) {
     return (
@@ -153,13 +169,33 @@ const PaymentSuccess = () => {
           
           {orderId && (
             <div className="bg-celestial-gradient rounded-xl p-6 mb-8">
-              <h3 className="font-semibold text-navy-devotion mb-2">Detalles de tu orden:</h3>
-              <p className="text-stone-prayer">
-                Orden: <span className="font-semibold text-divine-gold">{orderId}</span>
-              </p>
-              <p className="text-stone-prayer mt-2">
-                Estado: <span className="font-semibold text-green-600">Pagado</span>
-              </p>
+              <h3 className="font-semibold text-navy-devotion mb-3">Detalles de tu orden:</h3>
+              <div className="space-y-2 text-left">
+                <p className="text-stone-prayer">
+                  <span className="font-medium">Orden:</span>{' '}
+                  <span className="font-semibold text-divine-gold">{orderId}</span>
+                </p>
+                <p className="text-stone-prayer">
+                  <span className="font-medium">Estado:</span>{' '}
+                  <span className="font-semibold text-green-600">Pagado</span>
+                </p>
+                {transactionDetails && (
+                  <>
+                    <p className="text-stone-prayer">
+                      <span className="font-medium">Método:</span>{' '}
+                      <span className="font-semibold">{transactionDetails.tipo}</span>
+                    </p>
+                    <p className="text-stone-prayer">
+                      <span className="font-medium">Fecha:</span>{' '}
+                      <span className="font-semibold">{transactionDetails.fecha} {transactionDetails.hora}</span>
+                    </p>
+                    <p className="text-stone-prayer">
+                      <span className="font-medium">Total:</span>{' '}
+                      <span className="font-semibold">${transactionDetails.totalPagado}</span>
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
           )}
           
