@@ -68,7 +68,7 @@ Deno.serve(async (req: Request) => {
 
     console.log("🔎 Validating payment:", { paymentCode, orderId, environment: ENV });
 
-    const filter = `codOper::AUTH_CAP-${paymentCode}`;
+    const filter = `codOper::${paymentCode}`;
     const apiUrl = `${PAGUELO_FACIL_MANAGEMENT_API_URL}?filter=${encodeURIComponent(filter)}`;
 
     console.log("📡 Calling Páguelo Fácil API:", apiUrl);
@@ -76,7 +76,7 @@ Deno.serve(async (req: Request) => {
     const pfResponse = await fetch(apiUrl, {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${PAGUELO_FACIL_API_KEY}`,
+        "Authorization": PAGUELO_FACIL_API_KEY,
         "Content-Type": "application/json",
         "Accept": "application/json",
       },
