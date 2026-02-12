@@ -23,16 +23,30 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-interface TransactionResponse {
+interface Transaction {
+  idTransaction: number;
   codOper: string;
-  Estado: string;
-  TotalPagado: string | number;
-  Fecha: string;
-  Hora: string;
-  Tipo: string;
-  Usuario: string;
-  Email: string;
-  Razon?: string;
+  status: number;
+  authStatus: string;
+  messageSys: string;
+  amount: number;
+  dateTms: string;
+  txType: string;
+  email: string;
+  cardholderFullName: string;
+  authAmount: string;
+}
+
+interface TransactionResponse {
+  headerStatus: {
+    code: number;
+    description: string;
+  };
+  serverTime: string;
+  message: string | null;
+  requestId: string;
+  data: Transaction[];
+  success: boolean;
 }
 
 Deno.serve(async (req: Request) => {
@@ -101,11 +115,11 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const transactions: TransactionResponse[] = await pfResponse.json();
+    const response: TransactionResponse = await pfResponse.json();
 
-    console.log("📦 Transaction response:", transactions);
+    console.log("📦 Transaction response:", response);
 
-    if (!transactions || transactions.length === 0) {
+    if (!response.success || !response.data || response.data.length === 0) {
       return new Response(
         JSON.stringify({
           success: false,
@@ -118,13 +132,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const transaction = transactions[0];
-    const estado = transaction.Estado;
-    const isApproved = estado === "Aprobada" || estado === "Approved";
-    const isDenied = estado === "Denegada" || estado === "Denied";
+    const transaction = response.data[0];
+    const status = transaction.status;
+    const authStatus = transaction.authStatus;
+
+    const isApproved = status === 1 || authStatus === "AP";
+    const isDenied = status === 0 || authStatus === "SP4" || authStatus === "DN";
 
     console.log("💳 Transaction status:", {
-      estado,
+      status,
+      authStatus,
       isApproved,
       isDenied,
       environment: ENV,
@@ -174,10 +191,10 @@ Deno.serve(async (req: Request) => {
           orderDeleted: true,
           message: "Payment denied and order removed",
           transaction: {
-            estado: transaction.Estado,
-            razon: transaction.Razon,
-            fecha: transaction.Fecha,
-            hora: transaction.Hora,
+            status: transaction.status,
+            authStatus: transaction.authStatus,
+            messageSys: transaction.messageSys,
+            dateTms: transaction.dateTms,
           },
         }),
         {
@@ -222,14 +239,15 @@ Deno.serve(async (req: Request) => {
         paymentStatus: finalStatus,
         orderDeleted: false,
         transaction: {
-          estado: transaction.Estado,
-          totalPagado: transaction.TotalPagado,
-          fecha: transaction.Fecha,
-          hora: transaction.Hora,
-          tipo: transaction.Tipo,
-          usuario: transaction.Usuario,
-          email: transaction.Email,
-          razon: transaction.Razon,
+          status: transaction.status,
+          authStatus: transaction.authStatus,
+          messageSys: transaction.messageSys,
+          amount: transaction.amount,
+          authAmount: transaction.authAmount,
+          dateTms: transaction.dateTms,
+          txType: transaction.txType,
+          email: transaction.email,
+          cardholderFullName: transaction.cardholderFullName,
         },
       }),
       {
