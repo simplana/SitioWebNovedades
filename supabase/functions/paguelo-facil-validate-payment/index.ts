@@ -233,6 +233,23 @@ Deno.serve(async (req: Request) => {
       orderStatus: finalStatus === "approved" ? "processing" : "cancelled",
     });
 
+    const transactionDate = new Date(transaction.dateTms);
+    const fecha = transactionDate.toLocaleDateString('es-PA', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    const hora = transactionDate.toLocaleTimeString('es-PA', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const tipoMap: Record<string, string> = {
+      'AUTH_CAPTURE': 'Tarjeta de Crédito/Débito',
+      'AUTH': 'Autorización',
+      'CAPTURE': 'Captura',
+    };
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -248,6 +265,10 @@ Deno.serve(async (req: Request) => {
           txType: transaction.txType,
           email: transaction.email,
           cardholderFullName: transaction.cardholderFullName,
+          tipo: tipoMap[transaction.txType] || transaction.txType,
+          fecha: fecha,
+          hora: hora,
+          totalPagado: transaction.authAmount || transaction.amount.toString(),
         },
       }),
       {
