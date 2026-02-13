@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "npm:@supabase/supabase-js";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "*";
 const PAGUELO_FACIL_API_KEY = Deno.env.get("PAGUELO_FACIL_API_KEY");
