@@ -3,22 +3,15 @@ import { useCart } from '../hooks/useCart';
 import { useAuth } from '../hooks/useAuth';
 import { useOrderStatus } from '../hooks/useOrderStatus';
 import { Package, Calendar, MapPin, RefreshCw, ShoppingCart, CreditCard, CheckCircle, Clock, XCircle, Filter, ChevronDown, ChevronUp } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import OrderStatusTracker from '../components/OrderStatusTracker';
 
 const Orders = () => {
   const { orders, reorderItems, isAuthenticated } = useCart();
   const { user } = useAuth();
   const { getLatestOrderStatus, checkPagueloFacilPayment, getOrderHistory } = useOrderStatus();
-  const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState<'all' | 'paid' | 'pending' | 'failed'>('all');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
-
-  React.useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/');
-    }
-  }, [isAuthenticated, navigate]);
 
   const toggleOrderDetails = (orderId: string) => {
     const newExpanded = new Set(expandedOrders);
@@ -107,10 +100,6 @@ const Orders = () => {
       default: return status;
     }
   };
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="pt-16 min-h-screen bg-divine-gradient">
