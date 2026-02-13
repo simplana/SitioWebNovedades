@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, ArrowRight, Package } from 'lucide-react';
 import { useOrderStatus } from '../hooks/useOrderStatus';
+import { supabase } from '../lib/supabase';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -12,6 +13,7 @@ const PaymentSuccess = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [transactionDetails, setTransactionDetails] = useState<any>(null);
+  const [orderDetails, setOrderDetails] = useState<any>(null);
 
   const orderId = searchParams.get('orderId');
   const paymentCode = searchParams.get('Oper');
@@ -19,7 +21,27 @@ const PaymentSuccess = () => {
   const isDemo = searchParams.get('demo') === 'true';
 
   useEffect(() => {
+    const loadOrderDetails = async () => {
+      if (!orderId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('order_number', orderId)
+          .maybeSingle();
+
+        if (!error && data) {
+          setOrderDetails(data);
+        }
+      } catch (err) {
+        console.error('Error loading order details:', err);
+      }
+    };
+
     const verifyPayment = async () => {
+      await loadOrderDetails();
+
       if (isDemo) {
         console.log('🎭 DEMO MODE - Simulando verificación exitosa');
         setPaymentVerified(true);
@@ -179,22 +201,37 @@ const PaymentSuccess = () => {
                   <span className="font-medium">Estado:</span>{' '}
                   <span className="font-semibold text-green-600">Pagado</span>
                 </p>
-                {transactionDetails && (
-                  <>
-                    <p className="text-stone-prayer">
-                      <span className="font-medium">Método:</span>{' '}
-                      <span className="font-semibold">{transactionDetails.tipo}</span>
-                    </p>
-                    <p className="text-stone-prayer">
-                      <span className="font-medium">Fecha:</span>{' '}
-                      <span className="font-semibold">{transactionDetails.fecha} {transactionDetails.hora}</span>
-                    </p>
-                    <p className="text-stone-prayer">
-                      <span className="font-medium">Total:</span>{' '}
-                      <span className="font-semibold">${transactionDetails.totalPagado}</span>
-                    </p>
-                  </>
-                )}
+                <p className="text-stone-prayer">
+                  <span className="font-medium">Método:</span>{' '}
+                  <span className="font-semibold">
+                    {transactionDetails?.tipo ||
+                     (orderDetails?.payment_method === 'paguelo_facil' ? 'Paguelo Fácil' :
+                      orderDetails?.payment_method === 'transfer' ? 'Transferencia Bancaria' :
+                      orderDetails?.payment_method === 'cash' ? 'Efectivo' : 'Tarjeta de Crédito/Débito')}
+                  </span>
+                </p>
+                <p className="text-stone-prayer">
+                  <span className="font-medium">Fecha:</span>{' '}
+                  <span className="font-semibold">
+                    {transactionDetails?.fecha && transactionDetails?.hora
+                      ? `${transactionDetails.fecha} ${transactionDetails.hora}`
+                      : orderDetails?.created_at
+                        ? new Date(orderDetails.created_at).toLocaleDateString('es-PA', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : 'N/A'}
+                  </span>
+                </p>
+                <p className="text-stone-prayer">
+                  <span className="font-medium">Total:</span>{' '}
+                  <span className="font-semibold">
+                    ${transactionDetails?.totalPagado || orderDetails?.total || '0.00'}
+                  </span>
+                </p>
               </div>
             </div>
           )}
