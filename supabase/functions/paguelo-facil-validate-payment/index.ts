@@ -136,21 +136,79 @@ Deno.serve(async (req: Request) => {
     const status = transaction.status;
     const authStatus = transaction.authStatus;
 
+    const isApproved = status === 1 || authStatus === "AP";
+    const isDenied = status === 0 || authStatus === "SP4" || authStatus === "DN";
+
     console.log("💳 Transaction status:", {
       status,
       authStatus,
+      isApproved,
+      isDenied,
       environment: ENV,
     });
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const isApproved = status === 1 || authStatus === "AP";
+    let finalStatus: "approved" | "denied";
+    let shouldDeleteOrder = false;
+
+    if (isApproved) {
+      finalStatus = "approved";
+    } else if (isDenied) {
+      if (ENV === "sandbox") {
+        console.log("⚠️ SANDBOX MODE: Accepting denied transaction for testing");
+        finalStatus = "approved";
+      } else {
+        console.log("❌ PRODUCTION: Rejecting denied transaction");
+        finalStatus = "denied";
+        shouldDeleteOrder = true;
+      }
+    } else {
+      finalStatus = "denied";
+      if (ENV === "production") {
+        shouldDeleteOrder = true;
+      }
+    }
+
+    if (shouldDeleteOrder) {
+      console.log("🗑️ Deleting order due to denied payment in production:", orderId);
+
+      const { error: deleteError } = await supabase
+        .from("orders")
+        .delete()
+        .eq("order_number", orderId);
+
+      if (deleteError) {
+        console.error("❌ Error deleting order:", deleteError);
+      } else {
+        console.log("✅ Order deleted successfully");
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          paymentStatus: finalStatus,
+          orderDeleted: true,
+          message: "Payment denied and order removed",
+          transaction: {
+            status: transaction.status,
+            authStatus: transaction.authStatus,
+            messageSys: transaction.messageSys,
+            dateTms: transaction.dateTms,
+          },
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     const { error: updateError } = await supabase
       .from("orders")
       .update({
-        payment_status: isApproved ? "completed" : "pending",
-        status: isApproved ? "processing" : "pending",
+        payment_status: finalStatus === "approved" ? "completed" : "failed",
+        status: finalStatus === "approved" ? "processing" : "cancelled",
       })
       .eq("order_number", orderId);
 
@@ -171,7 +229,8 @@ Deno.serve(async (req: Request) => {
 
     console.log("✅ Order updated successfully:", {
       orderId,
-      isApproved,
+      paymentStatus: finalStatus,
+      orderStatus: finalStatus === "approved" ? "processing" : "cancelled",
     });
 
     const transactionDate = new Date(transaction.dateTms);
@@ -194,7 +253,8 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        paymentStatus: isApproved ? "approved" : "pending",
+        paymentStatus: finalStatus,
+        orderDeleted: false,
         transaction: {
           status: transaction.status,
           authStatus: transaction.authStatus,
@@ -209,8 +269,6 @@ Deno.serve(async (req: Request) => {
           fecha: fecha,
           hora: hora,
           totalPagado: transaction.authAmount || transaction.amount.toString(),
-          estado: isApproved ? "Aprobado" : "Pendiente",
-          razon: transaction.messageSys,
         },
       }),
       {
