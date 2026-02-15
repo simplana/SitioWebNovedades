@@ -207,8 +207,8 @@ Deno.serve(async (req: Request) => {
     const { error: updateError } = await supabase
       .from("orders")
       .update({
-        payment_status: finalStatus === "approved" ? "completed" : "failed",
-        status: finalStatus === "approved" ? "processing" : "cancelled",
+        payment_status: finalStatus === "approved" ? "processing" : "cancelled",
+        status: finalStatus === "approved" ? "payment_confirmed" : "payment_failed",
       })
       .eq("order_number", orderId);
 
@@ -229,8 +229,8 @@ Deno.serve(async (req: Request) => {
 
     console.log("✅ Order updated successfully:", {
       orderId,
-      paymentStatus: finalStatus,
-      orderStatus: finalStatus === "approved" ? "processing" : "cancelled",
+      paymentStatus: finalStatus === "approved" ? "processing" : "cancelled",
+      orderStatus: finalStatus === "approved" ? "payment_confirmed" : "payment_failed",
     });
 
     const transactionDate = new Date(transaction.dateTms);
