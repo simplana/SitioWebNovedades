@@ -244,6 +244,9 @@ export const useCart = () => {
       paymentCode?: string;
       paymentUrl?: string;
       status?: Order['status'];
+      orderNumber?: string;
+      shippingCost?: number;
+      shippingDetails?: any;
     }
   ) => {
     if (!isAuthenticated || !user) {
@@ -257,7 +260,7 @@ export const useCart = () => {
     setLoading(true);
 
     try {
-      const orderNumber = `NC-${Date.now()}`;
+      const orderNumber = orderOptions?.orderNumber || `NC-${Date.now()}`;
       const orderTotal = getTotalPrice();
 
       const { data: createdOrder, error: orderError } = await supabase

@@ -358,6 +358,7 @@ const Checkout = () => {
               paymentCode: paymentResponse.paymentCode,
               paymentUrl: paymentResponse.paymentUrl,
               status: 'payment_pending',
+              orderNumber: orderNumber,
               shippingCost: shippingCost,
               shippingDetails: shippingDetails
             }
@@ -417,6 +418,7 @@ const Checkout = () => {
         window.open(whatsappUrl, '_blank');
         
         // Crear orden con estado de pago pendiente para transferencia
+        const orderNumberTransfer = `NC-${Date.now()}`;
         const order = await processOrder(
           {
             name: customerInfo.name,
@@ -429,6 +431,7 @@ const Checkout = () => {
           {
             paymentMethod: 'transfer',
             status: 'payment_pending',
+            orderNumber: orderNumberTransfer,
             shippingCost: shippingCost,
             shippingDetails: shippingDetails
           }
