@@ -149,22 +149,27 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    let finalStatus: "approved" | "denied";
+    let finalPaymentStatus: "completed" | "failed";
+    let finalOrderStatus: "processing" | "cancelled";
     let shouldDeleteOrder = false;
 
     if (isApproved) {
-      finalStatus = "approved";
+      finalPaymentStatus = "completed";
+      finalOrderStatus = "processing";
     } else if (isDenied) {
       if (ENV === "sandbox") {
         console.log("⚠️ SANDBOX MODE: Accepting denied transaction for testing");
-        finalStatus = "approved";
+        finalPaymentStatus = "completed";
+        finalOrderStatus = "processing";
       } else {
         console.log("❌ PRODUCTION: Rejecting denied transaction");
-        finalStatus = "denied";
+        finalPaymentStatus = "failed";
+        finalOrderStatus = "cancelled";
         shouldDeleteOrder = true;
       }
     } else {
-      finalStatus = "denied";
+      finalPaymentStatus = "failed";
+      finalOrderStatus = "cancelled";
       if (ENV === "production") {
         shouldDeleteOrder = true;
       }
@@ -187,7 +192,7 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           success: false,
-          paymentStatus: finalStatus,
+          paymentStatus: finalPaymentStatus,
           orderDeleted: true,
           message: "Payment denied and order removed",
           transaction: {
@@ -207,8 +212,8 @@ Deno.serve(async (req: Request) => {
     const { error: updateError } = await supabase
       .from("orders")
       .update({
-        payment_status: finalStatus,
-        status: finalStatus === "approved" ? "processing" : "cancelled",
+        payment_status: finalPaymentStatus,
+        status: finalOrderStatus,
       })
       .eq("order_number", orderId);
 
@@ -229,8 +234,8 @@ Deno.serve(async (req: Request) => {
 
     console.log("✅ Order updated successfully:", {
       orderId,
-      paymentStatus: finalStatus,
-      orderStatus: finalStatus === "approved" ? "processing" : "cancelled",
+      paymentStatus: finalPaymentStatus,
+      orderStatus: finalOrderStatus,
     });
 
     const transactionDate = new Date(transaction.dateTms);
@@ -253,7 +258,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        paymentStatus: finalStatus,
+        paymentStatus: finalPaymentStatus,
         orderDeleted: false,
         transaction: {
           status: transaction.status,
