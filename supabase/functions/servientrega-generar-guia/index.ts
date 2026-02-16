@@ -121,7 +121,7 @@ Deno.serve(async (req: Request) => {
     const soapRequest = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
-    <getXML>
+    <getXMLRequest xmlns="uri:http://ws-servientrega.appsiscore.com/server_wsi2.php">
       <nombre_destinatario>${order.customer_name}</nombre_destinatario>
       <direccion_destinatario>${direccion_destinatario}</direccion_destinatario>
       <distrito_destinatario>${distrito_destinatario}</distrito_destinatario>
@@ -134,23 +134,23 @@ Deno.serve(async (req: Request) => {
       <telefono>${order.customer_phone || senderInfo.telefono_remite}</telefono>
       <peso>${order.shipping_details?.peso || 5}</peso>
       <piezas>${totalPiezas}</piezas>
-      <volumen>0</volumen>
+      <volumen></volumen>
       <contiene>${contiene}</contiene>
-      <transporte>${transporte}</transporte>
+      <transporte></transporte>
       <valor_declarado>${order.total}</valor_declarado>
       <info01></info01>
       <valor_recaudar>0</valor_recaudar>
-      <remision>${order.order_number}</remision>
-      <factura>${order.order_number}</factura>
-      <observacion>${order.shipping_address || ''}</observacion>
-      <guia_cliente>${order.order_number}</guia_cliente>
+      <remision></remision>
+      <factura></factura>
+      <observacion></observacion>
+      <guia_cliente></guia_cliente>
       <usu>${servientregaUsername}</usu>
       <pwd>${servientregaPassword}</pwd>
       <latitud></latitud>
       <longitud></longitud>
       <mail_destinatario>${order.customer_email}</mail_destinatario>
       <fecha_programacion></fecha_programacion>
-    </getXML>
+    </getXMLRequest>
   </soap:Body>
 </soap:Envelope>`;
 
@@ -181,12 +181,12 @@ Deno.serve(async (req: Request) => {
 
     // Call Servientrega SOAP API
     const servientregaResponse = await fetch(
-      'http://ws-servientrega.appsiscore.com/generar_guia.php/getXML',
+      'http://ws-servientrega.appsiscore.com/generar_guia.php',
       {
         method: 'POST',
         headers: {
           'Content-Type': 'text/xml; charset=utf-8',
-          'SOAPAction': 'getXML'
+          'SOAPAction': 'http://ws-servientrega.appsiscore.com/generar_guia.php/getXML'
         },
         body: soapRequest
       }
