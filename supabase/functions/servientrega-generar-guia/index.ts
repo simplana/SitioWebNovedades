@@ -121,7 +121,7 @@ Deno.serve(async (req: Request) => {
     const soapRequest = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
-    <getXMLRequest>
+    <getXML>
       <nombre_destinatario>${order.customer_name}</nombre_destinatario>
       <direccion_destinatario>${direccion_destinatario}</direccion_destinatario>
       <distrito_destinatario>${distrito_destinatario}</distrito_destinatario>
@@ -150,11 +150,34 @@ Deno.serve(async (req: Request) => {
       <longitud></longitud>
       <mail_destinatario>${order.customer_email}</mail_destinatario>
       <fecha_programacion></fecha_programacion>
-    </getXMLRequest>
+    </getXML>
   </soap:Body>
 </soap:Envelope>`;
 
     console.log('📦 Sending SOAP request to Servientrega...');
+    console.log('📋 Order details:', {
+      orderId,
+      orderNumber: order.order_number,
+      customerName: order.customer_name,
+      destinatario: {
+        provincia: provincia_destinatario,
+        distrito: distrito_destinatario,
+        direccion: direccion_destinatario
+      },
+      remitente: {
+        nombre: senderInfo.nombre_remite,
+        provincia: senderInfo.provincia_remite,
+        distrito: senderInfo.distrito_remite
+      },
+      servicio,
+      transporte,
+      peso: order.shipping_details?.peso || 5,
+      piezas: totalPiezas
+    });
+    console.log('🔑 Using credentials:', {
+      username: servientregaUsername,
+      passwordLength: servientregaPassword?.length
+    });
 
     // Call Servientrega SOAP API
     const servientregaResponse = await fetch(
