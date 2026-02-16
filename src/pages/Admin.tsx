@@ -19,7 +19,9 @@ import {
   AlertCircle,
   Lock,
   LogIn,
-  User
+  User,
+  FileText as GuideIcon,
+  ExternalLink
 } from 'lucide-react';
 import PagueloFacilTestButton from '../components/PagueloFacilTestButton';
 import DevTools from './Admin/DevTools';
@@ -66,6 +68,11 @@ interface Order {
   created_at: string;
   updated_at: string;
   order_items: OrderItem[];
+  shipping_cost?: number;
+  shipping_description?: string;
+  guia_number?: string;
+  guia_pdf_url?: string;
+  guia_created_at?: string;
 }
 
 const Admin = () => {
@@ -78,6 +85,8 @@ const Admin = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
+  const [generatingGuide, setGeneratingGuide] = useState<string | null>(null);
+  const [confirmGenerateGuide, setConfirmGenerateGuide] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -188,6 +197,60 @@ const Admin = () => {
     } catch (error) {
       console.error('Error updating order status:', error);
       alert('Error al actualizar el estado de la orden');
+    }
+  };
+
+  const handleGenerateGuide = async (orderId: string) => {
+    setConfirmGenerateGuide(null);
+    setGeneratingGuide(orderId);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No hay sesión activa');
+      }
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/servientrega-generar-guia`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId })
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Error al generar la guía');
+      }
+
+      // Update local state
+      setOrders(orders.map(order =>
+        order.id === orderId
+          ? {
+              ...order,
+              guia_number: result.guiaNumber,
+              guia_pdf_url: result.pdfUrl,
+              guia_created_at: new Date().toISOString(),
+              status: 'processing'
+            }
+          : order
+      ));
+
+      // Open PDF in new tab if available
+      if (result.pdfUrl) {
+        window.open(result.pdfUrl, '_blank');
+      }
+
+      alert(`✅ Guía generada exitosamente!\n\nNúmero de guía: ${result.guiaNumber}\n\nAsegúrate de descargar y guardar el PDF.`);
+    } catch (error: any) {
+      console.error('Error generating guide:', error);
+      alert(`❌ Error al generar la guía: ${error.message}`);
+    } finally {
+      setGeneratingGuide(null);
     }
   };
 
@@ -696,8 +759,67 @@ const Admin = () => {
                         <Truck className="h-4 w-4 mr-2" />
                         Envío
                       </h4>
-                      <div className="space-y-1 text-sm">
+                      <div className="space-y-2 text-sm">
                         <p className="text-gray-700">{order.shipping_address || 'No especificado'}</p>
+
+                        {/* Servientrega Guide Section */}
+                        {order.guia_number ? (
+                          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-semibold text-green-800">✓ Guía Creada</span>
+                              {order.guia_pdf_url && (
+                                <a
+                                  href={order.guia_pdf_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                  Ver PDF
+                                </a>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-600 mb-1">
+                              <span className="font-medium">Número:</span> {order.guia_number}
+                            </p>
+                            {order.guia_created_at && (
+                              <p className="text-xs text-gray-500">
+                                {new Date(order.guia_created_at).toLocaleDateString('es-PA', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            )}
+                            <button
+                              onClick={() => setConfirmGenerateGuide(order.id)}
+                              disabled={generatingGuide === order.id}
+                              className="mt-2 w-full text-xs py-1 px-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded transition-colors duration-200"
+                            >
+                              Regenerar Guía
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmGenerateGuide(order.id)}
+                            disabled={generatingGuide === order.id}
+                            className="mt-2 w-full flex items-center justify-center gap-2 py-2 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-medium rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                          >
+                            {generatingGuide === order.id ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                Generando...
+                              </>
+                            ) : (
+                              <>
+                                <GuideIcon className="h-4 w-4" />
+                                Generar Guía Servientrega
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -712,6 +834,54 @@ const Admin = () => {
           <DevTools />
         )}
       </div>
+
+      {/* Confirmation Dialog for Guide Generation */}
+      {confirmGenerateGuide && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fade-in">
+            <div className="flex items-center justify-center mb-4">
+              <div className="bg-blue-100 rounded-full p-3">
+                <GuideIcon className="h-8 w-8 text-blue-600" />
+              </div>
+            </div>
+
+            <h3 className="text-xl font-bold text-navy text-center mb-3">
+              {orders.find(o => o.id === confirmGenerateGuide)?.guia_number
+                ? '¿Regenerar Guía de Servientrega?'
+                : '¿Generar Guía de Servientrega?'}
+            </h3>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-gray-700 mb-2">
+                <strong className="text-yellow-800">⚠️ Importante:</strong>
+              </p>
+              <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                <li>Se generará una guía única de Servientrega</li>
+                <li>Debes descargar y guardar el PDF inmediatamente</li>
+                <li>La guía se abrirá automáticamente en una nueva pestaña</li>
+                {orders.find(o => o.id === confirmGenerateGuide)?.guia_number && (
+                  <li className="text-red-600 font-medium">Esto reemplazará la guía anterior</li>
+                )}
+              </ul>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmGenerateGuide(null)}
+                className="flex-1 py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors duration-200"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleGenerateGuide(confirmGenerateGuide)}
+                className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                Generar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

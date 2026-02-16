@@ -1,0 +1,230 @@
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from 'npm:@supabase/supabase-js@2';
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+};
+
+interface GenerateGuideRequest {
+  orderId: string;
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
+  }
+
+  try {
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get user from auth header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      throw new Error('Unauthorized');
+    }
+
+    // Verify user is admin
+    const { data: adminCheck } = await supabase
+      .from('admin_users')
+      .select('email')
+      .eq('email', user.email)
+      .single();
+
+    if (!adminCheck) {
+      throw new Error('Only admins can generate guides');
+    }
+
+    const { orderId }: GenerateGuideRequest = await req.json();
+
+    // Get order details
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        order_items (*)
+      `)
+      .eq('id', orderId)
+      .single();
+
+    if (orderError || !order) {
+      throw new Error('Order not found');
+    }
+
+    // Get Servientrega credentials
+    const { data: credentials, error: credError } = await supabase
+      .from('servientrega_credentials')
+      .select('*')
+      .eq('is_active', true)
+      .single();
+
+    if (credError || !credentials) {
+      throw new Error('Servientrega credentials not configured');
+    }
+
+    // Parse shipping address to get distrito and provincia from order
+    // Format: "street houseNumber, corregimiento, distrito, provincia, Panama"
+    const addressParts = order.shipping_address?.split(',').map((s: string) => s.trim()) || [];
+    const provincia_destinatario = addressParts[3] || order.shipping_details?.provincia_des || 'PANAMA';
+    const distrito_destinatario = addressParts[2] || order.shipping_details?.ciu_des || '';
+    const direccion_destinatario = addressParts[0] || order.shipping_address || '';
+
+    // Calculate total pieces (quantity of items)
+    const totalPiezas = order.order_items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+
+    // Prepare item description
+    const contiene = order.order_items
+      .map((item: any) => `${item.quantity}x ${item.product_name}`)
+      .join(', ')
+      .substring(0, 100); // Limit length
+
+    // Determine service type based on shipping details
+    let servicio = 'SERVICIO AL DIA SIGUIENTE';
+    if (order.shipping_details?.producto) {
+      servicio = order.shipping_details.producto;
+    }
+
+    // Determine transport type
+    let transporte = 'TERRESTRE';
+    if (order.shipping_details?.transporte) {
+      transporte = order.shipping_details.transporte;
+    }
+
+    // Build SOAP request
+    const soapRequest = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <getXMLRequest>
+      <nombre_destinatario>${order.customer_name}</nombre_destinatario>
+      <direccion_destinatario>${direccion_destinatario}</direccion_destinatario>
+      <distrito_destinatario>${distrito_destinatario}</distrito_destinatario>
+      <provincia_destinatario>${provincia_destinatario}</provincia_destinatario>
+      <nombre_remite>${credentials.nombre_remite}</nombre_remite>
+      <direccion_remite>${credentials.direccion_remite}</direccion_remite>
+      <distrito_remite>${credentials.distrito_remite}</distrito_remite>
+      <provincia_remite>${credentials.provincia_remite}</provincia_remite>
+      <servicio>${servicio}</servicio>
+      <telefono>${order.customer_phone || credentials.telefono_remite}</telefono>
+      <peso>${order.shipping_details?.peso || 5}</peso>
+      <piezas>${totalPiezas}</piezas>
+      <volumen>0</volumen>
+      <contiene>${contiene}</contiene>
+      <transporte>${transporte}</transporte>
+      <valor_declarado>${order.total}</valor_declarado>
+      <info01></info01>
+      <valor_recaudar>0</valor_recaudar>
+      <remision>${order.order_number}</remision>
+      <factura>${order.order_number}</factura>
+      <observacion>${order.shipping_address || ''}</observacion>
+      <guia_cliente>${order.order_number}</guia_cliente>
+      <usu>${credentials.username}</usu>
+      <pwd>${credentials.password}</pwd>
+      <latitud></latitud>
+      <longitud></longitud>
+      <mail_destinatario>${order.customer_email}</mail_destinatario>
+      <fecha_programacion></fecha_programacion>
+    </getXMLRequest>
+  </soap:Body>
+</soap:Envelope>`;
+
+    console.log('📦 Sending SOAP request to Servientrega...');
+
+    // Call Servientrega SOAP API
+    const servientregaResponse = await fetch(
+      'http://ws-servientrega.appsiscore.com/generar_guia.php/getXML',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+          'SOAPAction': 'getXML'
+        },
+        body: soapRequest
+      }
+    );
+
+    const responseText = await servientregaResponse.text();
+    console.log('📨 Servientrega response:', responseText);
+
+    // Parse XML response
+    // Look for guia number and PDF URL in the response
+    const guiaMatch = responseText.match(/<guia[^>]*>([^<]+)<\/guia>/i);
+    const pdfMatch = responseText.match(/<pdf[^>]*>([^<]+)<\/pdf>/i) ||
+                     responseText.match(/<url[^>]*>([^<]+)<\/url>/i);
+
+    const guiaNumber = guiaMatch ? guiaMatch[1] : null;
+    const pdfUrl = pdfMatch ? pdfMatch[1] : null;
+
+    if (!guiaNumber) {
+      // Check for error in response
+      const errorMatch = responseText.match(/<error[^>]*>([^<]+)<\/error>/i) ||
+                         responseText.match(/<mensaje[^>]*>([^<]+)<\/mensaje>/i);
+      const errorMessage = errorMatch ? errorMatch[1] : 'Unknown error from Servientrega';
+      throw new Error(`Servientrega error: ${errorMessage}`);
+    }
+
+    // Update order with guide information
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        guia_number: guiaNumber,
+        guia_pdf_url: pdfUrl,
+        guia_created_at: new Date().toISOString(),
+        guia_created_by: user.id,
+        status: 'processing', // Update status to processing
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId);
+
+    if (updateError) {
+      console.error('Error updating order:', updateError);
+      throw new Error('Failed to update order with guide information');
+    }
+
+    console.log('✅ Guide generated successfully:', guiaNumber);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        guiaNumber,
+        pdfUrl,
+        message: 'Guía generada exitosamente'
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+  } catch (error) {
+    console.error('❌ Error generating guide:', error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message || 'Error al generar la guía'
+      }),
+      {
+        status: 400,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+  }
+});
