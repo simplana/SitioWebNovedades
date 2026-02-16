@@ -257,7 +257,7 @@ const Orders = () => {
                         )}
                       </div>
                       <span className="font-playfair text-2xl font-bold text-divine-gold">
-                        ${order.total.toFixed(2)}
+                        ${((order.total || 0) + (order.shippingCost || 0)).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -358,6 +358,39 @@ const Orders = () => {
                   {/* Expanded Details */}
                   {isExpanded && (
                     <div className="mt-6 pt-6 border-t border-divine-gold border-opacity-20 space-y-4">
+                      {/* Order Summary */}
+                      <div className="bg-holy-glow rounded-xl p-4">
+                        <h4 className="font-semibold text-navy-devotion mb-3 flex items-center gap-2">
+                          <Package className="h-4 w-4" />
+                          Resumen del Pedido
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between items-center">
+                            <span className="text-stone-prayer">Subtotal (Productos):</span>
+                            <span className="font-medium text-navy-devotion">${(order.total || 0).toFixed(2)}</span>
+                          </div>
+                          {order.shippingCost && order.shippingCost > 0 && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-stone-prayer">
+                                Costo de Envío:
+                                {order.shippingDescription && (
+                                  <span className="text-xs block text-dove-gray">{order.shippingDescription}</span>
+                                )}
+                              </span>
+                              <span className="font-medium text-navy-devotion">${order.shippingCost.toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div className="pt-2 border-t border-divine-gold border-opacity-20">
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold text-navy-devotion">Total:</span>
+                              <span className="font-playfair text-xl font-bold text-divine-gold">
+                                ${((order.total || 0) + (order.shippingCost || 0)).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Customer Info */}
                       <div className="bg-holy-glow rounded-xl p-4">
                         <h4 className="font-semibold text-navy-devotion mb-3 flex items-center gap-2">

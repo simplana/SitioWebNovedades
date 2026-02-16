@@ -233,7 +233,8 @@ const PaymentSuccess = () => {
                 <p className="text-stone-prayer">
                   <span className="font-medium">Total:</span>{' '}
                   <span className="font-semibold">
-                    ${transactionDetails?.totalPagado || orderDetails?.total || '0.00'}
+                    ${transactionDetails?.totalPagado ||
+                      (orderDetails ? ((parseFloat(orderDetails.total) || 0) + (orderDetails.shipping_cost || 0)).toFixed(2) : '0.00')}
                   </span>
                 </p>
               </div>

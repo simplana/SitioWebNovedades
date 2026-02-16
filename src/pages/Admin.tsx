@@ -206,7 +206,7 @@ const Admin = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const totalRevenue = orders.reduce((sum, order) => sum + parseFloat(order.total.toString()), 0);
+  const totalRevenue = orders.reduce((sum, order) => sum + parseFloat(order.total.toString()) + (order.shippingCost || 0), 0);
   const pendingQuotes = quoteRequests.filter(q => q.status === 'pending').length;
   const activeOrders = orders.filter(o =>
     o.status === 'payment_pending' ||
@@ -667,9 +667,26 @@ const Admin = () => {
                             <span className="font-medium whitespace-nowrap">${(item.price * item.quantity).toFixed(2)}</span>
                           </div>
                         ))}
-                        <div className="border-t-2 border-gold pt-2 mt-2 flex justify-between font-bold">
-                          <span>Total:</span>
-                          <span className="text-gold">${parseFloat(order.total.toString()).toFixed(2)}</span>
+                        <div className="border-t border-gray-200 pt-2 mt-2 space-y-1">
+                          <div className="flex justify-between text-gray-600">
+                            <span>Subtotal:</span>
+                            <span>${parseFloat(order.total.toString()).toFixed(2)}</span>
+                          </div>
+                          {order.shipping_cost && order.shipping_cost > 0 && (
+                            <div className="flex justify-between text-gray-600">
+                              <span className="flex-1">
+                                Envío:
+                                {order.shipping_description && (
+                                  <span className="block text-xs text-gray-500">{order.shipping_description}</span>
+                                )}
+                              </span>
+                              <span className="ml-2">${order.shipping_cost.toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div className="border-t-2 border-gold pt-2 flex justify-between font-bold">
+                            <span>Total:</span>
+                            <span className="text-gold">${(parseFloat(order.total.toString()) + (order.shipping_cost || 0)).toFixed(2)}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
