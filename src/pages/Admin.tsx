@@ -18,7 +18,8 @@ import {
   TestTube,
   AlertCircle,
   Lock,
-  LogIn
+  LogIn,
+  User
 } from 'lucide-react';
 import PagueloFacilTestButton from '../components/PagueloFacilTestButton';
 import DevTools from './Admin/DevTools';
@@ -39,22 +40,32 @@ interface QuoteRequest {
   estimatedDays?: number;
 }
 
+interface OrderItem {
+  id: string;
+  product_id: string;
+  product_name: string;
+  product_sku: string;
+  product_image: string;
+  price: number;
+  quantity: number;
+  options?: string;
+}
+
 interface Order {
   id: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  products: {
-    id: string;
-    name: string;
-    quantity: number;
-    price: number;
-  }[];
+  order_number: string;
+  user_id: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  shipping_address: string;
   total: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered';
-  createdAt: string;
-  shippingAddress: string;
-  trackingNumber?: string;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'payment_pending' | 'payment_confirmed' | 'payment_failed';
+  payment_method?: string;
+  payment_status?: string;
+  created_at: string;
+  updated_at: string;
+  order_items: OrderItem[];
 }
 
 const Admin = () => {
@@ -96,8 +107,39 @@ const Admin = () => {
     }
   }, [user]);
 
+  useEffect(() => {
+    const loadOrders = async () => {
+      if (!isAdmin) return;
+
+      try {
+        const { data: ordersData, error } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            order_items (*)
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (ordersData) {
+          setOrders(ordersData as Order[]);
+        }
+      } catch (error) {
+        console.error('Error loading orders:', error);
+      }
+    };
+
+    if (isAdmin) {
+      loadOrders();
+    }
+  }, [isAdmin]);
+
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'payment_pending': return 'bg-yellow-100 text-yellow-800 border-2 border-yellow-300';
+      case 'payment_confirmed': return 'bg-green-100 text-green-800 border-2 border-green-300';
+      case 'payment_failed': return 'bg-red-100 text-red-800 border-2 border-red-300';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'quoted': return 'bg-blue-100 text-blue-800';
       case 'approved': return 'bg-green-100 text-green-800';
@@ -105,6 +147,7 @@ const Admin = () => {
       case 'processing': return 'bg-orange-100 text-orange-800';
       case 'shipped': return 'bg-purple-100 text-purple-800';
       case 'delivered': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -112,13 +155,39 @@ const Admin = () => {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending': return 'Pendiente';
+      case 'payment_pending': return 'Pago Pendiente';
+      case 'payment_confirmed': return 'Pago Confirmado';
+      case 'payment_failed': return 'Pago Fallido';
       case 'quoted': return 'Cotizado';
       case 'approved': return 'Aprobado';
       case 'completed': return 'Completado';
       case 'processing': return 'Procesando';
       case 'shipped': return 'Enviado';
       case 'delivered': return 'Entregado';
+      case 'cancelled': return 'Cancelado';
       default: return status;
+    }
+  };
+
+  const updateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      setOrders(orders.map(order =>
+        order.id === orderId
+          ? { ...order, status: newStatus, updated_at: new Date().toISOString() }
+          : order
+      ));
+
+      alert(`Estado actualizado a: ${getStatusText(newStatus)}`);
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      alert('Error al actualizar el estado de la orden');
     }
   };
 
@@ -130,15 +199,21 @@ const Admin = () => {
   });
 
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         order.customer_email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+  const totalRevenue = orders.reduce((sum, order) => sum + parseFloat(order.total.toString()), 0);
   const pendingQuotes = quoteRequests.filter(q => q.status === 'pending').length;
-  const activeOrders = orders.filter(o => o.status === 'processing' || o.status === 'shipped').length;
+  const activeOrders = orders.filter(o =>
+    o.status === 'payment_pending' ||
+    o.status === 'payment_confirmed' ||
+    o.status === 'processing' ||
+    o.status === 'shipped'
+  ).length;
 
   if (loading || checkingAdmin) {
     return (
@@ -495,10 +570,13 @@ const Admin = () => {
                   className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gold focus:border-transparent"
                 >
                   <option value="all">Todos los estados</option>
-                  <option value="pending">Pendientes</option>
+                  <option value="payment_pending">Pago Pendiente</option>
+                  <option value="payment_confirmed">Pago Confirmado</option>
+                  <option value="pending">Pendiente</option>
                   <option value="processing">Procesando</option>
-                  <option value="shipped">Enviados</option>
-                  <option value="delivered">Entregados</option>
+                  <option value="shipped">Enviado</option>
+                  <option value="delivered">Entregado</option>
+                  <option value="cancelled">Cancelado</option>
                 </select>
                 <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200">
                   <Download className="h-4 w-4" />
@@ -516,75 +594,95 @@ const Admin = () => {
                   <p className="text-gray-500">Los pedidos de clientes aparecerán aquí</p>
                 </div>
               ) : filteredOrders.map((order) => (
-                <div key={order.id} className="bg-white rounded-lg shadow-md p-6">
-                  <div className="flex justify-between items-start mb-4">
+                <div key={order.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
                     <div>
-                      <h3 className="font-semibold text-lg text-navy">{order.id}</h3>
-                      <p className="text-gray-600">{order.customerName}</p>
+                      <h3 className="font-semibold text-lg text-navy">{order.order_number}</h3>
+                      <p className="text-gray-600">{order.customer_name}</p>
+                      <p className="text-xs text-gray-400">
+                        {new Date(order.created_at).toLocaleDateString('es-PA', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-                      {getStatusText(order.status)}
-                    </span>
+
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${getStatusColor(order.status)}`}>
+                        {getStatusText(order.status)}
+                      </span>
+
+                      <select
+                        value={order.status}
+                        onChange={(e) => updateOrderStatus(order.id, e.target.value as Order['status'])}
+                        className="border-2 border-gold rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-gold focus:border-transparent bg-white"
+                      >
+                        <option value="payment_pending">Pago Pendiente</option>
+                        <option value="payment_confirmed">Pago Confirmado</option>
+                        <option value="pending">Pendiente</option>
+                        <option value="processing">Procesando</option>
+                        <option value="shipped">Enviado</option>
+                        <option value="delivered">Entregado</option>
+                        <option value="cancelled">Cancelado</option>
+                      </select>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div>
-                      <h4 className="font-medium text-navy mb-2">Información del Cliente</h4>
+                      <h4 className="font-medium text-navy mb-2 flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        Información del Cliente
+                      </h4>
                       <div className="space-y-1 text-sm">
                         <div className="flex items-center space-x-2">
                           <Phone className="h-4 w-4 text-gray-400" />
-                          <span>{order.customerPhone}</span>
+                          <span>{order.customer_phone}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Mail className="h-4 w-4 text-gray-400" />
-                          <span>{order.customerEmail}</span>
+                          <span className="break-all">{order.customer_email}</span>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          <span>{order.createdAt}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium text-navy mb-2">Productos</h4>
-                      <div className="space-y-1 text-sm">
-                        {order.products.map((product, index) => (
-                          <div key={index} className="flex justify-between">
-                            <span>{product.name} x{product.quantity}</span>
-                            <span className="font-medium">${(product.price * product.quantity).toFixed(2)}</span>
-                          </div>
-                        ))}
-                        <div className="border-t pt-1 mt-2 flex justify-between font-bold">
-                          <span>Total:</span>
-                          <span className="text-gold">${order.total.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium text-navy mb-2">Envío</h4>
-                      <div className="space-y-1 text-sm">
-                        <p className="text-gray-700">{order.shippingAddress}</p>
-                        {order.trackingNumber && (
+                        {order.payment_method && (
                           <div className="flex items-center space-x-2">
-                            <Truck className="h-4 w-4 text-gray-400" />
-                            <span className="font-mono">{order.trackingNumber}</span>
+                            <DollarSign className="h-4 w-4 text-gray-400" />
+                            <span className="capitalize">{order.payment_method === 'transfer' ? 'Transferencia' : 'Paguelo Fácil'}</span>
                           </div>
                         )}
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex justify-end space-x-3 mt-4 pt-4 border-t">
-                    <button className="flex items-center space-x-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200">
-                      <Eye className="h-4 w-4" />
-                      <span>Ver Detalles</span>
-                    </button>
-                    <button className="flex items-center space-x-2 px-4 py-2 bg-gold hover:bg-yellow-500 text-navy rounded-lg transition-colors duration-200">
-                      <Truck className="h-4 w-4" />
-                      <span>Actualizar Envío</span>
-                    </button>
+                    <div>
+                      <h4 className="font-medium text-navy mb-2 flex items-center">
+                        <Package className="h-4 w-4 mr-2" />
+                        Productos ({order.order_items.length})
+                      </h4>
+                      <div className="space-y-1 text-sm max-h-40 overflow-y-auto">
+                        {order.order_items.map((item, index) => (
+                          <div key={index} className="flex justify-between py-1 border-b border-gray-100 last:border-0">
+                            <span className="flex-1 mr-2">{item.product_name} x{item.quantity}</span>
+                            <span className="font-medium whitespace-nowrap">${(item.price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
+                        <div className="border-t-2 border-gold pt-2 mt-2 flex justify-between font-bold">
+                          <span>Total:</span>
+                          <span className="text-gold">${parseFloat(order.total.toString()).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium text-navy mb-2 flex items-center">
+                        <Truck className="h-4 w-4 mr-2" />
+                        Envío
+                      </h4>
+                      <div className="space-y-1 text-sm">
+                        <p className="text-gray-700">{order.shipping_address || 'No especificado'}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
