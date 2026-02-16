@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, ArrowRight, Package } from 'lucide-react';
 import { useOrderStatus } from '../hooks/useOrderStatus';
+import { useCart } from '../hooks/useCart';
 import { supabase } from '../lib/supabase';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { updateOrderStatus } = useOrderStatus();
+  const { clearCart } = useCart();
 
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -45,6 +47,7 @@ const PaymentSuccess = () => {
       if (isDemo) {
         console.log('🎭 DEMO MODE - Simulando verificación exitosa');
         setPaymentVerified(true);
+        clearCart();
 
         if (orderId) {
           updateOrderStatus({
@@ -93,6 +96,7 @@ const PaymentSuccess = () => {
         if (result.success && result.paymentStatus === 'approved') {
           setPaymentVerified(true);
           setTransactionDetails(result.transaction);
+          clearCart();
 
           updateOrderStatus({
             orderId,
