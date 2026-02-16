@@ -47,9 +47,13 @@ CREATE TABLE IF NOT EXISTS servientrega_credentials (
   telefono_remite TEXT,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  CONSTRAINT unique_active_credentials UNIQUE (is_active) WHERE is_active = true
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Create partial unique index to ensure only one active credential set
+CREATE UNIQUE INDEX IF NOT EXISTS unique_active_credentials
+  ON servientrega_credentials (is_active)
+  WHERE is_active = true;
 
 -- Enable RLS
 ALTER TABLE servientrega_credentials ENABLE ROW LEVEL SECURITY;

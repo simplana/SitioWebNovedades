@@ -17,20 +17,9 @@ Ejecuta el archivo `ADD_SERVIENTREGA_GUIDE_FIELDS.sql` en el SQL Editor de tu da
 
 ### 2. Desplegar el Edge Function
 
-El archivo `SERVIENTREGA_GENERAR_GUIA_EDGE_FUNCTION.ts` contiene el código para el edge function.
+El edge function ya está creado en: `supabase/functions/servientrega-generar-guia/index.ts`
 
-Debes crear un nuevo edge function llamado `servientrega-generar-guia` y copiar el contenido de ese archivo.
-
-**Comando para desplegar:**
-```bash
-# Crea el directorio si no existe
-mkdir -p supabase/functions/servientrega-generar-guia
-
-# Copia el contenido del archivo SERVIENTREGA_GENERAR_GUIA_EDGE_FUNCTION.ts
-# a supabase/functions/servientrega-generar-guia/index.ts
-
-# Despliega usando la herramienta de deployment de Supabase
-```
+Necesitas desplegarlo en tu proyecto de Supabase.
 
 ### 3. Configurar Credenciales de Servientrega
 
