@@ -65,16 +65,29 @@ Deno.serve(async (req: Request) => {
       throw new Error('Order not found');
     }
 
-    // Get Servientrega credentials
+    // Get Servientrega credentials from environment
+    const servientregaUsername = Deno.env.get('SERVIENTREGA_USUARIO');
+    const servientregaPassword = Deno.env.get('SERVIENTREGA_CONTRASENA');
+
+    if (!servientregaUsername || !servientregaPassword) {
+      throw new Error('Servientrega credentials not configured');
+    }
+
+    // Get sender information from database
     const { data: credentials, error: credError } = await supabase
       .from('servientrega_credentials')
       .select('*')
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
-    if (credError || !credentials) {
-      throw new Error('Servientrega credentials not configured');
-    }
+    // Use defaults if not in database
+    const senderInfo = credentials || {
+      nombre_remite: 'Novedades Católicas',
+      direccion_remite: 'Panama',
+      distrito_remite: '24 DE DICIEMBRE',
+      provincia_remite: 'PANAMA',
+      telefono_remite: ''
+    };
 
     // Parse shipping address to get distrito and provincia from order
     // Format: "street houseNumber, corregimiento, distrito, provincia, Panama"
@@ -113,12 +126,12 @@ Deno.serve(async (req: Request) => {
       <direccion_destinatario>${direccion_destinatario}</direccion_destinatario>
       <distrito_destinatario>${distrito_destinatario}</distrito_destinatario>
       <provincia_destinatario>${provincia_destinatario}</provincia_destinatario>
-      <nombre_remite>${credentials.nombre_remite}</nombre_remite>
-      <direccion_remite>${credentials.direccion_remite}</direccion_remite>
-      <distrito_remite>${credentials.distrito_remite}</distrito_remite>
-      <provincia_remite>${credentials.provincia_remite}</provincia_remite>
+      <nombre_remite>${senderInfo.nombre_remite}</nombre_remite>
+      <direccion_remite>${senderInfo.direccion_remite}</direccion_remite>
+      <distrito_remite>${senderInfo.distrito_remite}</distrito_remite>
+      <provincia_remite>${senderInfo.provincia_remite}</provincia_remite>
       <servicio>${servicio}</servicio>
-      <telefono>${order.customer_phone || credentials.telefono_remite}</telefono>
+      <telefono>${order.customer_phone || senderInfo.telefono_remite}</telefono>
       <peso>${order.shipping_details?.peso || 5}</peso>
       <piezas>${totalPiezas}</piezas>
       <volumen>0</volumen>
@@ -131,8 +144,8 @@ Deno.serve(async (req: Request) => {
       <factura>${order.order_number}</factura>
       <observacion>${order.shipping_address || ''}</observacion>
       <guia_cliente>${order.order_number}</guia_cliente>
-      <usu>${credentials.username}</usu>
-      <pwd>${credentials.password}</pwd>
+      <usu>${servientregaUsername}</usu>
+      <pwd>${servientregaPassword}</pwd>
       <latitud></latitud>
       <longitud></longitud>
       <mail_destinatario>${order.customer_email}</mail_destinatario>
