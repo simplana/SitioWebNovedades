@@ -256,9 +256,16 @@ const Orders = () => {
                           </span>
                         )}
                       </div>
-                      <span className="font-playfair text-2xl font-bold text-divine-gold">
-                        ${((order.total || 0) + (order.shippingCost || 0)).toFixed(2)}
-                      </span>
+                      <div className="text-right">
+                        <span className="font-playfair text-2xl font-bold text-divine-gold">
+                          ${((order.total || 0) + (order.shippingCost || 0)).toFixed(2)}
+                        </span>
+                        {order.shippingDescription && (
+                          <p className="text-xs text-stone-prayer mt-1 max-w-xs">
+                            Envío: {order.shippingDescription}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
