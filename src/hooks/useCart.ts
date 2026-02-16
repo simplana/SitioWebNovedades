@@ -90,14 +90,6 @@ export const useCart = () => {
 
     cartUpdateCallbacks.push(forceUpdate);
 
-    // Listen for cart-cleared events
-    const handleCartCleared = () => {
-      console.log('🔄 Cart cleared event detected, reloading...');
-      forceUpdate();
-    };
-
-    window.addEventListener('cart-cleared', handleCartCleared);
-
     const loadOrdersFromSupabase = async () => {
       if (!isAuthenticated || !user) return;
 
@@ -150,7 +142,6 @@ export const useCart = () => {
 
     return () => {
       cartUpdateCallbacks = cartUpdateCallbacks.filter(cb => cb !== forceUpdate);
-      window.removeEventListener('cart-cleared', handleCartCleared);
     };
   }, [getStorageKey, forceUpdate, isAuthenticated, user]);
 
@@ -225,23 +216,8 @@ export const useCart = () => {
 
   const clearCart = useCallback(() => {
     const storageKey = getStorageKey();
-
-    // Clear localStorage
-    localStorage.removeItem(storageKey);
-
-    // Update global state
-    globalCartItems = [];
-
-    // Force immediate local update
-    setItems([]);
-
-    // Notify all components using the cart
-    notifyCartUpdate();
-
-    // Dispatch custom event to notify across tabs/components
-    window.dispatchEvent(new CustomEvent('cart-cleared', { detail: { storageKey } }));
-
-    console.log('🧹 Cart cleared successfully from:', storageKey);
+    saveCartToStorage([], storageKey);
+    setItems([]); // Force immediate local update
   }, [getStorageKey]);
 
   const getTotalItems = useCallback(() => {

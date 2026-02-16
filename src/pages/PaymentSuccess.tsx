@@ -2,14 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, ArrowRight, Package } from 'lucide-react';
 import { useOrderStatus } from '../hooks/useOrderStatus';
-import { useCart } from '../hooks/useCart';
 import { supabase } from '../lib/supabase';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { updateOrderStatus } = useOrderStatus();
-  const { clearCart } = useCart();
 
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -57,7 +55,6 @@ const PaymentSuccess = () => {
           });
         }
 
-        clearCart();
         setLoading(false);
         return;
       }
@@ -103,8 +100,6 @@ const PaymentSuccess = () => {
             paymentStatus: 'completed',
             notes: `Pago confirmado - ${result.transaction.tipo} (${paymentCode})`
           });
-
-          clearCart();
         } else if (result.orderDeleted) {
           setError('Tu pago fue rechazado y la orden ha sido cancelada. Por favor intenta nuevamente.');
         } else {
@@ -133,7 +128,7 @@ const PaymentSuccess = () => {
     };
 
     verifyPayment();
-  }, [paymentCode, orderId, updateOrderStatus, clearCart, isDemo]);
+  }, [paymentCode, orderId, updateOrderStatus]);
 
   if (loading) {
     return (
