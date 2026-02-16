@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.servientrega-cotizar]
 verify_jwt = true
+
+[functions.servientrega-generar-guia]
+verify_jwt = true

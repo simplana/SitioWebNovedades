@@ -195,22 +195,37 @@ Deno.serve(async (req: Request) => {
     const responseText = await servientregaResponse.text();
     console.log('📨 Servientrega response:', responseText);
 
-    // Parse XML response
-    // Look for guia number and PDF URL in the response
-    const guiaMatch = responseText.match(/<guia[^>]*>([^<]+)<\/guia>/i);
-    const pdfMatch = responseText.match(/<pdf[^>]*>([^<]+)<\/pdf>/i) ||
-                     responseText.match(/<url[^>]*>([^<]+)<\/url>/i);
+    // Extract the <return> content from SOAP response
+    const returnMatch = responseText.match(/<return[^>]*>([^<]+)<\/return>/i);
+    if (!returnMatch) {
+      throw new Error('Invalid SOAP response: <return> element not found');
+    }
 
-    const guiaNumber = guiaMatch ? guiaMatch[1] : null;
-    const pdfUrl = pdfMatch ? pdfMatch[1] : null;
+    // Decode HTML entities
+    const decodedXml = returnMatch[1]
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&');
+
+    console.log('📋 Decoded XML:', decodedXml);
+
+    // Parse the inner XML to extract guia and autoscan URL
+    const guiaMatch = decodedXml.match(/<guia>([^<]+)<\/guia>/i);
+    const autoscanMatch = decodedXml.match(/<autoscan>([^<]+)<\/autoscan>/i);
+
+    const guiaNumber = guiaMatch ? guiaMatch[1].trim() : null;
+    const pdfUrl = autoscanMatch ? autoscanMatch[1].trim() : null;
 
     if (!guiaNumber) {
       // Check for error in response
-      const errorMatch = responseText.match(/<error[^>]*>([^<]+)<\/error>/i) ||
-                         responseText.match(/<mensaje[^>]*>([^<]+)<\/mensaje>/i);
+      const errorMatch = decodedXml.match(/<error[^>]*>([^<]+)<\/error>/i) ||
+                         decodedXml.match(/<mensaje[^>]*>([^<]+)<\/mensaje>/i);
       const errorMessage = errorMatch ? errorMatch[1] : 'Unknown error from Servientrega';
       throw new Error(`Servientrega error: ${errorMessage}`);
     }
+
+    console.log('✅ Parsed guide data:', { guiaNumber, pdfUrl });
 
     // Update order with guide information
     const { error: updateError } = await supabase
