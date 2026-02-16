@@ -32,6 +32,8 @@ export interface Order {
   paymentStatus?: 'pending' | 'completed' | 'failed' | 'cancelled';
   trackingNumber?: string;
   estimatedDelivery?: string;
+  shippingCost?: number;
+  shippingDetails?: any;
 }
 
 // Global cart state that forces immediate updates
@@ -261,7 +263,8 @@ export const useCart = () => {
 
     try {
       const orderNumber = orderOptions?.orderNumber || `NC-${Date.now()}`;
-      const orderTotal = getTotalPrice();
+      const productTotal = getTotalPrice();
+      const orderTotal = productTotal + (orderOptions?.shippingCost || 0);
 
       const { data: createdOrder, error: orderError } = await supabase
         .from('orders')
@@ -278,7 +281,9 @@ export const useCart = () => {
           payment_code: orderOptions?.paymentCode,
           payment_id: orderOptions?.paymentId,
           payment_url: orderOptions?.paymentUrl,
-          payment_status: orderOptions?.status === 'payment_pending' ? 'pending' : null
+          payment_status: orderOptions?.status === 'payment_pending' ? 'pending' : null,
+          shipping_cost: orderOptions?.shippingCost || 0,
+          shipping_details: orderOptions?.shippingDetails || null
         })
         .select()
         .single();
