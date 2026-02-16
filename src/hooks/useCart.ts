@@ -33,6 +33,7 @@ export interface Order {
   trackingNumber?: string;
   estimatedDelivery?: string;
   shippingCost?: number;
+  shippingDescription?: string;
   shippingDetails?: any;
 }
 
@@ -131,7 +132,10 @@ export const useCart = () => {
           },
           paymentMethod: orderData.payment_method,
           paymentId: orderData.payment_id,
-          paymentStatus: orderData.payment_status
+          paymentStatus: orderData.payment_status,
+          shippingCost: orderData.shipping_cost ? parseFloat(orderData.shipping_cost) : 0,
+          shippingDescription: orderData.shipping_description,
+          shippingDetails: orderData.shipping_details
         }));
 
         setOrders(formattedOrders);
@@ -248,6 +252,7 @@ export const useCart = () => {
       status?: Order['status'];
       orderNumber?: string;
       shippingCost?: number;
+      shippingDescription?: string;
       shippingDetails?: any;
     }
   ) => {
@@ -264,7 +269,8 @@ export const useCart = () => {
     try {
       const orderNumber = orderOptions?.orderNumber || `NC-${Date.now()}`;
       const productTotal = getTotalPrice();
-      const orderTotal = productTotal + (orderOptions?.shippingCost || 0);
+      // total should be only the product subtotal, shipping is separate
+      const orderTotal = productTotal;
 
       const { data: createdOrder, error: orderError } = await supabase
         .from('orders')
@@ -283,6 +289,7 @@ export const useCart = () => {
           payment_url: orderOptions?.paymentUrl,
           payment_status: orderOptions?.status === 'payment_pending' ? 'pending' : null,
           shipping_cost: orderOptions?.shippingCost || 0,
+          shipping_description: orderOptions?.shippingDescription || null,
           shipping_details: orderOptions?.shippingDetails || null
         })
         .select()

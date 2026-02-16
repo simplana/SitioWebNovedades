@@ -343,6 +343,12 @@ const Checkout = () => {
         console.log('🔗 Payment URL?', paymentResponse.paymentUrl);
 
         if (paymentResponse.success && paymentResponse.paymentUrl) {
+          const shippingDescription = customerInfo.deliveryMethod === 'pickup'
+            ? 'Retiro en tienda'
+            : shippingDetails?.producto
+            ? `Servientrega - ${shippingDetails.producto}`
+            : 'Envío a domicilio';
+
           const order = await processOrder(
             {
               name: customerInfo.name,
@@ -360,6 +366,7 @@ const Checkout = () => {
               status: 'payment_pending',
               orderNumber: orderNumber,
               shippingCost: shippingCost,
+              shippingDescription: shippingDescription,
               shippingDetails: shippingDetails
             }
           );
@@ -419,6 +426,12 @@ const Checkout = () => {
         
         // Crear orden con estado de pago pendiente para transferencia
         const orderNumberTransfer = `NC-${Date.now()}`;
+        const shippingDescription = customerInfo.deliveryMethod === 'pickup'
+          ? 'Retiro en tienda'
+          : shippingDetails?.producto
+          ? `Servientrega - ${shippingDetails.producto}`
+          : 'Envío a domicilio';
+
         const order = await processOrder(
           {
             name: customerInfo.name,
@@ -433,6 +446,7 @@ const Checkout = () => {
             status: 'payment_pending',
             orderNumber: orderNumberTransfer,
             shippingCost: shippingCost,
+            shippingDescription: shippingDescription,
             shippingDetails: shippingDetails
           }
         );
