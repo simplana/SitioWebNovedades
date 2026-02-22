@@ -10,7 +10,7 @@ const Orders = () => {
   const { orders, reorderItems, isAuthenticated } = useCart();
   const { user } = useAuth();
   const { getLatestOrderStatus, checkPagueloFacilPayment, getOrderHistory } = useOrderStatus();
-  const [filterStatus, setFilterStatus] = useState<'all' | 'paid' | 'pending' | 'failed'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'paid'>('all');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
 
   const toggleOrderDetails = (orderId: string) => {
@@ -37,10 +37,8 @@ const Orders = () => {
   };
 
   const filteredOrders = orders.filter(order => {
-    if (filterStatus === 'all') return true;
+    if (filterStatus === 'all') return order.status === 'payment_confirmed' || order.paymentStatus === 'completed';
     if (filterStatus === 'paid') return order.status === 'payment_confirmed' || order.paymentStatus === 'completed';
-    if (filterStatus === 'pending') return order.status === 'payment_pending' || order.paymentStatus === 'pending';
-    if (filterStatus === 'failed') return order.status === 'payment_failed' || order.paymentStatus === 'failed';
     return true;
   });
 
@@ -147,26 +145,6 @@ const Orders = () => {
                   }`}
                 >
                   Pagadas ({orders.filter(o => o.status === 'payment_confirmed' || o.paymentStatus === 'completed').length})
-                </button>
-                <button
-                  onClick={() => setFilterStatus('pending')}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                    filterStatus === 'pending'
-                      ? 'bg-orange-600 text-white shadow-lg'
-                      : 'bg-whisper-gray text-stone-prayer hover:bg-dove-gray'
-                  }`}
-                >
-                  Pendientes ({orders.filter(o => o.status === 'payment_pending' || o.paymentStatus === 'pending').length})
-                </button>
-                <button
-                  onClick={() => setFilterStatus('failed')}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                    filterStatus === 'failed'
-                      ? 'bg-red-600 text-white shadow-lg'
-                      : 'bg-whisper-gray text-stone-prayer hover:bg-dove-gray'
-                  }`}
-                >
-                  Fallidas ({orders.filter(o => o.status === 'payment_failed' || o.paymentStatus === 'failed').length})
                 </button>
               </div>
             </div>
