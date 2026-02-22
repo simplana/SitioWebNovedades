@@ -268,32 +268,6 @@ const Orders = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Payment Status Banner */}
-                  {order.paymentStatus && (
-                    <div className={`mt-4 p-4 rounded-xl flex items-center gap-3 ${
-                      order.paymentStatus === 'completed'
-                        ? 'bg-green-50 border border-green-200'
-                        : order.paymentStatus === 'pending'
-                        ? 'bg-orange-50 border border-orange-200'
-                        : 'bg-red-50 border border-red-200'
-                    }`}>
-                      {getPaymentStatusIcon(order.paymentStatus)}
-                      <div className="flex-1">
-                        <p className="font-semibold text-navy-devotion">
-                          {getPaymentStatusText(order.paymentStatus)}
-                        </p>
-                        {order.paymentId && (
-                          <p className="text-xs text-stone-prayer mt-1">
-                            ID de Transacción: <span className="font-mono">{order.paymentId}</span>
-                          </p>
-                        )}
-                      </div>
-                      {order.paymentStatus === 'completed' && (
-                        <CheckCircle className="h-6 w-6 text-green-600" />
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 {/* Order Status Tracker */}
