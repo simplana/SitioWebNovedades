@@ -130,7 +130,7 @@ const Orders = () => {
                   onClick={() => setFilterStatus('all')}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                     filterStatus === 'all'
-                      ? 'bg-gradient-to-r from-divine-gold to-aureola-gold text-navy-devotion shadow-golden'
+                      ? 'bg-navy-devotion text-white shadow-lg'
                       : 'bg-whisper-gray text-stone-prayer hover:bg-dove-gray'
                   }`}
                 >
