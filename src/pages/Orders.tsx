@@ -235,7 +235,7 @@ const Orders = () => {
                         )}
                       </div>
                       <div className="text-right">
-                        <span className="font-playfair text-2xl font-bold text-divine-gold">
+                        <span className="font-playfair text-2xl font-bold text-navy-devotion select-none">
                           ${((order.total || 0) + (order.shippingCost || 0)).toFixed(2)}
                         </span>
                         {order.shippingDescription && (
@@ -276,7 +276,7 @@ const Orders = () => {
                           )}
                           <div className="flex justify-between items-center">
                             <span className="text-xs text-dove-gray">Qty: {item.quantity}</span>
-                            <span className="font-semibold text-divine-gold text-sm">
+                            <span className="font-semibold text-navy-devotion text-sm select-none">
                               ${(item.price * item.quantity).toFixed(2)}
                             </span>
                           </div>
@@ -326,7 +326,7 @@ const Orders = () => {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between items-center">
                             <span className="text-stone-prayer">Subtotal (Productos):</span>
-                            <span className="font-medium text-navy-devotion">${(order.total || 0).toFixed(2)}</span>
+                            <span className="font-medium text-navy-devotion select-none">${(order.total || 0).toFixed(2)}</span>
                           </div>
                           {order.shippingCost && order.shippingCost > 0 && (
                             <div className="flex justify-between items-center">
@@ -336,13 +336,13 @@ const Orders = () => {
                                   <span className="text-xs block text-dove-gray">{order.shippingDescription}</span>
                                 )}
                               </span>
-                              <span className="font-medium text-navy-devotion">${order.shippingCost.toFixed(2)}</span>
+                              <span className="font-medium text-navy-devotion select-none">${order.shippingCost.toFixed(2)}</span>
                             </div>
                           )}
                           <div className="pt-2 border-t border-divine-gold border-opacity-20">
                             <div className="flex justify-between items-center">
                               <span className="font-semibold text-navy-devotion">Total:</span>
-                              <span className="font-playfair text-xl font-bold text-divine-gold">
+                              <span className="font-playfair text-xl font-bold text-navy-devotion select-none">
                                 ${((order.total || 0) + (order.shippingCost || 0)).toFixed(2)}
                               </span>
                             </div>
