@@ -137,9 +137,9 @@ class PagueloFacilService {
 
       const mappedResponse = {
         success: result.success,
-        paymentId: result.paymentId || '',
+        paymentId: result.code || result.paymentId || '',
         paymentUrl: result.url || result.paymentUrl || '',
-        paymentCode: result.paymentCode || result.code,
+        paymentCode: result.code || result.paymentCode,
         message: result.message,
         error: result.error
       };
