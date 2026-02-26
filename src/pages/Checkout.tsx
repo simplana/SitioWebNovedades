@@ -246,7 +246,7 @@ const Checkout = () => {
         console.log('✅ All conditions met - calling getCotizacion');
 
         const response = await getCotizacion({
-          ciu_ori: '24 DE DICIEMBRE',
+          ciu_ori: 'ANCON',
           provincia_ori: 'PANAMA',
           ciu_des: customerInfo.corregimiento,
           provincia_des: customerInfo.province,
