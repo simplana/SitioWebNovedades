@@ -1070,7 +1070,7 @@ const Checkout = () => {
                   ) : customerInfo.deliveryMethod === 'pickup' ? (
                     <span className="font-semibold text-green-600">Gratis (Retiro)</span>
                   ) : customerInfo.deliveryMethod === 'delivery' ? (
-                    <span className="text-sm text-stone-prayer">Pendiente</span>
+                    <span className="text-sm text-stone-prayer">Selecciona ubicación</span>
                   ) : (
                     <span className="text-sm text-stone-prayer">-</span>
                   )}
