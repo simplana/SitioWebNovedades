@@ -332,6 +332,43 @@ export const useCart = () => {
       const updatedOrders = [order, ...orders];
       setOrders(updatedOrders);
 
+      // Send order confirmation email
+      try {
+        const orderEmailResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-order-confirmation-email`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              userId: user.id,
+              customerName: customerInfo.name,
+              customerEmail: customerInfo.email,
+              orderNumber: orderNumber,
+              orderDate: new Date().toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              }),
+              total: orderTotal + (orderOptions?.shippingCost || 0),
+              status: orderOptions?.status === 'payment_pending' ? 'Pago Pendiente' : 'Confirmada',
+              items: items.map(item => ({
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price
+              }))
+            })
+          }
+        );
+
+        const emailResult = await orderEmailResponse.json();
+        console.log('Order confirmation email result:', emailResult);
+      } catch (emailError) {
+        console.error('Error sending order confirmation email:', emailError);
+      }
+
       if (orderOptions?.paymentMethod !== 'paguelo_facil') {
         clearCart();
       }

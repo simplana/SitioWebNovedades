@@ -100,7 +100,7 @@ export const useAuth = () => {
 
   const signUpWithEmail = async (email: string, password: string, metadata?: any) => {
     setAuthState(prev => ({ ...prev, loading: true, error: null }));
-    
+
     // Check if Supabase is configured
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
       const error = new Error('Supabase no está configurado. Por favor configura las variables de entorno.');
@@ -121,6 +121,32 @@ export const useAuth = () => {
     if (error) {
       setAuthState(prev => ({ ...prev, error, loading: false }));
       return { data: null, error };
+    }
+
+    // Send welcome email after successful signup
+    if (data?.user) {
+      try {
+        const welcomeEmailResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-welcome-email`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              userId: data.user.id,
+              email: data.user.email,
+              name: metadata?.full_name || data.user.email?.split('@')[0] || 'Usuario'
+            })
+          }
+        );
+
+        const emailResult = await welcomeEmailResponse.json();
+        console.log('Welcome email result:', emailResult);
+      } catch (emailError) {
+        console.error('Error sending welcome email:', emailError);
+      }
     }
 
     return { data, error: null };
