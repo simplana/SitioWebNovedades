@@ -71,11 +71,11 @@ supabase secrets set RESEND_API_KEY=re_tu_api_key_aqui
 # Value: tu_api_key_de_resend
 ```
 
-4. Verifica tu dominio en Resend (opcional pero recomendado)
+4. Verifica tu dominio de Gmail en Resend
+   - El sistema está configurado para usar: `novedades.mariareinadelapaz@gmail.com`
    - Ve a Domains en Resend
-   - Añade tu dominio (ej: novedadescatolicas.com)
-   - Configura los registros DNS que te proporcionen
-   - Actualiza el "from" email en `send-order-confirmation-email/index.ts`
+   - Añade gmail.com como dominio verificado (o usa el dominio predeterminado de Resend)
+   - Nota: Gmail personal tiene limitaciones. Para producción, considera usar un dominio propio
 
 #### Opción B: Usar SMTP Personalizado de Supabase
 
@@ -217,8 +217,8 @@ O desde tu panel de admin, si creas una interfaz para ello.
    - Para producción, considera un plan de pago
 
 3. **Personalización del Remitente**:
-   - Con Resend, puedes usar `pedidos@novedadescatolicas.com`
-   - Necesitas verificar tu dominio primero
+   - El sistema usa: `novedades.mariareinadelapaz@gmail.com`
+   - Para producción, considera verificar un dominio propio en Resend
 
 4. **Testing**:
    - En desarrollo, usa un email de prueba
