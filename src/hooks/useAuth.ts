@@ -118,6 +118,16 @@ export const useAuth = () => {
       }
     });
 
+    // Ignore email confirmation errors since we disabled confirmations
+    if (error && error.message.includes('Error sending confirmation email')) {
+      console.warn('Email confirmation disabled - proceeding with signup');
+      // If we got a user despite the email error, treat it as success
+      if (data?.user) {
+        setAuthState(prev => ({ ...prev, loading: false, error: null }));
+        return { data, error: null };
+      }
+    }
+
     if (error) {
       setAuthState(prev => ({ ...prev, error, loading: false }));
       return { data: null, error };
