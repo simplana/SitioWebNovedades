@@ -72,7 +72,7 @@ supabase secrets set RESEND_API_KEY=re_tu_api_key_aqui
 ```
 
 4. Verifica tu dominio de Gmail en Resend
-   - El sistema está configurado para usar: `novedades.mariareinadelapaz@gmail.com`
+   - El sistema está configurado para usar: `contacto.novedadescatolicas@gmail.com`
    - Ve a Domains en Resend
    - Añade gmail.com como dominio verificado (o usa el dominio predeterminado de Resend)
    - Nota: Gmail personal tiene limitaciones. Para producción, considera usar un dominio propio
@@ -217,7 +217,7 @@ O desde tu panel de admin, si creas una interfaz para ello.
    - Para producción, considera un plan de pago
 
 3. **Personalización del Remitente**:
-   - El sistema usa: `novedades.mariareinadelapaz@gmail.com`
+   - El sistema usa: `contacto.novedadescatolicas@gmail.com`
    - Para producción, considera verificar un dominio propio en Resend
 
 4. **Testing**:
