@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import PagueloFacilTestButton from '../components/PagueloFacilTestButton';
 import DevTools from './Admin/DevTools';
+import EmailTest from './Admin/EmailTest';
 import { useAuth } from '../hooks/useAuth';
 import AuthModal from '../components/AuthModal';
 import { supabase } from '../lib/supabase';
@@ -78,7 +79,7 @@ interface Order {
 const Admin = () => {
   const { user, loading } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'quotes' | 'orders' | 'dev'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'quotes' | 'orders' | 'dev' | 'emails'>('overview');
   const [quoteRequests, setQuoteRequests] = useState<QuoteRequest[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -377,6 +378,16 @@ const Admin = () => {
               }`}
             >
               Pedidos ({activeOrders})
+            </button>
+            <button
+              onClick={() => setActiveTab('emails')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'emails'
+                  ? 'border-gold text-gold'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Sistema de Emails
             </button>
             <button
               onClick={() => setActiveTab('dev')}
@@ -827,6 +838,11 @@ const Admin = () => {
               ))}
             </div>
           </div>
+        )}
+
+        {/* Email Test Tab */}
+        {activeTab === 'emails' && (
+          <EmailTest />
         )}
 
         {/* Dev Tools Tab */}
