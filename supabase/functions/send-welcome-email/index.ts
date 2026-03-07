@@ -77,20 +77,48 @@ Deno.serve(async (req: Request) => {
 
     let subject = template.subject;
 
-    // Send email using Supabase's built-in email service
-    const { error: emailError } = await supabaseClient.auth.admin.generateLink({
-      type: 'email',
-      email: email,
-      options: {
-        redirectTo: websiteUrl,
+    // Send email using Resend API
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+
+    let emailSent = false;
+    let emailError = null;
+
+    if (resendApiKey) {
+      try {
+        const resendResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${resendApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "Novedades Católicas <contacto.novedadescatolicas@gmail.com>",
+            to: [email],
+            subject: subject,
+            html: htmlBody,
+            text: textBody,
+          }),
+        });
+
+        const resendData = await resendResponse.json();
+
+        if (resendResponse.ok) {
+          emailSent = true;
+          console.log("Welcome email sent successfully via Resend:", resendData);
+        } else {
+          emailError = resendData.message || "Failed to send email via Resend";
+          console.error("Resend API error:", resendData);
+        }
+      } catch (error) {
+        emailError = error.message;
+        console.error("Error sending email via Resend:", error);
       }
-    });
+    } else {
+      emailError = "RESEND_API_KEY not configured";
+      console.warn("RESEND_API_KEY not found. Email not sent.");
+    }
 
-    // Since Supabase Auth doesn't support custom email content via API,
-    // we'll log the email for now and you'll need to configure SMTP settings
-    // in your Supabase dashboard to customize emails
-
-    // Log the email
+    // Log the email attempt
     const { error: logError } = await supabaseClient
       .from("email_logs")
       .insert({
@@ -98,8 +126,8 @@ Deno.serve(async (req: Request) => {
         email_type: "welcome_email",
         recipient_email: email,
         subject: subject,
-        status: emailError ? "failed" : "success",
-        error_message: emailError?.message || null,
+        status: emailSent ? "success" : "failed",
+        error_message: emailError,
         metadata: {
           name: name,
           template_used: "welcome_email"
@@ -112,15 +140,17 @@ Deno.serve(async (req: Request) => {
 
     return new Response(
       JSON.stringify({
-        success: !emailError,
-        message: emailError
-          ? "Failed to send welcome email"
-          : "Welcome email sent successfully",
-        error: emailError?.message || null,
-        note: "To customize email templates, configure SMTP settings in Supabase Dashboard > Authentication > Email Templates"
+        success: emailSent,
+        message: emailSent
+          ? "Welcome email sent successfully"
+          : "Failed to send welcome email",
+        error: emailError,
+        note: resendApiKey
+          ? null
+          : "Configure RESEND_API_KEY secret in Supabase to enable email sending. Get your API key from https://resend.com"
       }),
       {
-        status: emailError ? 500 : 200,
+        status: emailSent ? 200 : 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
