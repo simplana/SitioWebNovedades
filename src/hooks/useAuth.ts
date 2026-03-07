@@ -123,7 +123,39 @@ export const useAuth = () => {
       console.warn('Email confirmation disabled - proceeding with signup');
       // If we got a user despite the email error, treat it as success
       if (data?.user) {
-        setAuthState(prev => ({ ...prev, loading: false, error: null }));
+        setAuthState(prev => ({
+          ...prev,
+          loading: false,
+          error: null,
+          user: data.user,
+          session: data.session,
+          emailVerified: true  // Mark as verified since confirmations are disabled
+        }));
+
+        // Send welcome email
+        try {
+          const welcomeEmailResponse = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-welcome-email`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+              body: JSON.stringify({
+                userId: data.user.id,
+                email: data.user.email,
+                name: metadata?.full_name || data.user.email?.split('@')[0] || 'Usuario'
+              })
+            }
+          );
+
+          const emailResult = await welcomeEmailResponse.json();
+          console.log('Welcome email result:', emailResult);
+        } catch (emailError) {
+          console.error('Error sending welcome email:', emailError);
+        }
+
         return { data, error: null };
       }
     }

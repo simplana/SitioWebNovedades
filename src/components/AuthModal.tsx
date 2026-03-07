@@ -87,12 +87,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode = 's
         if (!error) {
           onClose();
 
+          // Redirect to the stored path or home page (no email verification needed)
           const redirectPath = sessionStorage.getItem('redirectAfterLogin');
           if (redirectPath) {
             sessionStorage.removeItem('redirectAfterLogin');
             navigate(redirectPath);
           } else {
-            navigate('/auth/verify-email');
+            navigate('/');
           }
         } else {
           console.error('Error de registro:', error.message);
