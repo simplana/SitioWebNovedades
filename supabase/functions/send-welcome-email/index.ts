@@ -92,7 +92,7 @@ Deno.serve(async (req: Request) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: "Novedades Católicas <contacto.novedadescatolicas@gmail.com>",
+            from: "Novedades Católicas <onboarding@resend.dev>",
             to: [email],
             subject: subject,
             html: htmlBody,
