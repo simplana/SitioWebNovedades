@@ -121,7 +121,7 @@ const Restauraciones = () => {
                       </div>
                       <div className="relative bg-gray-50 rounded-lg p-4">
                         <img
-                          src="/image copy copy.png"
+                          src="https://images.pexels.com/photos/8989587/pexels-photo-8989587.jpeg?auto=compress&cs=tinysrgb&w=800"
                           alt="Antes de la restauración"
                           className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
                           style={{ maxHeight: '600px' }}
@@ -138,7 +138,7 @@ const Restauraciones = () => {
                       </div>
                       <div className="relative bg-gray-50 rounded-lg p-4">
                         <img
-                          src="/image copy copy copy.png"
+                          src="https://images.pexels.com/photos/6985003/pexels-photo-6985003.jpeg?auto=compress&cs=tinysrgb&w=800"
                           alt="Después de la restauración"
                           className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
                           style={{ maxHeight: '600px' }}
@@ -162,7 +162,7 @@ const Restauraciones = () => {
                       </div>
                       <div className="relative bg-gray-50 rounded-lg p-4">
                         <img
-                          src="/image copy copy copy copy.png"
+                          src="https://images.pexels.com/photos/5206044/pexels-photo-5206044.jpeg?auto=compress&cs=tinysrgb&w=800"
                           alt="Antes de la restauración"
                           className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
                           style={{ maxHeight: '600px' }}
@@ -179,7 +179,7 @@ const Restauraciones = () => {
                       </div>
                       <div className="relative bg-gray-50 rounded-lg p-4">
                         <img
-                          src="/image copy copy copy copy copy.png"
+                          src="https://images.pexels.com/photos/8989574/pexels-photo-8989574.jpeg?auto=compress&cs=tinysrgb&w=800"
                           alt="Después de la restauración"
                           className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
                           style={{ maxHeight: '600px' }}
@@ -203,7 +203,7 @@ const Restauraciones = () => {
                       </div>
                       <div className="relative bg-gray-50 rounded-lg p-4">
                         <img
-                          src="/image copy copy copy copy copy copy copy.png"
+                          src="https://images.pexels.com/photos/6546283/pexels-photo-6546283.jpeg?auto=compress&cs=tinysrgb&w=800"
                           alt="Antes de la restauración"
                           className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
                           style={{ maxHeight: '600px' }}
@@ -220,7 +220,7 @@ const Restauraciones = () => {
                       </div>
                       <div className="relative bg-gray-50 rounded-lg p-4">
                         <img
-                          src="/image copy copy copy copy copy copy copy copy.png"
+                          src="https://images.pexels.com/photos/8989574/pexels-photo-8989574.jpeg?auto=compress&cs=tinysrgb&w=800"
                           alt="Después de la restauración"
                           className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
                           style={{ maxHeight: '600px' }}

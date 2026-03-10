@@ -152,7 +152,7 @@ const Blog = () => {
                 
                 <div className="order-1 lg:order-2">
                   <img
-                    src="/WhatsApp Image 2025-08-26 at 2.47.04 PM copy copy.jpeg"
+                    src={latestMessage.image}
                     alt="Nuestra Señora de Medjugorje"
                     className="w-full h-full object-cover rounded-2xl shadow-divine"
                   />
@@ -179,7 +179,7 @@ const Blog = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-1">
                     <img
-                      src="/WhatsApp Image 2025-08-26 at 2.47.04 PM copy copy.jpeg"
+                      src={message.image}
                       alt="Nuestra Señora de Medjugorje"
                       className="w-full h-64 object-cover rounded-xl shadow-sacred"
                     />
