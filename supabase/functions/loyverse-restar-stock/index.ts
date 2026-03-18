@@ -131,24 +131,67 @@ Deno.serve(async (req: Request) => {
       }
 
       try {
-        // Call Loyverse API to update inventory
-        const inventoryUrl = `https://api.loyverse.com/v1.0/inventory`;
-        const inventoryResponse = await fetch(inventoryUrl, {
+        // First, GET current inventory level
+        const getInventoryUrl = `https://api.loyverse.com/v1.0/inventory?store_ids=${storeId}&variant_ids=${item.loyverse_variant_id}`;
+        const getInventoryResponse = await fetch(getInventoryUrl, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${access_token}`,
+          },
+        });
+
+        if (!getInventoryResponse.ok) {
+          const errorText = await getInventoryResponse.text();
+          console.error(
+            `Failed to get inventory for ${item.product_name}:`,
+            errorText
+          );
+          results.push({
+            product_name: item.product_name,
+            variant_id: item.loyverse_variant_id,
+            status: "failed",
+            error: `Failed to get current stock: ${errorText}`,
+          });
+          continue;
+        }
+
+        const inventoryData = await getInventoryResponse.json();
+
+        if (!inventoryData.inventory_levels || inventoryData.inventory_levels.length === 0) {
+          console.error(`No inventory data found for ${item.product_name}`);
+          results.push({
+            product_name: item.product_name,
+            variant_id: item.loyverse_variant_id,
+            status: "failed",
+            error: "No inventory data found",
+          });
+          continue;
+        }
+
+        const currentStock = inventoryData.inventory_levels[0].in_stock;
+        const newStock = currentStock - item.quantity;
+
+        // Now POST to update inventory with new stock level
+        const updateInventoryUrl = `https://api.loyverse.com/v1.0/inventory`;
+        const updateInventoryResponse = await fetch(updateInventoryUrl, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${access_token}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            variant_id: item.loyverse_variant_id,
-            store_id: storeId,
-            change: -item.quantity,
-            reason: "SOLD",
+            inventory_levels: [
+              {
+                variant_id: item.loyverse_variant_id,
+                store_id: storeId,
+                stock_after: newStock,
+              },
+            ],
           }),
         });
 
-        if (!inventoryResponse.ok) {
-          const errorText = await inventoryResponse.text();
+        if (!updateInventoryResponse.ok) {
+          const errorText = await updateInventoryResponse.text();
           console.error(
             `Failed to update inventory for ${item.product_name}:`,
             errorText
@@ -160,13 +203,15 @@ Deno.serve(async (req: Request) => {
             error: errorText,
           });
         } else {
-          const inventoryData = await inventoryResponse.json();
+          const updateData = await updateInventoryResponse.json();
           results.push({
             product_name: item.product_name,
             variant_id: item.loyverse_variant_id,
             status: "success",
+            previous_stock: currentStock,
             quantity_reduced: item.quantity,
-            data: inventoryData,
+            new_stock: newStock,
+            data: updateData,
           });
         }
       } catch (error) {
