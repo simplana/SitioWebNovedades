@@ -10,6 +10,7 @@ export interface LoyverseProduct {
   description?: string;
   isNew?: boolean;
   isFeatured?: boolean;
+  variantId?: string;
   variants?: LoyverseVariant[];
   availableForSale?: boolean;
   trackStock?: boolean;
@@ -104,6 +105,7 @@ export const useLoyverseProducts = () => {
           availableForSale: firstVariant?.stores?.[0]?.available_for_sale ?? true,
           trackStock: item.track_stock ?? false,
           options: firstVariant?.option1_value || undefined,
+          variantId: firstVariant?.variant_id || undefined,
           isNew: false,
           isFeatured: false,
           variants: item.variants?.map((variant: any) => ({
