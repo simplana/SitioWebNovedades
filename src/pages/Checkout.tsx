@@ -56,6 +56,8 @@ const Checkout = () => {
     ancho: 25,
     largo: 30,
   });
+  const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
+  const shippingCalculationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -231,49 +233,71 @@ const Checkout = () => {
   const total = subtotal + shippingCost;
 
   useEffect(() => {
-    const calculateShipping = async () => {
-      console.log('🚚 Shipping calculation triggered');
-      console.log('📍 Delivery method:', customerInfo.deliveryMethod);
-      console.log('📍 Province:', customerInfo.province);
-      console.log('📍 Corregimiento:', customerInfo.corregimiento);
-      console.log('💰 Subtotal:', subtotal);
+    // Clear any pending timeout
+    if (shippingCalculationTimeoutRef.current) {
+      clearTimeout(shippingCalculationTimeoutRef.current);
+    }
 
-      if (
-        customerInfo.deliveryMethod === 'delivery' &&
-        customerInfo.province &&
-        customerInfo.corregimiento
-      ) {
-        console.log('✅ All conditions met - calling getCotizacion');
+    // Debounce shipping calculation to prevent excessive API calls
+    shippingCalculationTimeoutRef.current = setTimeout(() => {
+      const calculateShipping = async () => {
+        if (isCalculatingShipping) return;
 
-        const response = await getCotizacion({
-          ciu_ori: 'ANCON',
-          provincia_ori: 'PANAMA',
-          ciu_des: customerInfo.corregimiento,
-          provincia_des: customerInfo.province,
-          valor_declarado: subtotal,
-          peso: 5,
-        });
+        console.log('🚚 Shipping calculation triggered');
+        console.log('📍 Delivery method:', customerInfo.deliveryMethod);
+        console.log('📍 Province:', customerInfo.province);
+        console.log('📍 Corregimiento:', customerInfo.corregimiento);
+        console.log('💰 Subtotal:', subtotal);
 
-        console.log('📦 Cotizacion response:', response);
+        if (
+          customerInfo.deliveryMethod === 'delivery' &&
+          customerInfo.province &&
+          customerInfo.corregimiento
+        ) {
+          console.log('✅ All conditions met - calling getCotizacion');
+          setIsCalculatingShipping(true);
 
-        if (response.success && response.cotizacion) {
-          console.log('✅ Shipping cost calculated:', response.cotizacion.gtotal);
-          setShippingCost(response.cotizacion.gtotal);
-          setShippingDetails(response.cotizacion);
-        } else {
-          console.error('❌ Error getting cotizacion:', response.error);
+          try {
+            const response = await getCotizacion({
+              ciu_ori: 'ANCON',
+              provincia_ori: 'PANAMA',
+              ciu_des: customerInfo.corregimiento,
+              provincia_des: customerInfo.province,
+              valor_declarado: subtotal,
+              peso: 5,
+            });
+
+            console.log('📦 Cotizacion response:', response);
+
+            if (response.success && response.cotizacion) {
+              console.log('✅ Shipping cost calculated:', response.cotizacion.gtotal);
+              setShippingCost(response.cotizacion.gtotal);
+              setShippingDetails(response.cotizacion);
+            } else {
+              console.error('❌ Error getting cotizacion:', response.error);
+              setShippingCost(0);
+            }
+          } finally {
+            setIsCalculatingShipping(false);
+          }
+        } else if (customerInfo.deliveryMethod === 'pickup') {
+          console.log('📍 Pickup method selected - setting shipping to 0');
           setShippingCost(0);
+          setShippingDetails(null);
+        } else {
+          console.log('⏸️ Waiting for delivery method and location selection');
         }
-      } else if (customerInfo.deliveryMethod === 'pickup') {
-        console.log('📍 Pickup method selected - setting shipping to 0');
-        setShippingCost(0);
-        setShippingDetails(null);
-      } else {
-        console.log('⏸️ Waiting for delivery method and location selection');
+      };
+
+      calculateShipping();
+    }, 500); // 500ms debounce
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (shippingCalculationTimeoutRef.current) {
+        clearTimeout(shippingCalculationTimeoutRef.current);
       }
     };
-
-    calculateShipping();
   }, [customerInfo.province, customerInfo.corregimiento, customerInfo.deliveryMethod, subtotal]);
 
   const [isInitialized, setIsInitialized] = React.useState(false);
