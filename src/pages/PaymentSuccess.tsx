@@ -69,7 +69,13 @@ const PaymentSuccess = () => {
           console.log('✅ Order already validated, skipping payment verification');
           setPaymentVerified(true);
           setOrderDetails(existingOrder);
-          clearCart();
+
+          // Clear cart with a small delay to ensure storage key is correct
+          setTimeout(() => {
+            clearCart();
+            console.log('🧹 Cart cleared after validation check');
+          }, 100);
+
           setLoading(false);
           return;
         }
@@ -82,7 +88,12 @@ const PaymentSuccess = () => {
       if (isDemo) {
         console.log('🎭 DEMO MODE - Simulando verificación exitosa');
         setPaymentVerified(true);
-        clearCart();
+
+        // Clear cart with a small delay to ensure storage key is correct
+        setTimeout(() => {
+          clearCart();
+          console.log('🧹 Cart cleared (DEMO mode)');
+        }, 100);
 
         if (orderId) {
           updateOrderStatus({
@@ -176,7 +187,12 @@ const PaymentSuccess = () => {
         if (result.success && result.paymentStatus === 'approved') {
           setPaymentVerified(true);
           setTransactionDetails(result.transaction);
-          clearCart();
+
+          // Clear cart with a small delay to ensure storage key is correct
+          setTimeout(() => {
+            clearCart();
+            console.log('🧹 Cart cleared after successful payment');
+          }, 100);
 
           updateOrderStatus({
             orderId,

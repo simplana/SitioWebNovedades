@@ -228,9 +228,25 @@ export const useCart = () => {
   }, [getStorageKey, removeFromCart]);
 
   const clearCart = useCallback(() => {
+    console.log('🧹 Clearing cart...');
     const storageKey = getStorageKey();
+    console.log('🔑 Storage key:', storageKey);
+
+    // Clear the current storage key
     saveCartToStorage([], storageKey);
     setItems([]); // Force immediate local update
+
+    // Also clear the generic cart key in case it's being used
+    if (storageKey !== 'novedades-catolicas-cart') {
+      try {
+        localStorage.removeItem('novedades-catolicas-cart');
+        console.log('🧹 Also cleared generic cart key');
+      } catch (error) {
+        console.error('Error clearing generic cart:', error);
+      }
+    }
+
+    console.log('✅ Cart cleared successfully');
   }, [getStorageKey]);
 
   const getTotalItems = useCallback(() => {
