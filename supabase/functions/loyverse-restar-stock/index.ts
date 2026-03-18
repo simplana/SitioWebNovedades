@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,21 +56,21 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Get access token from loyverse-token-refresh function
-    const tokenRefreshUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/loyverse-token-refresh`;
-    const tokenResponse = await fetch(tokenRefreshUrl, {
-      method: "POST",
-      headers: {
-        Authorization: req.headers.get("Authorization") || "",
-        "Content-Type": "application/json",
-      },
-    });
+    // Get access token directly from database (active credentials)
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error("Failed to get access token:", errorText);
+    const { data: credentials, error: credError } = await supabase
+      .from("loyverse_credentials")
+      .select("access_token")
+      .eq("is_active", true)
+      .single();
+
+    if (credError || !credentials) {
+      console.error("No active Loyverse credentials found:", credError);
       return new Response(
-        JSON.stringify({ error: "Failed to get access token" }),
+        JSON.stringify({ error: "No active Loyverse credentials configured" }),
         {
           status: 500,
           headers: {
@@ -80,7 +81,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { access_token } = await tokenResponse.json();
+    const access_token = credentials.access_token;
+    console.log("Using access token from active credentials (length:", access_token?.length, ")");
 
     // Process each item and reduce stock
     const results = [];
