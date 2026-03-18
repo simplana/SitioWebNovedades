@@ -94,6 +94,11 @@ export const useLoyverseProducts = () => {
       const loyverseProducts: LoyverseProduct[] = items.map((item: any) => {
         const firstVariant = item.variants?.[0];
 
+        console.log(`[useLoyverse] Processing item: ${item.item_name}`);
+        console.log(`[useLoyverse] - Has variants:`, !!item.variants);
+        console.log(`[useLoyverse] - First variant:`, firstVariant);
+        console.log(`[useLoyverse] - Variant ID:`, firstVariant?.variant_id);
+
         return {
           id: item.id,
           name: item.item_name || item.name || 'Producto sin nombre',

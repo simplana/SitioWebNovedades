@@ -54,6 +54,11 @@ const ProductDetail = () => {
 
   const handleAddToCart = () => {
     if (!isOutOfStock) {
+      console.log('[ProductDetail] Adding to cart:');
+      console.log('[ProductDetail] - Product:', product.name);
+      console.log('[ProductDetail] - Product variantId:', product.variantId);
+      console.log('[ProductDetail] - Full product object:', product);
+
       addToCart({
         id: product.id,
         name: product.name,

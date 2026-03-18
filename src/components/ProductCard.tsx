@@ -14,6 +14,7 @@ interface Product {
   availableForSale?: boolean;
   trackStock?: boolean;
   options?: string;
+  variantId?: string;
 }
 
 interface ProductCardProps {
@@ -39,13 +40,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className = '' }) =>
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     console.log('🛒 ProductCard: Adding to cart:', product.name);
+    console.log('🛒 ProductCard: Product variantId:', product.variantId);
     addToCart({
       id: product.id,
       name: product.name,
       price: product.price,
       sku: product.sku,
       image: product.image,
-      options: product.options
+      options: product.options,
+      loyverse_variant_id: product.variantId
     });
     
     // Force a small delay to ensure state updates

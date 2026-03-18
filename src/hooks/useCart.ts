@@ -166,15 +166,18 @@ export const useCart = () => {
   };
 
   const addToCart = useCallback((product: Omit<CartItem, 'quantity'>, quantity: number = 1) => {
+    console.log('[useCart] addToCart called with product:', product);
+    console.log('[useCart] - loyverse_variant_id:', product.loyverse_variant_id);
+
     const storageKey = getStorageKey();
     const currentItems = loadCartFromStorage(storageKey);
-    
-    const existingItemIndex = currentItems.findIndex(item => 
+
+    const existingItemIndex = currentItems.findIndex(item =>
       item.id === product.id && item.options === product.options
     );
-    
+
     let newItems: CartItem[];
-    
+
     if (existingItemIndex >= 0) {
       newItems = currentItems.map((item, index) =>
         index === existingItemIndex
@@ -184,7 +187,10 @@ export const useCart = () => {
     } else {
       newItems = [...currentItems, { ...product, quantity }];
     }
-    
+
+    console.log('[useCart] New items to save:', newItems);
+    console.log('[useCart] Last item variant ID:', newItems[newItems.length - 1]?.loyverse_variant_id);
+
     // Save and force immediate update
     saveCartToStorage(newItems, storageKey);
     setItems([...newItems]); // Force immediate local update
@@ -298,17 +304,24 @@ export const useCart = () => {
 
       if (orderError) throw orderError;
 
-      const orderItemsData = items.map(item => ({
-        order_id: createdOrder.id,
-        product_id: item.id,
-        product_name: item.name,
-        product_sku: item.sku,
-        product_image: item.image,
-        price: item.price,
-        quantity: item.quantity,
-        options: item.options || null,
-        loyverse_variant_id: item.loyverse_variant_id || null
-      }));
+      const orderItemsData = items.map(item => {
+        console.log('[useCart] Creating order item for:', item.name);
+        console.log('[useCart] - loyverse_variant_id:', item.loyverse_variant_id);
+
+        return {
+          order_id: createdOrder.id,
+          product_id: item.id,
+          product_name: item.name,
+          product_sku: item.sku,
+          product_image: item.image,
+          price: item.price,
+          quantity: item.quantity,
+          options: item.options || null,
+          loyverse_variant_id: item.loyverse_variant_id || null
+        };
+      });
+
+      console.log('[useCart] Order items data to insert:', orderItemsData);
 
       const { error: itemsError } = await supabase
         .from('order_items')
