@@ -5,32 +5,46 @@
 ### 1. PaymentSuccess.tsx - Loop Infinito de Actualización de Stock ✅
 
 **Problema:**
-- El `useEffect` se ejecutaba infinitamente porque tenía `updateOrderStatus` en sus dependencias
-- Cada vez que se actualizaba el estado, el useEffect se volvía a ejecutar
-- Causaba miles de llamadas a `loyverse-restar-stock`
+- El `useEffect` se ejecutaba MÚLTIPLES VECES por:
+  1. React Strict Mode en desarrollo (ejecuta useEffect 2 veces)
+  2. Dependencias `[paymentCode, orderId, stockUpdated]` causaban re-ejecuciones
+  3. Cualquier refresh o cambio en URL params volvía a ejecutar
+- Resultado: 4+ llamadas a `loyverse-restar-stock` reduciendo stock incorrectamente
 
-**Solución:**
-- Agregado flag `stockUpdated` para rastrear si ya se actualizó el stock
-- Verificación temprana `if (stockUpdated) return;` en el useEffect
-- Envolver las llamadas de stock en `if (!stockUpdated)`
-- Establecer `setStockUpdated(true)` después de cada actualización exitosa
-- Cambiar dependencias de `updateOrderStatus` a `stockUpdated`
+**Solución DEFINITIVA:**
+- Usar `useRef` en lugar de `useState` para el flag de verificación
+- `useRef` persiste entre renders pero NO causa re-renders
+- Array de dependencias VACÍO `[]` para ejecutar SOLO una vez
+- Verificación inmediata con `hasVerifiedPayment.current`
 
 **Código:**
 ```typescript
-const [stockUpdated, setStockUpdated] = useState(false);
+// Use ref instead of state - refs don't trigger re-renders
+const hasVerifiedPayment = useRef(false);
 
 useEffect(() => {
-  if (stockUpdated) return;
-
-  // ... código de verificación de pago
-
-  if (!stockUpdated) {
-    // llamada a loyverse-restar-stock
-    setStockUpdated(true);
+  // CRITICAL: Only run once, prevent double execution in React Strict Mode
+  if (hasVerifiedPayment.current) {
+    console.log('⚠️ Payment already verified, skipping duplicate call');
+    return;
   }
-}, [paymentCode, orderId, stockUpdated]);
+  hasVerifiedPayment.current = true;
+
+  const verifyPayment = async () => {
+    // ... código de verificación de pago
+    // llamada a loyverse-restar-stock (sin if, se ejecuta UNA vez)
+  };
+
+  verifyPayment();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []); // Empty deps - only run ONCE on mount
 ```
+
+**Por qué funciona:**
+- `useRef` NO está en las dependencias
+- Array vacío `[]` = solo ejecuta en mount
+- `hasVerifiedPayment.current` se verifica antes de CUALQUIER código
+- React Strict Mode ejecutará el useEffect 2 veces PERO el ref evita la segunda ejecución
 
 ### 2. Checkout.tsx - Llamadas Excesivas a calculate-shipping ✅
 

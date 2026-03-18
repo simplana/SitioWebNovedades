@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, ArrowRight, Package } from 'lucide-react';
 import { useOrderStatus } from '../hooks/useOrderStatus';
@@ -16,7 +16,9 @@ const PaymentSuccess = () => {
   const [error, setError] = useState<string | null>(null);
   const [transactionDetails, setTransactionDetails] = useState<any>(null);
   const [orderDetails, setOrderDetails] = useState<any>(null);
-  const [stockUpdated, setStockUpdated] = useState(false);
+
+  // Use ref to ensure payment verification only runs ONCE, ever
+  const hasVerifiedPayment = useRef(false);
 
   const orderId = searchParams.get('orderId');
   const paymentCode = searchParams.get('Oper');
@@ -24,7 +26,12 @@ const PaymentSuccess = () => {
   const isDemo = searchParams.get('demo') === 'true';
 
   useEffect(() => {
-    if (stockUpdated) return;
+    // CRITICAL: Only run once, prevent double execution in React Strict Mode
+    if (hasVerifiedPayment.current) {
+      console.log('⚠️ Payment already verified, skipping duplicate call');
+      return;
+    }
+    hasVerifiedPayment.current = true;
     const loadOrderDetails = async () => {
       if (!orderId) return;
 
@@ -60,44 +67,42 @@ const PaymentSuccess = () => {
           });
 
           // Reduce stock in Loyverse after successful payment (DEMO mode)
-          if (!stockUpdated) {
-            try {
-              const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-              const orderResponse = await supabase
-                .from('orders')
-                .select(`
-                  *,
-                  order_items (*)
-                `)
-                .eq('order_number', orderId)
-                .maybeSingle();
+          try {
+            const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+            const orderResponse = await supabase
+              .from('orders')
+              .select(`
+                *,
+                order_items (*)
+              `)
+              .eq('order_number', orderId)
+              .maybeSingle();
 
-              if (orderResponse.data && orderResponse.data.order_items) {
-                const orderItems = orderResponse.data.order_items.map((item: any) => ({
-                  loyverse_variant_id: item.loyverse_variant_id,
-                  quantity: item.quantity,
-                  product_name: item.product_name
-                }));
+            if (orderResponse.data && orderResponse.data.order_items) {
+              const orderItems = orderResponse.data.order_items.map((item: any) => ({
+                loyverse_variant_id: item.loyverse_variant_id,
+                quantity: item.quantity,
+                product_name: item.product_name
+              }));
 
-                const stockResponse = await fetch(
-                  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/loyverse-restar-stock`,
-                  {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${anonKey}`,
-                    },
-                    body: JSON.stringify({ order_items: orderItems }),
-                  }
-                );
+              console.log('🔥 CALLING loyverse-restar-stock (DEMO) - THIS SHOULD ONLY HAPPEN ONCE');
+              const stockResponse = await fetch(
+                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/loyverse-restar-stock`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${anonKey}`,
+                  },
+                  body: JSON.stringify({ order_items: orderItems }),
+                }
+              );
 
-                const stockResult = await stockResponse.json();
-                console.log('✅ Stock update result (DEMO):', stockResult);
-                setStockUpdated(true);
-              }
-            } catch (stockError) {
-              console.error('Error updating Loyverse stock (DEMO):', stockError);
+              const stockResult = await stockResponse.json();
+              console.log('✅ Stock update result (DEMO):', stockResult);
             }
+          } catch (stockError) {
+            console.error('Error updating Loyverse stock (DEMO):', stockError);
           }
         }
 
@@ -149,43 +154,41 @@ const PaymentSuccess = () => {
           });
 
           // Reduce stock in Loyverse after successful payment
-          if (!stockUpdated) {
-            try {
-              const orderResponse = await supabase
-                .from('orders')
-                .select(`
-                  *,
-                  order_items (*)
-                `)
-                .eq('order_number', orderId)
-                .maybeSingle();
+          try {
+            const orderResponse = await supabase
+              .from('orders')
+              .select(`
+                *,
+                order_items (*)
+              `)
+              .eq('order_number', orderId)
+              .maybeSingle();
 
-              if (orderResponse.data && orderResponse.data.order_items) {
-                const orderItems = orderResponse.data.order_items.map((item: any) => ({
-                  loyverse_variant_id: item.loyverse_variant_id,
-                  quantity: item.quantity,
-                  product_name: item.product_name
-                }));
+            if (orderResponse.data && orderResponse.data.order_items) {
+              const orderItems = orderResponse.data.order_items.map((item: any) => ({
+                loyverse_variant_id: item.loyverse_variant_id,
+                quantity: item.quantity,
+                product_name: item.product_name
+              }));
 
-                const stockResponse = await fetch(
-                  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/loyverse-restar-stock`,
-                  {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${anonKey}`,
-                    },
-                    body: JSON.stringify({ order_items: orderItems }),
-                  }
-                );
+              console.log('🔥 CALLING loyverse-restar-stock - THIS SHOULD ONLY HAPPEN ONCE');
+              const stockResponse = await fetch(
+                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/loyverse-restar-stock`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${anonKey}`,
+                  },
+                  body: JSON.stringify({ order_items: orderItems }),
+                }
+              );
 
-                const stockResult = await stockResponse.json();
-                console.log('✅ Stock update result:', stockResult);
-                setStockUpdated(true);
-              }
-            } catch (stockError) {
-              console.error('Error updating Loyverse stock:', stockError);
+              const stockResult = await stockResponse.json();
+              console.log('✅ Stock update result:', stockResult);
             }
+          } catch (stockError) {
+            console.error('Error updating Loyverse stock:', stockError);
           }
         } else if (result.orderDeleted) {
           setError('Tu pago fue rechazado y la orden ha sido cancelada. Por favor intenta nuevamente.');
@@ -215,7 +218,8 @@ const PaymentSuccess = () => {
     };
 
     verifyPayment();
-  }, [paymentCode, orderId, stockUpdated]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run ONCE on mount
 
   if (loading) {
     return (
