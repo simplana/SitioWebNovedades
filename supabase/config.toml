@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.send-order-confirmation-email]
 verify_jwt = false
+
+[functions.loyverse-update-inventory]
+verify_jwt = false

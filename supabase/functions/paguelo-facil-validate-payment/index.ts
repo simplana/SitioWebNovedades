@@ -233,6 +233,38 @@ Deno.serve(async (req: Request) => {
       orderStatus: finalStatus === "approved" ? "processing" : "cancelled",
     });
 
+    if (finalStatus === "approved") {
+      try {
+        console.log("📦 Triggering inventory update for order:", orderId);
+
+        const inventoryResponse = await fetch(
+          `${SUPABASE_URL}/functions/v1/loyverse-update-inventory`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ order_number: orderId }),
+          }
+        );
+
+        const inventoryResult = await inventoryResponse.json();
+
+        if (inventoryResult.success) {
+          console.log("✅ Inventory updated:", {
+            total: inventoryResult.total_items,
+            successful: inventoryResult.successful,
+            failed: inventoryResult.failed,
+          });
+        } else {
+          console.error("⚠️ Inventory update failed:", inventoryResult.error);
+        }
+      } catch (inventoryError) {
+        console.error("⚠️ Error updating inventory (non-blocking):", inventoryError);
+      }
+    }
+
     const transactionDate = new Date(transaction.dateTms);
     const fecha = transactionDate.toLocaleDateString('es-PA', {
       year: 'numeric',
