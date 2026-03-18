@@ -11,6 +11,7 @@ export interface CartItem {
   image: string;
   options?: string;
   category?: string;
+  loyverse_variant_id?: string;
 }
 
 export interface Order {
@@ -305,7 +306,8 @@ export const useCart = () => {
         product_image: item.image,
         price: item.price,
         quantity: item.quantity,
-        options: item.options || null
+        options: item.options || null,
+        loyverse_variant_id: item.loyverse_variant_id || null
       }));
 
       const { error: itemsError } = await supabase

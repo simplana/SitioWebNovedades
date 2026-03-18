@@ -60,16 +60,17 @@ const ProductDetail = () => {
         price: product.price,
         sku: product.sku || '',
         image: product.image,
-        options: product.options
+        options: product.options,
+        loyverse_variant_id: product.variantId
       }, quantity);
-      
+
       // Mostrar confirmación
       // Crear notificación temporal
       const notification = document.createElement('div');
       notification.innerHTML = `✅ ¡${product.name} agregado al carrito! (${quantity} unidades)`;
       notification.className = 'fixed top-20 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-bounce';
       document.body.appendChild(notification);
-      
+
       setTimeout(() => {
         if (document.body.contains(notification)) {
           document.body.removeChild(notification);

@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.send-order-confirmation-email]
 verify_jwt = false
+
+[functions.loyverse-restar-stock]
+verify_jwt = true
