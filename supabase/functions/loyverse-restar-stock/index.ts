@@ -55,19 +55,38 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Get access token from loyverse-token-refresh function
-    const tokenRefreshUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/loyverse-token-refresh`;
-    const tokenResponse = await fetch(tokenRefreshUrl, {
-      method: "POST",
-      headers: {
-        Authorization: req.headers.get("Authorization") || "",
-        "Content-Type": "application/json",
-      },
-    });
+    // Get active access token from database
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error("Failed to get access token:", errorText);
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Supabase configuration missing");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        {
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
+    // Query loyverse_credentials for the active token
+    const credentialsResponse = await fetch(
+      `${supabaseUrl}/rest/v1/loyverse_credentials?is_active=eq.true&select=access_token`,
+      {
+        headers: {
+          apikey: supabaseServiceKey,
+          Authorization: `Bearer ${supabaseServiceKey}`,
+        },
+      }
+    );
+
+    if (!credentialsResponse.ok) {
+      const errorText = await credentialsResponse.text();
+      console.error("Failed to fetch active token:", errorText);
       return new Response(
         JSON.stringify({ error: "Failed to get access token" }),
         {
@@ -80,7 +99,23 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { access_token } = await tokenResponse.json();
+    const credentials = await credentialsResponse.json();
+
+    if (!credentials || credentials.length === 0) {
+      console.error("No active Loyverse token found");
+      return new Response(
+        JSON.stringify({ error: "No active Loyverse token found" }),
+        {
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
+    const access_token = credentials[0].access_token;
 
     // Process each item and reduce stock
     const results = [];
@@ -107,7 +142,7 @@ Deno.serve(async (req: Request) => {
           body: JSON.stringify({
             variant_id: item.loyverse_variant_id,
             store_id: storeId,
-            change: -item.quantity, // Negative to reduce stock
+            change: -item.quantity,
             reason: "SOLD",
           }),
         });
