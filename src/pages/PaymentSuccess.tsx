@@ -4,12 +4,14 @@ import { CheckCircle, ArrowRight, Package } from 'lucide-react';
 import { useOrderStatus } from '../hooks/useOrderStatus';
 import { useCart } from '../hooks/useCart';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../hooks/useAuth';
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { updateOrderStatus } = useOrderStatus();
   const { clearCart } = useCart();
+  const { user } = useAuth();
 
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -19,11 +21,44 @@ const PaymentSuccess = () => {
 
   // Use ref to ensure payment verification only runs ONCE, ever
   const hasVerifiedPayment = useRef(false);
+  const hasCartBeenCleared = useRef(false);
 
   const orderId = searchParams.get('orderId');
   const paymentCode = searchParams.get('Oper');
   const estado = searchParams.get('Estado');
   const isDemo = searchParams.get('demo') === 'true';
+
+  // Helper function to clear cart reliably
+  const clearCartReliably = () => {
+    if (hasCartBeenCleared.current) {
+      console.log('⚠️ Cart already cleared, skipping');
+      return;
+    }
+
+    console.log('🧹 Clearing cart reliably...');
+    hasCartBeenCleared.current = true;
+
+    // Clear using the hook
+    clearCart();
+
+    // Also directly clear from localStorage as a fallback
+    setTimeout(() => {
+      try {
+        const userCartKey = user ? `cart_user_${user.id}` : null;
+        const genericCartKey = 'novedades-catolicas-cart';
+
+        if (userCartKey) {
+          localStorage.removeItem(userCartKey);
+          console.log(`🧹 Directly removed ${userCartKey}`);
+        }
+        localStorage.removeItem(genericCartKey);
+        console.log(`🧹 Directly removed ${genericCartKey}`);
+        console.log('✅ Cart cleared successfully via direct localStorage removal');
+      } catch (error) {
+        console.error('Error clearing cart directly:', error);
+      }
+    }, 200);
+  };
 
   useEffect(() => {
     // CRITICAL: Only run once, prevent double execution in React Strict Mode
@@ -69,13 +104,7 @@ const PaymentSuccess = () => {
           console.log('✅ Order already validated, skipping payment verification');
           setPaymentVerified(true);
           setOrderDetails(existingOrder);
-
-          // Clear cart with a small delay to ensure storage key is correct
-          setTimeout(() => {
-            clearCart();
-            console.log('🧹 Cart cleared after validation check');
-          }, 100);
-
+          clearCartReliably();
           setLoading(false);
           return;
         }
@@ -88,12 +117,7 @@ const PaymentSuccess = () => {
       if (isDemo) {
         console.log('🎭 DEMO MODE - Simulando verificación exitosa');
         setPaymentVerified(true);
-
-        // Clear cart with a small delay to ensure storage key is correct
-        setTimeout(() => {
-          clearCart();
-          console.log('🧹 Cart cleared (DEMO mode)');
-        }, 100);
+        clearCartReliably();
 
         if (orderId) {
           updateOrderStatus({
@@ -187,12 +211,7 @@ const PaymentSuccess = () => {
         if (result.success && result.paymentStatus === 'approved') {
           setPaymentVerified(true);
           setTransactionDetails(result.transaction);
-
-          // Clear cart with a small delay to ensure storage key is correct
-          setTimeout(() => {
-            clearCart();
-            console.log('🧹 Cart cleared after successful payment');
-          }, 100);
+          clearCartReliably();
 
           updateOrderStatus({
             orderId,
