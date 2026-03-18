@@ -38,26 +38,54 @@ const PaymentSuccess = () => {
     console.log('🧹 Clearing cart reliably...');
     hasCartBeenCleared.current = true;
 
-    // Clear using the hook
-    clearCart();
+    // First attempt: Clear using the hook
+    try {
+      clearCart();
+      console.log('✅ clearCart() hook called');
+    } catch (error) {
+      console.error('Error calling clearCart():', error);
+    }
 
-    // Also directly clear from localStorage as a fallback
+    // Second attempt: Aggressively clear ALL possible cart keys from localStorage
+    // This runs immediately (not in setTimeout) to ensure it happens before any navigation
+    try {
+      // Clear the generic cart key
+      localStorage.removeItem('novedades-catolicas-cart');
+      console.log('🧹 Removed: novedades-catolicas-cart');
+
+      // Clear user-specific cart key if user exists
+      if (user?.id) {
+        const userCartKey = `cart_user_${user.id}`;
+        localStorage.removeItem(userCartKey);
+        console.log(`🧹 Removed: ${userCartKey}`);
+      }
+
+      // Aggressively clear ALL cart-related keys (nuclear option)
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach(key => {
+        if (key.includes('cart') || key.includes('novedades-catolicas')) {
+          localStorage.removeItem(key);
+          console.log(`🧹 Removed (aggressive): ${key}`);
+        }
+      });
+
+      console.log('✅ Cart cleared successfully via direct localStorage removal');
+    } catch (error) {
+      console.error('Error clearing cart directly:', error);
+    }
+
+    // Third attempt: Double-check after a short delay
     setTimeout(() => {
       try {
-        const userCartKey = user ? `cart_user_${user.id}` : null;
-        const genericCartKey = 'novedades-catolicas-cart';
-
-        if (userCartKey) {
-          localStorage.removeItem(userCartKey);
-          console.log(`🧹 Directly removed ${userCartKey}`);
+        localStorage.removeItem('novedades-catolicas-cart');
+        if (user?.id) {
+          localStorage.removeItem(`cart_user_${user.id}`);
         }
-        localStorage.removeItem(genericCartKey);
-        console.log(`🧹 Directly removed ${genericCartKey}`);
-        console.log('✅ Cart cleared successfully via direct localStorage removal');
+        console.log('✅ Cart cleared again (delayed verification)');
       } catch (error) {
-        console.error('Error clearing cart directly:', error);
+        console.error('Error in delayed cart clear:', error);
       }
-    }, 200);
+    }, 500);
   };
 
   useEffect(() => {
