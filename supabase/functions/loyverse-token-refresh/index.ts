@@ -69,7 +69,6 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           message: "Token is still valid",
-          access_token: credentials.access_token,
           expires_in_hours: hoursUntilExpiry.toFixed(2),
           expires_in_minutes: minutesUntilExpiry.toFixed(2),
           token_expiry: tokenExpiry.toISOString(),
@@ -222,7 +221,6 @@ Deno.serve(async (req: Request) => {
       JSON.stringify({
         success: true,
         message: "Token refreshed successfully",
-        access_token: tokenData.access_token,
         refresh_reason: refreshReason,
         connection_id: credentials.connection_id,
         old_expiry: credentials.token_expiry,
