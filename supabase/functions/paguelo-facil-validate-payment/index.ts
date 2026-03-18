@@ -209,6 +209,7 @@ Deno.serve(async (req: Request) => {
       .update({
         payment_status: finalStatus === "approved" ? "completed" : "failed",
         status: finalStatus === "approved" ? "processing" : "cancelled",
+        is_validated: true,
       })
       .eq("order_number", orderId);
 

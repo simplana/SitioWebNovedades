@@ -51,6 +51,32 @@ const PaymentSuccess = () => {
     };
 
     const verifyPayment = async () => {
+      // First, check if order has already been validated
+      if (!orderId) {
+        setError('Código de pago u orden no encontrado');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data: existingOrder } = await supabase
+          .from('orders')
+          .select('is_validated, payment_status, order_number')
+          .eq('order_number', orderId)
+          .maybeSingle();
+
+        if (existingOrder?.is_validated) {
+          console.log('✅ Order already validated, skipping payment verification');
+          setPaymentVerified(true);
+          setOrderDetails(existingOrder);
+          clearCart();
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Error checking order validation status:', err);
+      }
+
       await loadOrderDetails();
 
       if (isDemo) {
@@ -65,6 +91,12 @@ const PaymentSuccess = () => {
             paymentStatus: 'completed',
             notes: `Pago DEMO confirmado exitosamente - Modo demostración`
           });
+
+          // Mark order as validated in database
+          await supabase
+            .from('orders')
+            .update({ is_validated: true })
+            .eq('order_number', orderId);
 
           // Reduce stock in Loyverse after successful payment (DEMO mode)
           try {
@@ -152,6 +184,12 @@ const PaymentSuccess = () => {
             paymentStatus: 'completed',
             notes: `Pago confirmado - ${result.transaction.tipo} (${paymentCode})`
           });
+
+          // Mark order as validated in database
+          await supabase
+            .from('orders')
+            .update({ is_validated: true })
+            .eq('order_number', orderId);
 
           // Reduce stock in Loyverse after successful payment
           try {
