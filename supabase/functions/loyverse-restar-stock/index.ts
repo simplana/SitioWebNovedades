@@ -27,6 +27,8 @@ Deno.serve(async (req: Request) => {
   try {
     const { order_items }: RequestBody = await req.json();
 
+    console.log('📦 Received order_items:', JSON.stringify(order_items, null, 2));
+
     if (!order_items || !Array.isArray(order_items) || order_items.length === 0) {
       return new Response(
         JSON.stringify({ error: "order_items array is required" }),
@@ -169,7 +171,13 @@ Deno.serve(async (req: Request) => {
         }
 
         const currentStock = inventoryData.inventory_levels[0].in_stock;
-        const newStock = currentStock - item.quantity;
+        const quantityToReduce = Number(item.quantity);
+        const newStock = currentStock - quantityToReduce;
+
+        console.log(`Processing ${item.product_name}:`);
+        console.log(`- Current stock: ${currentStock} (type: ${typeof currentStock})`);
+        console.log(`- Quantity to reduce: ${item.quantity} (type: ${typeof item.quantity}) -> ${quantityToReduce}`);
+        console.log(`- New stock will be: ${newStock}`);
 
         // Now POST to update inventory with new stock level
         const updateInventoryUrl = `https://api.loyverse.com/v1.0/inventory`;
