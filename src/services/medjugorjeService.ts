@@ -1,3 +1,6 @@
+// Imagen fija y persistente para todos los mensajes de la Virgen
+const MEDJUGORJE_MESSAGE_IMAGE = 'https://iabrhkvwhmliemgioxce.supabase.co/storage/v1/object/public/restorations/messages/virgen-medjugorje.jpg';
+
 interface MedjugorjeMessage {
   id: string;
   title: string;
@@ -174,9 +177,7 @@ class MedjugorjeService {
               message: this.cleanMessage(messageText),
               excerpt: this.createExcerpt(messageText),
               isLatest: isLatest,
-              image: isLatest 
-                ? 'https://images.pexels.com/photos/8989574/pexels-photo-8989574.jpeg?auto=compress&cs=tinysrgb&w=800'
-                : this.getRandomImage(),
+              image: MEDJUGORJE_MESSAGE_IMAGE,
               category: this.categorizeSpanishMessage(messageText, dateText),
               originalDate: this.parseSpanishDateToDate(dateText)
             };
@@ -471,15 +472,10 @@ class MedjugorjeService {
     });
   }
 
-  // 🖼️ IMAGE SELECTOR - Obtener imagen aleatoria
+  // 🖼️ IMAGE SELECTOR - Obtener imagen desde Supabase Storage
   private getRandomImage(): string {
-    const images = [
-      'https://images.pexels.com/photos/6985003/pexels-photo-6985003.jpeg?auto=compress&cs=tinysrgb&w=800',
-      'https://images.pexels.com/photos/5206044/pexels-photo-5206044.jpeg?auto=compress&cs=tinysrgb&w=800',
-      'https://images.pexels.com/photos/8989587/pexels-photo-8989587.jpeg?auto=compress&cs=tinysrgb&w=800',
-      'https://images.pexels.com/photos/6546283/pexels-photo-6546283.jpeg?auto=compress&cs=tinysrgb&w=800'
-    ];
-    return images[Math.floor(Math.random() * images.length)];
+    // Siempre retornar la misma imagen persistente desde Supabase Storage
+    return MEDJUGORJE_MESSAGE_IMAGE;
   }
 
   // 🔍 NEW MESSAGE DETECTOR - Verificar nuevos mensajes
@@ -543,7 +539,7 @@ Por favor, visita directamente: https://www.medjugorje.ws/en/messages/latest-mes
 
 O intenta actualizar esta página más tarde para obtener los mensajes más recientes.`,
         isLatest: true,
-        image: 'https://images.pexels.com/photos/8989574/pexels-photo-8989574.jpeg?auto=compress&cs=tinysrgb&w=800',
+        image: MEDJUGORJE_MESSAGE_IMAGE,
         originalDate: new Date()
       }
     ];
@@ -581,3 +577,4 @@ O intenta actualizar esta página más tarde para obtener los mensajes más reci
 
 export const medjugorjeService = new MedjugorjeService();
 export type { MedjugorjeMessage };
+export { MEDJUGORJE_MESSAGE_IMAGE };
