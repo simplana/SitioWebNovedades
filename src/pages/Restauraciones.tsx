@@ -127,7 +127,7 @@ const Restauraciones = () => {
                             src={example.before}
                             alt="Antes de la restauración"
                             className="w-full h-auto object-cover mx-auto rounded-lg shadow-md"
-                            style={{ maxHeight: '600px' }}
+                            style={{ maxHeight: '600px', objectPosition: 'top center' }}
                           />
                         </div>
                       </div>
@@ -144,7 +144,7 @@ const Restauraciones = () => {
                             src={example.after}
                             alt="Después de la restauración"
                             className="w-full h-auto object-cover mx-auto rounded-lg shadow-md"
-                            style={{ maxHeight: '600px' }}
+                            style={{ maxHeight: '600px', objectPosition: 'top center' }}
                           />
                         </div>
                       </div>
