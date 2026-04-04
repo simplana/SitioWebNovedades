@@ -59,13 +59,16 @@ const Restauraciones = () => {
 
   const restorationExamples = [
     {
-      id: 1,
-      title: 'Restauración de Imagen del Sagrado Corazón',
-      beforeImage: 'https://images.pexels.com/photos/8989587/pexels-photo-8989587.jpeg?auto=compress&cs=tinysrgb&w=400',
-      afterImage: 'https://images.pexels.com/photos/6985003/pexels-photo-6985003.jpeg?auto=compress&cs=tinysrgb&w=400',
-      description: 'Restauración completa de pintura y marco dorado de imagen familiar del siglo XIX.',
-      duration: '15 días',
-      category: 'Imágenes Religiosas'
+      before: "https://iabrhkvwhmliemgioxce.supabase.co/storage/v1/object/public/restorations/examples/set-1-before.jpg",
+      after: "https://iabrhkvwhmliemgioxce.supabase.co/storage/v1/object/public/restorations/examples/set-1-after.jpg"
+    },
+    {
+      before: "https://iabrhkvwhmliemgioxce.supabase.co/storage/v1/object/public/restorations/examples/set-2-before.jpg",
+      after: "https://iabrhkvwhmliemgioxce.supabase.co/storage/v1/object/public/restorations/examples/set-2-after.jpg"
+    },
+    {
+      before: "https://iabrhkvwhmliemgioxce.supabase.co/storage/v1/object/public/restorations/examples/set-3-before.jpg",
+      after: "https://iabrhkvwhmliemgioxce.supabase.co/storage/v1/object/public/restorations/examples/set-3-after.jpg"
     }
   ];
 
@@ -108,128 +111,47 @@ const Restauraciones = () => {
             </h2>
             
             <div className="space-y-12">
-              {/* Ejemplo 1: Imagen del Sagrado Corazón */}
-              <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* ANTES */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-center">
-                        <div className="bg-red-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
-                          ANTES DE LA RESTAURACIÓN
+              {restorationExamples.map((example, index) => (
+                <div key={index} className="bg-white rounded-lg shadow-lg overflow-hidden">
+                  <div className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* ANTES */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-center">
+                          <div className="bg-red-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
+                            ANTES DE LA RESTAURACIÓN
+                          </div>
+                        </div>
+                        <div className="relative bg-gray-50 rounded-lg p-4">
+                          <img
+                            src={example.before}
+                            alt="Antes de la restauración"
+                            className="w-full h-auto object-cover mx-auto rounded-lg shadow-md"
+                            style={{ maxHeight: '600px' }}
+                          />
                         </div>
                       </div>
-                      <div className="relative bg-gray-50 rounded-lg p-4">
-                        <img
-                          src="https://images.pexels.com/photos/8989587/pexels-photo-8989587.jpeg?auto=compress&cs=tinysrgb&w=800"
-                          alt="Antes de la restauración"
-                          className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
-                          style={{ maxHeight: '600px' }}
-                        />
-                      </div>
-                    </div>
 
-                    {/* DESPUÉS */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-center">
-                        <div className="bg-green-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
-                          DESPUÉS DE LA RESTAURACIÓN
+                      {/* DESPUÉS */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-center">
+                          <div className="bg-green-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
+                            DESPUÉS DE LA RESTAURACIÓN
+                          </div>
                         </div>
-                      </div>
-                      <div className="relative bg-gray-50 rounded-lg p-4">
-                        <img
-                          src="https://images.pexels.com/photos/6985003/pexels-photo-6985003.jpeg?auto=compress&cs=tinysrgb&w=800"
-                          alt="Después de la restauración"
-                          className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
-                          style={{ maxHeight: '600px' }}
-                        />
+                        <div className="relative bg-gray-50 rounded-lg p-4">
+                          <img
+                            src={example.after}
+                            alt="Después de la restauración"
+                            className="w-full h-auto object-cover mx-auto rounded-lg shadow-md"
+                            style={{ maxHeight: '600px' }}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Ejemplo 2: Crucifijo Antiguo */}
-              <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* ANTES */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-center">
-                        <div className="bg-red-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
-                          ANTES DE LA RESTAURACIÓN
-                        </div>
-                      </div>
-                      <div className="relative bg-gray-50 rounded-lg p-4">
-                        <img
-                          src="https://images.pexels.com/photos/5206044/pexels-photo-5206044.jpeg?auto=compress&cs=tinysrgb&w=800"
-                          alt="Antes de la restauración"
-                          className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
-                          style={{ maxHeight: '600px' }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* DESPUÉS */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-center">
-                        <div className="bg-green-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
-                          DESPUÉS DE LA RESTAURACIÓN
-                        </div>
-                      </div>
-                      <div className="relative bg-gray-50 rounded-lg p-4">
-                        <img
-                          src="https://images.pexels.com/photos/8989574/pexels-photo-8989574.jpeg?auto=compress&cs=tinysrgb&w=800"
-                          alt="Después de la restauración"
-                          className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
-                          style={{ maxHeight: '600px' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Ejemplo 3: Rosario de Perlas */}
-              <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* ANTES */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-center">
-                        <div className="bg-red-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
-                          ANTES DE LA RESTAURACIÓN
-                        </div>
-                      </div>
-                      <div className="relative bg-gray-50 rounded-lg p-4">
-                        <img
-                          src="https://images.pexels.com/photos/6546283/pexels-photo-6546283.jpeg?auto=compress&cs=tinysrgb&w=800"
-                          alt="Antes de la restauración"
-                          className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
-                          style={{ maxHeight: '600px' }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* DESPUÉS */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-center">
-                        <div className="bg-green-500 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg">
-                          DESPUÉS DE LA RESTAURACIÓN
-                        </div>
-                      </div>
-                      <div className="relative bg-gray-50 rounded-lg p-4">
-                        <img
-                          src="https://images.pexels.com/photos/8989574/pexels-photo-8989574.jpeg?auto=compress&cs=tinysrgb&w=800"
-                          alt="Después de la restauración"
-                          className="w-full h-auto object-contain mx-auto rounded-lg shadow-md"
-                          style={{ maxHeight: '600px' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
