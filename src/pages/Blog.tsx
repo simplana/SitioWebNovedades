@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 import { useMedjugorjeMessages } from '../hooks/useMedjugorjeMessages';
 import { RefreshCw } from 'lucide-react';
 
+// URL fija y persistente para la imagen de la Virgen de Medjugorje desde Supabase Storage
+const VIRGEN_MEDJUGORJE_IMAGE = 'https://iabrhkvwhmliemgioxce.supabase.co/storage/v1/object/public/restorations/messages/virgen-medjugorje.jpg';
+
 const Blog = () => {
   const [expandedMessage, setExpandedMessage] = useState<string | null>(null);
   
@@ -152,7 +155,7 @@ const Blog = () => {
                 
                 <div className="order-1 lg:order-2">
                   <img
-                    src={latestMessage.image}
+                    src={VIRGEN_MEDJUGORJE_IMAGE}
                     alt="Nuestra Señora de Medjugorje"
                     className="w-full h-full object-cover rounded-2xl shadow-divine"
                   />
@@ -179,7 +182,7 @@ const Blog = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-1">
                     <img
-                      src={message.image}
+                      src={VIRGEN_MEDJUGORJE_IMAGE}
                       alt="Nuestra Señora de Medjugorje"
                       className="w-full h-64 object-cover rounded-xl shadow-sacred"
                     />
