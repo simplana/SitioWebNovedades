@@ -105,8 +105,7 @@ const Contact = () => {
                 <div>
                   <h3 className="font-semibold text-navy mb-2">Correo Electrónico</h3>
                   <p className="text-gray-700">
-                    novedades.mariareinadelapaz@hotmail.com<br />
-                    novedadesmariareinadelapaz@gmail.com
+                    contacto.novedadescatolicas@gmail.com
                   </p>
                 </div>
               </div>

@@ -121,8 +121,7 @@ const Footer = () => {
               <div className="flex items-start space-x-3">
                 <Mail className="h-5 w-5 text-divine-gold mt-0.5 flex-shrink-0" />
                 <span className="text-navy-devotion opacity-80 text-sm">
-                  novedades.mariareinadelapaz@hotmail.com<br />
-                  novedadesmariareinadelapaz@gmail.com
+                  contacto.novedadescatolicas@gmail.com
                 </span>
               </div>
               <div className="flex items-start space-x-3">
