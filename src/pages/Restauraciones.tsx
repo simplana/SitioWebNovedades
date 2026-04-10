@@ -89,28 +89,37 @@ const Restauraciones = () => {
     setErrorMsg('');
 
     try {
-      const { data: inserted, error: insertError } = await supabase
-        .from('quote_requests')
-        .insert({
-          customer_name: formData.name,
-          customer_phone: formData.phone,
-          customer_email: formData.email || null,
-          description: formData.description,
-          photos: [],
-          status: 'pending',
-        })
-        .select('id')
-        .single();
-
-      if (insertError) throw insertError;
-
       let photoUrls: string[] = [];
+
       if (selectedFiles.length > 0) {
-        photoUrls = await uploadPhotos(inserted.id);
-        await supabase
+        const tempId = crypto.randomUUID();
+        photoUrls = await uploadPhotos(tempId);
+
+        const { error: insertError } = await supabase
           .from('quote_requests')
-          .update({ photos: photoUrls })
-          .eq('id', inserted.id);
+          .insert({
+            customer_name: formData.name,
+            customer_phone: formData.phone,
+            customer_email: formData.email || null,
+            description: formData.description,
+            photos: photoUrls,
+            status: 'pending',
+          });
+
+        if (insertError) throw insertError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('quote_requests')
+          .insert({
+            customer_name: formData.name,
+            customer_phone: formData.phone,
+            customer_email: formData.email || null,
+            description: formData.description,
+            photos: [],
+            status: 'pending',
+          });
+
+        if (insertError) throw insertError;
       }
 
       setSubmitStatus('success');
@@ -118,8 +127,13 @@ const Restauraciones = () => {
       setSelectedFiles([]);
       setPreviewUrls([]);
     } catch (err: any) {
+      console.error('Error al enviar solicitud:', err);
       setSubmitStatus('error');
-      setErrorMsg('No se pudo enviar la solicitud. Por favor intenta nuevamente.');
+      setErrorMsg(
+        err?.message?.includes('storage')
+          ? 'No se pudieron subir las fotos. Verifica el formato e intenta de nuevo.'
+          : 'No se pudo enviar la solicitud. Por favor intenta nuevamente.'
+      );
     } finally {
       setSubmitting(false);
     }
