@@ -26,6 +26,7 @@ import {
 import PagueloFacilTestButton from '../components/PagueloFacilTestButton';
 import DevTools from './Admin/DevTools';
 import EmailTest from './Admin/EmailTest';
+import ContactMessages from './Admin/ContactMessages';
 import { useAuth } from '../hooks/useAuth';
 import AuthModal from '../components/AuthModal';
 import { supabase } from '../lib/supabase';
@@ -79,7 +80,7 @@ interface Order {
 const Admin = () => {
   const { user, loading } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'quotes' | 'orders' | 'dev' | 'emails'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'quotes' | 'orders' | 'messages' | 'dev' | 'emails'>('overview');
   const [quoteRequests, setQuoteRequests] = useState<QuoteRequest[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -378,6 +379,16 @@ const Admin = () => {
               }`}
             >
               Pedidos ({activeOrders})
+            </button>
+            <button
+              onClick={() => setActiveTab('messages')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'messages'
+                  ? 'border-gold text-gold'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Mensajes de Contacto
             </button>
             <button
               onClick={() => setActiveTab('emails')}
@@ -838,6 +849,11 @@ const Admin = () => {
               ))}
             </div>
           </div>
+        )}
+
+        {/* Contact Messages Tab */}
+        {activeTab === 'messages' && (
+          <ContactMessages />
         )}
 
         {/* Email Test Tab */}
