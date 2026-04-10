@@ -3,19 +3,16 @@ import {
   Users,
   Package,
   FileText,
-  TrendingUp,
-  Eye,
-  CheckCircle,
-  Clock,
+
   Truck,
   DollarSign,
   Calendar,
   Search,
-  Filter,
+
   Download,
   Phone,
   Mail,
-  TestTube,
+
   AlertCircle,
   Lock,
   LogIn,
@@ -27,22 +24,10 @@ import PagueloFacilTestButton from '../components/PagueloFacilTestButton';
 import DevTools from './Admin/DevTools';
 import EmailTest from './Admin/EmailTest';
 import ContactMessages from './Admin/ContactMessages';
+import RestorationRequests from './Admin/RestorationRequests';
 import { useAuth } from '../hooks/useAuth';
 import AuthModal from '../components/AuthModal';
 import { supabase } from '../lib/supabase';
-
-interface QuoteRequest {
-  id: string;
-  customerName: string;
-  phone: string;
-  email: string;
-  description: string;
-  photos: string[];
-  status: 'pending' | 'quoted' | 'approved' | 'completed';
-  createdAt: string;
-  estimatedPrice?: number;
-  estimatedDays?: number;
-}
 
 interface OrderItem {
   id: string;
@@ -81,7 +66,6 @@ const Admin = () => {
   const { user, loading } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'quotes' | 'orders' | 'messages' | 'dev' | 'emails'>('overview');
-  const [quoteRequests, setQuoteRequests] = useState<QuoteRequest[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -256,13 +240,6 @@ const Admin = () => {
     }
   };
 
-  const filteredQuotes = quoteRequests.filter(quote => {
-    const matchesSearch = quote.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         quote.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || quote.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -272,7 +249,6 @@ const Admin = () => {
   });
 
   const totalRevenue = orders.reduce((sum, order) => sum + parseFloat(order.total.toString()) + (order.shippingCost || 0), 0);
-  const pendingQuotes = quoteRequests.filter(q => q.status === 'pending').length;
   const activeOrders = orders.filter(o =>
     o.status === 'payment_pending' ||
     o.status === 'payment_confirmed' ||
@@ -368,7 +344,7 @@ const Admin = () => {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Cotizaciones ({pendingQuotes})
+              Cotizaciones
             </button>
             <button
               onClick={() => setActiveTab('orders')}
@@ -482,7 +458,7 @@ const Admin = () => {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">Cotizaciones Pendientes</p>
-                    <p className="text-2xl font-bold text-gray-900">{pendingQuotes}</p>
+                    <p className="text-2xl font-bold text-gray-900">—</p>
                   </div>
                 </div>
               </div>
@@ -527,110 +503,9 @@ const Admin = () => {
           </div>
         )}
 
-        {/* Quotes Tab */}
+        {/* Quotes / Restoration Requests Tab */}
         {activeTab === 'quotes' && (
-          <div className="space-y-6">
-            {/* Filters */}
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <input
-                    type="text"
-                    placeholder="Buscar cotizaciones..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
-                  />
-                </div>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-gold focus:border-transparent"
-                >
-                  <option value="all">Todos los estados</option>
-                  <option value="pending">Pendientes</option>
-                  <option value="quoted">Cotizados</option>
-                  <option value="approved">Aprobados</option>
-                  <option value="completed">Completados</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Quotes List */}
-            <div className="space-y-4">
-              {filteredQuotes.length === 0 ? (
-                <div className="bg-white rounded-lg shadow-md p-12 text-center">
-                  <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay cotizaciones</h3>
-                  <p className="text-gray-500">Las solicitudes de cotización aparecerán aquí</p>
-                </div>
-              ) : filteredQuotes.map((quote) => (
-                <div key={quote.id} className="bg-white rounded-lg shadow-md p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-semibold text-lg text-navy">{quote.id}</h3>
-                      <p className="text-gray-600">{quote.customerName}</p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(quote.status)}`}>
-                      {getStatusText(quote.status)}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="font-medium text-navy mb-2">Información del Cliente</h4>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex items-center space-x-2">
-                          <Phone className="h-4 w-4 text-gray-400" />
-                          <span>{quote.phone}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Mail className="h-4 w-4 text-gray-400" />
-                          <span>{quote.email}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          <span>{quote.createdAt}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium text-navy mb-2">Detalles del Trabajo</h4>
-                      <p className="text-sm text-gray-700 mb-2">{quote.description}</p>
-                      {quote.photos.length > 0 && (
-                        <p className="text-sm text-blue-600">📸 {quote.photos.length} foto(s) adjunta(s)</p>
-                      )}
-                      {quote.estimatedPrice && (
-                        <div className="mt-2 text-sm">
-                          <span className="font-medium">Precio estimado: </span>
-                          <span className="text-gold font-bold">${quote.estimatedPrice}</span>
-                        </div>
-                      )}
-                      {quote.estimatedDays && (
-                        <div className="text-sm">
-                          <span className="font-medium">Tiempo estimado: </span>
-                          <span>{quote.estimatedDays} días</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end space-x-3 mt-4 pt-4 border-t">
-                    <button className="flex items-center space-x-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200">
-                      <Eye className="h-4 w-4" />
-                      <span>Ver Detalles</span>
-                    </button>
-                    <button className="flex items-center space-x-2 px-4 py-2 bg-gold hover:bg-yellow-500 text-navy rounded-lg transition-colors duration-200">
-                      <CheckCircle className="h-4 w-4" />
-                      <span>Actualizar Estado</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <RestorationRequests />
         )}
 
         {/* Orders Tab */}
