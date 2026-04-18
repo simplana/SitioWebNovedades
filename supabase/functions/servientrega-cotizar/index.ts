@@ -35,45 +35,34 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req: Request) => {
-  console.log("🚀 Servientrega Cotizar - Request received");
-  console.log("📍 Method:", req.method);
-  console.log("📍 URL:", req.url);
+  console.log("Servientrega Cotizar - Request received");
+  console.log("Method:", req.method);
+  console.log("URL:", req.url);
 
   if (req.method === "OPTIONS") {
-    console.log("✅ OPTIONS request - returning CORS headers");
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
+    console.log("OPTIONS request");
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
-    console.log("🔐 Checking Servientrega credentials...");
+    console.log("Checking Servientrega credentials...");
     const usuario = Deno.env.get("SERVIENTREGA_USUARIO");
     const contrasena = Deno.env.get("SERVIENTREGA_CONTRASENA");
 
-    console.log("📋 Usuario exists:", !!usuario);
-    console.log("📋 Contrasena exists:", !!contrasena);
+    console.log("Usuario exists:", !!usuario);
+    console.log("Contrasena exists:", !!contrasena);
 
     if (!usuario || !contrasena) {
-      console.error("❌ Servientrega credentials not configured");
+      console.error("Missing Servientrega credentials");
       return new Response(
-        JSON.stringify({
-          error: "Servientrega credentials not configured. Please contact administrator.",
-        }),
-        {
-          status: 500,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        }
+        JSON.stringify({ error: "Servientrega credentials not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("📦 Parsing request body...");
+    console.log("Parsing request body...");
     const body: CotizacionRequest = await req.json();
-    console.log("📦 Request body:", JSON.stringify(body, null, 2));
+    console.log("Request body:", JSON.stringify(body, null, 2));
 
     const {
       ciu_ori,
@@ -89,42 +78,9 @@ Deno.serve(async (req: Request) => {
       nombre_producto = "PREMIER-RESIDENCIAL",
     } = body;
 
-    console.log("✅ Credentials loaded successfully");
-    console.log("📦 Using dimensions - alto:", alto, "ancho:", ancho, "largo:", largo);
+    console.log("Dimensions:", { alto, ancho, largo });
 
-    if (!ciu_ori || !provincia_ori || !ciu_des || !provincia_des) {
-      console.error("❌ Missing location fields");
-      return new Response(
-        JSON.stringify({
-          error: "Missing required fields: ciu_ori, provincia_ori, ciu_des, provincia_des",
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    }
-
-    if (!valor_declarado || !peso) {
-      console.error("❌ Missing valor_declarado or peso");
-      return new Response(
-        JSON.stringify({
-          error: "Missing required fields: valor_declarado, peso",
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    }
-
-    console.log("📋 All required fields present");
+    console.log("Preparing Servientrega payload...");
 
     const servientregaPayload = {
       tipo: "obtener_tarifa_nacional",
@@ -143,74 +99,65 @@ Deno.serve(async (req: Request) => {
       contrasenha: contrasena,
     };
 
-    console.log("🌐 Calling Servientrega API with payload:", {
+    console.log("Sending payload:", {
       ...servientregaPayload,
       contrasenha: "***HIDDEN***",
     });
 
-    const servientregaResponse = await fetch(
+    const response = await fetch(
       "http://ws-servientrega.appsiscore.com/cotizador/ws_cotizador.php",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(servientregaPayload),
       }
     );
 
-    console.log("📡 Servientrega API response status:", servientregaResponse.status);
+    console.log("Servientrega response status:", response.status);
 
-    if (!servientregaResponse.ok) {
-      console.error("❌ Servientrega API error:", servientregaResponse.status, servientregaResponse.statusText);
-      const errorText = await servientregaResponse.text();
-      console.error("❌ Error response body:", errorText);
+    const rawText = await response.text();
+    console.log("Raw response:", rawText);
+
+    const cleanText = rawText.replace(/^\uFEFF/, "");
+    console.log("Clean response:", cleanText);
+
+    let cotizacion: CotizacionResponse;
+
+    try {
+      cotizacion = JSON.parse(cleanText);
+      console.log("Parsed JSON:", cotizacion);
+    } catch (err) {
+      console.error("JSON parse failed");
+      console.error("Error:", err);
       return new Response(
         JSON.stringify({
-          error: `Servientrega API error: ${servientregaResponse.status} ${servientregaResponse.statusText}`,
+          error: "Servientrega returned invalid JSON",
+          raw: cleanText,
         }),
-        {
-          status: servientregaResponse.status,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        }
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const cotizacionData: CotizacionResponse = await servientregaResponse.json();
-
-    console.log("✅ Servientrega API response:", JSON.stringify(cotizacionData, null, 2));
-    console.log("💰 Total calculated:", cotizacionData.gtotal);
+    console.log("Total (gtotal):", cotizacion.gtotal);
 
     return new Response(
       JSON.stringify({
         success: true,
-        cotizacion: cotizacionData,
+        gtotal: cotizacion.gtotal,
+        cotizacion,
       }),
       {
         status: 200,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   } catch (error) {
-    console.error("❌ Error in servientrega-cotizar function:", error);
-    console.error("❌ Error stack:", error instanceof Error ? error.stack : "No stack trace");
+    console.error("Unhandled error:", error);
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error occurred",
+        error: error instanceof Error ? error.message : "Unknown error",
       }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
