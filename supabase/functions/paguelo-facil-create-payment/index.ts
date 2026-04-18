@@ -13,7 +13,7 @@ if (!PAGUELO_FACIL_CCLW) {
 
 const PAGUELO_FACIL_API_URL =
   ENV === "production"
-    ? "https://paguelofacil.com/LinkDeamon.cfm"
+    ? "https://secure.paguelofacil.com/LinkDeamon.cfm"
     : "https://sandbox.paguelofacil.com/LinkDeamon.cfm";
 
 const corsHeaders = {
