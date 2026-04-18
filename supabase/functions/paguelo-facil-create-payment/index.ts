@@ -55,11 +55,22 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  console.log("📦 REQUEST BODY:", body);
+  console.log("📦 REQUEST BODY RAW:", JSON.stringify(body));
+  console.log("📦 body.amount:", body.amount, "| type:", typeof body.amount);
+  console.log("📦 body.description:", body.description, "| type:", typeof body.description);
+  console.log("📦 ALL KEYS:", Object.keys(body));
 
   if (!body.amount || !body.description) {
+    console.log("❌ VALIDATION FAILED - amount:", body.amount, "description:", body.description);
     return new Response(
-      JSON.stringify({ error: "Missing amount or description" }),
+      JSON.stringify({
+        error: "Missing amount or description",
+        received: {
+          amount: body.amount,
+          description: body.description,
+          allKeys: Object.keys(body)
+        }
+      }),
       {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
