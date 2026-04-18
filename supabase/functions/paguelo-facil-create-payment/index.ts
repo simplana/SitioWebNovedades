@@ -13,7 +13,7 @@ if (!PAGUELO_FACIL_CCLW) {
 
 const PAGUELO_FACIL_API_URL =
   ENV === "production"
-    ? "https://secure.paguelofacil.com/LinkDeamon.cfm"
+    ? "https://paguelofacil.com/LinkDeamon.cfm"
     : "https://sandbox.paguelofacil.com/LinkDeamon.cfm";
 
 const corsHeaders = {
@@ -55,7 +55,7 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  console.log("📦 REQUEST BODY:", JSON.stringify(body));
+  console.log("📦 REQUEST BODY:", body);
 
   if (!body.amount || !body.description) {
     return new Response(
