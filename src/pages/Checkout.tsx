@@ -230,7 +230,8 @@ const Checkout = () => {
   };
 
   const subtotal = getTotalPrice();
-  const total = subtotal + shippingCost;
+  const itbms = (subtotal + shippingCost) * 0.07;
+  const total = subtotal + shippingCost + itbms;
 
   useEffect(() => {
     // Clear any pending timeout
@@ -438,6 +439,7 @@ const Checkout = () => {
           `📦 PRODUCTOS ORDENADOS:\n${itemsList}\n\n` +
           `💰 SUBTOTAL: $${subtotal.toFixed(2)}\n` +
           `🚚 ENVÍO: $${shippingCost.toFixed(2)}\n` +
+          `🧾 ITBMS (7%): $${itbms.toFixed(2)}\n` +
           `💰 TOTAL: $${total.toFixed(2)}\n\n` +
           `💳 MÉTODO DE PAGO: Transferencia Bancaria\n\n` +
           `${customerInfo.notes ? `📝 NOTAS: ${customerInfo.notes}\n\n` : ''}` +
@@ -1098,6 +1100,10 @@ const Checkout = () => {
                   ) : (
                     <span className="text-sm text-stone-prayer">-</span>
                   )}
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-stone-prayer">ITBMS (7%):</span>
+                  <span className="font-semibold text-navy-devotion">${itbms.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center text-lg font-bold">
                   <span className="text-navy-devotion">Total:</span>
