@@ -262,7 +262,7 @@ const EmailTest = () => {
             ) : (
               <>
                 <Mail className="mr-2" size={20} />
-                Probar Email de Confirmación de Orden
+                Probar Email de Pedido Recibido
               </>
             )}
           </button>

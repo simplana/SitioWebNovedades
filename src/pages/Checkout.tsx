@@ -505,11 +505,11 @@ const Checkout = () => {
             </div>
             
             <h1 className="font-playfair text-3xl font-bold text-navy-devotion mb-4">
-              ¡Orden Confirmada!
+              ¡Recibimos tu pedido!
             </h1>
-            
+
             <p className="text-stone-prayer text-lg mb-6">
-              Tu orden <span className="font-semibold text-divine-gold">{completedOrder?.orderNumber}</span> ha sido procesada exitosamente.
+              Tu pedido <span className="font-semibold text-divine-gold">{completedOrder?.orderNumber}</span> fue recibido correctamente.
             </p>
             
             <div className="bg-celestial-gradient rounded-xl p-6 mb-8">

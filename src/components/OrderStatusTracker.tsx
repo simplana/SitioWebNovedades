@@ -99,10 +99,10 @@ const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({
               Estado Actual: {getStatusText(currentStatus)}
             </h4>
             <p className="text-sm text-gray-600">
-              {currentStatus === 'payment_pending' && paymentMethod === 'transfer' && 
-                'Esperando confirmación de transferencia bancaria'}
-              {currentStatus === 'payment_confirmed' && 
-                'Pago confirmado, procesaremos tu orden pronto'}
+              {currentStatus === 'payment_pending' && paymentMethod === 'transfer' &&
+                'Esperando verificación de transferencia bancaria'}
+              {currentStatus === 'payment_confirmed' &&
+                'Pedido recibido, lo procesaremos pronto'}
               {currentStatus === 'processing' && 
                 'Tu orden está siendo preparada'}
               {currentStatus === 'shipped' && 

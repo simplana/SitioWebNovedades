@@ -407,7 +407,7 @@ const Orders = () => {
                               <div className="bg-green-100 border border-green-300 rounded-lg p-3 mt-3">
                                 <p className="text-green-800 text-sm font-medium flex items-center gap-2">
                                   <CheckCircle className="h-4 w-4" />
-                                  Pago verificado y confirmado exitosamente
+                                  Pago recibido y verificado
                                 </p>
                               </div>
                             )}
