@@ -87,74 +87,6 @@ const EmailTest = () => {
     }
   };
 
-  const testOrderEmail = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    setTestResult(null);
-
-    try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-order-confirmation-email`;
-      console.log('Calling function:', url);
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          customerName: user.user_metadata?.full_name || 'Cliente Test',
-          customerEmail: user.email,
-          orderNumber: `TEST-${Date.now()}`,
-          orderDate: new Date().toLocaleDateString('es-ES', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          }),
-          total: 25.50,
-          status: 'Confirmada',
-          items: [
-            { name: 'Producto de Prueba', quantity: 1, price: 25.50 }
-          ]
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Function error:', errorText);
-        setTestResult({
-          success: false,
-          error: `HTTP ${response.status}: ${errorText || 'Error desconocido'}`,
-          message: 'La función de email no está disponible o no está desplegada'
-        });
-        setLoading(false);
-        return;
-      }
-
-      const result = await response.json();
-      console.log('Function response:', result);
-      setTestResult(result);
-
-      if (result.success) {
-        setResendConfigured(true);
-      } else if (result.error === 'RESEND_API_KEY not configured') {
-        setResendConfigured(false);
-      }
-
-      await loadEmailLogs();
-    } catch (error: any) {
-      console.error('Fetch error:', error);
-      setTestResult({
-        success: false,
-        error: error.message,
-        message: 'No se pudo conectar con la función de email. Verifica que esté desplegada.'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -173,8 +105,7 @@ const EmailTest = () => {
           <div className="bg-blue-100 p-4 rounded">
             <p className="font-semibold mb-2">Para desplegar las funciones, ejecuta en tu terminal:</p>
             <code className="block bg-blue-900 text-blue-100 p-3 rounded text-sm overflow-x-auto">
-              npx supabase functions deploy send-welcome-email --no-verify-jwt<br />
-              npx supabase functions deploy send-order-confirmation-email --no-verify-jwt
+              npx supabase functions deploy send-welcome-email --no-verify-jwt
             </code>
           </div>
           <p className="text-sm">
@@ -249,23 +180,6 @@ const EmailTest = () => {
             )}
           </button>
 
-          <button
-            onClick={testOrderEmail}
-            disabled={loading}
-            className="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            {loading ? (
-              <>
-                <RefreshCw className="animate-spin mr-2" size={20} />
-                Enviando...
-              </>
-            ) : (
-              <>
-                <Mail className="mr-2" size={20} />
-                Probar Email de Pedido Recibido
-              </>
-            )}
-          </button>
         </div>
       </div>
 
