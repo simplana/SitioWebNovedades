@@ -20,12 +20,10 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user from auth header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('No authorization header');
@@ -38,7 +36,6 @@ Deno.serve(async (req: Request) => {
       throw new Error('Unauthorized');
     }
 
-    // Verify user is admin
     const { data: adminCheck } = await supabase
       .from('admin_users')
       .select('email')
@@ -51,7 +48,6 @@ Deno.serve(async (req: Request) => {
 
     const { orderId }: GenerateGuideRequest = await req.json();
 
-    // Get order details
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select(`
@@ -65,7 +61,6 @@ Deno.serve(async (req: Request) => {
       throw new Error('Order not found');
     }
 
-    // Get Servientrega credentials from environment
     const servientregaUsername = Deno.env.get('SERVIENTREGA_USUARIO');
     const servientregaPassword = Deno.env.get('SERVIENTREGA_CONTRASENA');
 
@@ -73,14 +68,12 @@ Deno.serve(async (req: Request) => {
       throw new Error('Servientrega credentials not configured');
     }
 
-    // Get sender information from database
-    const { data: credentials, error: credError } = await supabase
+    const { data: credentials } = await supabase
       .from('servientrega_credentials')
       .select('*')
       .eq('is_active', true)
       .maybeSingle();
 
-    // Use defaults if not in database
     const senderInfo = credentials || {
       nombre_remite: 'Novedades Católicas',
       direccion_remite: 'Panama',
@@ -89,43 +82,35 @@ Deno.serve(async (req: Request) => {
       telefono_remite: ''
     };
 
-    // Parse shipping address to get distrito and provincia from order
-    // Format: "street houseNumber, corregimiento, distrito, provincia, Panama"
-    const addressParts = order.shipping_address?.split(',').map((s: string) => s.trim()) || [];
-    const provincia_destinatario = addressParts[3] || order.shipping_details?.provincia_des || 'PANAMA';
-    const distrito_destinatario = addressParts[2] || order.shipping_details?.ciu_des || '';
-    const direccion_destinatario = addressParts[0] || order.shipping_address || '';
+    // Use the full shipping address as-is
+    const direccion_destinatario = order.shipping_address || '';
 
-    // Calculate total pieces (quantity of items)
-    const totalPiezas = order.order_items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+    // Una sola guía por pedido = una sola pieza
+    const piezas = 1;
 
-    // Prepare item description
     const contiene = order.order_items
       .map((item: any) => `${item.quantity}x ${item.product_name}`)
       .join(', ')
-      .substring(0, 100); // Limit length
+      .substring(0, 100);
 
-    // Determine service type based on shipping details
     let servicio = 'SERVICIO AL DIA SIGUIENTE';
     if (order.shipping_details?.producto) {
       servicio = order.shipping_details.producto;
     }
 
-    // Determine transport type
     let transporte = 'TERRESTRE';
     if (order.shipping_details?.transporte) {
       transporte = order.shipping_details.transporte;
     }
 
-    // Build SOAP request
     const soapRequest = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
     <getXMLRequest xmlns="uri:http://ws-servientrega.appsiscore.com/server_wsi2.php">
       <nombre_destinatario>${order.customer_name}</nombre_destinatario>
       <direccion_destinatario>${direccion_destinatario}</direccion_destinatario>
-      <distrito_destinatario>${distrito_destinatario}</distrito_destinatario>
-      <provincia_destinatario>${provincia_destinatario}</provincia_destinatario>
+      <distrito_destinatario></distrito_destinatario>
+      <provincia_destinatario></provincia_destinatario>
       <nombre_remite>${senderInfo.nombre_remite}</nombre_remite>
       <direccion_remite>${senderInfo.direccion_remite}</direccion_remite>
       <distrito_remite>${senderInfo.distrito_remite}</distrito_remite>
@@ -133,7 +118,7 @@ Deno.serve(async (req: Request) => {
       <servicio>${servicio}</servicio>
       <telefono>${order.customer_phone || senderInfo.telefono_remite}</telefono>
       <peso>${order.shipping_details?.peso || 5}</peso>
-      <piezas>${totalPiezas}</piezas>
+      <piezas>${piezas}</piezas>
       <volumen></volumen>
       <contiene>${contiene}</contiene>
       <transporte></transporte>
@@ -159,11 +144,7 @@ Deno.serve(async (req: Request) => {
       orderId,
       orderNumber: order.order_number,
       customerName: order.customer_name,
-      destinatario: {
-        provincia: provincia_destinatario,
-        distrito: distrito_destinatario,
-        direccion: direccion_destinatario
-      },
+      direccion: direccion_destinatario,
       remitente: {
         nombre: senderInfo.nombre_remite,
         provincia: senderInfo.provincia_remite,
@@ -172,14 +153,10 @@ Deno.serve(async (req: Request) => {
       servicio,
       transporte,
       peso: order.shipping_details?.peso || 5,
-      piezas: totalPiezas
-    });
-    console.log('🔑 Using credentials:', {
-      username: servientregaUsername,
-      passwordLength: servientregaPassword?.length
+      piezas,
+      contiene
     });
 
-    // Call Servientrega SOAP API
     const servientregaResponse = await fetch(
       'http://ws-servientrega.appsiscore.com/generar_guia.php',
       {
@@ -195,13 +172,11 @@ Deno.serve(async (req: Request) => {
     const responseText = await servientregaResponse.text();
     console.log('📨 Servientrega response:', responseText);
 
-    // Extract the <return> content from SOAP response
     const returnMatch = responseText.match(/<return[^>]*>([^<]+)<\/return>/i);
     if (!returnMatch) {
       throw new Error('Invalid SOAP response: <return> element not found');
     }
 
-    // Decode HTML entities
     const decodedXml = returnMatch[1]
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
@@ -210,7 +185,6 @@ Deno.serve(async (req: Request) => {
 
     console.log('📋 Decoded XML:', decodedXml);
 
-    // Parse the inner XML to extract guia and autoscan URL
     const guiaMatch = decodedXml.match(/<guia>([^<]+)<\/guia>/i);
     const autoscanMatch = decodedXml.match(/<autoscan>([^<]+)<\/autoscan>/i);
 
@@ -218,7 +192,6 @@ Deno.serve(async (req: Request) => {
     const pdfUrl = autoscanMatch ? autoscanMatch[1].trim() : null;
 
     if (!guiaNumber) {
-      // Check for error in response
       const errorMatch = decodedXml.match(/<error[^>]*>([^<]+)<\/error>/i) ||
                          decodedXml.match(/<mensaje[^>]*>([^<]+)<\/mensaje>/i);
       const errorMessage = errorMatch ? errorMatch[1] : 'Unknown error from Servientrega';
@@ -227,7 +200,6 @@ Deno.serve(async (req: Request) => {
 
     console.log('✅ Parsed guide data:', { guiaNumber, pdfUrl });
 
-    // Update order with guide information
     const { error: updateError } = await supabase
       .from('orders')
       .update({
@@ -235,7 +207,7 @@ Deno.serve(async (req: Request) => {
         guia_pdf_url: pdfUrl,
         guia_created_at: new Date().toISOString(),
         guia_created_by: user.id,
-        status: 'processing', // Update status to processing
+        status: 'processing',
         updated_at: new Date().toISOString()
       })
       .eq('id', orderId);
@@ -267,7 +239,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || 'Error al generar la guía'
+        error: error instanceof Error ? error.message : 'Error al generar la guía'
       }),
       {
         status: 400,
