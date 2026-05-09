@@ -82,8 +82,15 @@ Deno.serve(async (req: Request) => {
       telefono_remite: ''
     };
 
-    // Use the full shipping address as-is
+    // Full address for the direccion field
     const direccion_destinatario = order.shipping_address || '';
+
+    // Extract distrito and provincia from the stored address parts.
+    // Stored format: "street, barrio, Provincia de X, Panama NN, CORREGIMIENTO, , PROVINCIA_CODE, Panamá"
+    // Indexes:          0       1         2                3            4          5       6           7
+    const addressParts = order.shipping_address?.split(',').map((s: string) => s.trim()) || [];
+    const distrito_destinatario = addressParts[4] || order.shipping_details?.ciu_des || '';
+    const provincia_destinatario = addressParts[6] || order.shipping_details?.provincia_des || 'PANAMA';
 
     // Una sola guía por pedido = una sola pieza
     const piezas = 1;
@@ -109,8 +116,8 @@ Deno.serve(async (req: Request) => {
     <getXMLRequest xmlns="uri:http://ws-servientrega.appsiscore.com/server_wsi2.php">
       <nombre_destinatario>${order.customer_name}</nombre_destinatario>
       <direccion_destinatario>${direccion_destinatario}</direccion_destinatario>
-      <distrito_destinatario></distrito_destinatario>
-      <provincia_destinatario></provincia_destinatario>
+      <distrito_destinatario>${distrito_destinatario}</distrito_destinatario>
+      <provincia_destinatario>${provincia_destinatario}</provincia_destinatario>
       <nombre_remite>${senderInfo.nombre_remite}</nombre_remite>
       <direccion_remite>${senderInfo.direccion_remite}</direccion_remite>
       <distrito_remite>${senderInfo.distrito_remite}</distrito_remite>
@@ -145,6 +152,8 @@ Deno.serve(async (req: Request) => {
       orderNumber: order.order_number,
       customerName: order.customer_name,
       direccion: direccion_destinatario,
+      distrito: distrito_destinatario,
+      provincia: provincia_destinatario,
       remitente: {
         nombre: senderInfo.nombre_remite,
         provincia: senderInfo.provincia_remite,
