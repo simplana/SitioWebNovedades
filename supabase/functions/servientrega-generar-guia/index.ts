@@ -76,8 +76,8 @@ Deno.serve(async (req: Request) => {
 
     const senderInfo = credentials || {
       nombre_remite: 'Novedades Católicas',
-      direccion_remite: 'Panama',
-      distrito_remite: '24 DE DICIEMBRE',
+      direccion_remite: 'Boulevard Plaza, Rotonda de Centennial',
+      distrito_remite: 'ANCON',
       provincia_remite: 'PANAMA',
       telefono_remite: ''
     };
