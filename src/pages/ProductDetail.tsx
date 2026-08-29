@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Heart, MessageCircle, Share2, Shield, Truck, ShoppingCart, Plus, Minus } from 'lucide-react';
-import { useLoyverseProducts } from '../hooks/useLoyverse';
+import { useProductById, useRelatedProducts, checkLiveStock } from '../hooks/useLoyverse';
 import { useCart } from '../hooks/useCart';
 import { useProductComments } from '../hooks/useProductComments';
 import ProductGrid from '../components/ProductGrid';
@@ -10,13 +10,31 @@ import ProductComments from '../components/ProductComments';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const { products, loading, getProductById, getProductsByCategory } = useLoyverseProducts({
-  });
+  const { product, loading } = useProductById(id || '');
   const { addToCart, getItemQuantity } = useCart();
-  const product = getProductById(id || '');
   const { comments, getAverageRating } = useProductComments(id || '');
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'description' | 'comments'>('description');
+  // null = not checked yet or lookup failed; fall back to the cached flag.
+  const [liveStock, setLiveStock] = useState<number | null>(null);
+
+  const variantId = product?.variantId;
+
+  // The cached catalog can be up to 15 minutes old, so confirm real stock here.
+  useEffect(() => {
+    if (!variantId) return;
+    let cancelled = false;
+
+    checkLiveStock([variantId]).then((stock) => {
+      if (!cancelled && stock && variantId in stock) setLiveStock(stock[variantId]);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [variantId]);
+
+  const relatedProducts = useRelatedProducts(product?.category, product?.id, 3);
 
   const averageRating = getAverageRating();
   const commentsCount = comments.length;
@@ -45,12 +63,13 @@ const ProductDetail = () => {
     );
   }
 
-  const relatedProducts = getProductsByCategory(product.category || '')
-    .filter(p => p.id !== product.id)
-    .slice(0, 3);
-
   const currentQuantityInCart = getItemQuantity(product.id);
-  const isOutOfStock = product.trackStock && !product.availableForSale;
+
+  // Live stock wins when we have it; otherwise trust the cached availability flag.
+  const isOutOfStock =
+    liveStock !== null
+      ? product.trackStock && liveStock <= 0
+      : product.trackStock && !product.availableForSale;
 
   const handleAddToCart = () => {
     if (!isOutOfStock) {
@@ -155,7 +174,11 @@ const ProductDetail = () => {
                     Nuevo
                   </span>
                 )}
-                {product.availableForSale && (
+                {isOutOfStock ? (
+                  <span className="ml-2 text-red-600 text-sm font-medium bg-red-100 px-3 py-1 rounded-full">
+                    Agotado
+                  </span>
+                ) : (
                   <span className="ml-2 text-blue-600 text-sm font-medium bg-blue-100 px-3 py-1 rounded-full">
                     Disponible
                   </span>
@@ -333,7 +356,10 @@ const ProductDetail = () => {
                     <div>
                       <h4 className="font-semibold text-navy mb-2">Disponibilidad</h4>
                       <ul className="text-gray-700 space-y-1">
-                        <li>• Estado: {product.availableForSale ? 'Disponible' : 'Agotado'}</li>
+                        <li>• Estado: {isOutOfStock ? 'Agotado' : 'Disponible'}</li>
+                        {liveStock !== null && product.trackStock && (
+                          <li>• Unidades disponibles: {liveStock}</li>
+                        )}
                         <li>• Entrega: 2-3 días hábiles</li>
                         <li>• Garantía: 30 días</li>
                       </ul>

@@ -35,3 +35,12 @@ verify_jwt = false
 
 [functions.loyverse-restar-stock]
 verify_jwt = true
+
+[functions.loyverse-get-items]
+verify_jwt = false
+
+[functions.loyverse-sync-products]
+verify_jwt = false
+
+[functions.loyverse-check-stock]
+verify_jwt = false

@@ -1,16 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Star, Heart, Shield, Truck, MessageCircle, Cross, BookOpen, Users } from 'lucide-react';
-import { useLoyverseProducts } from '../hooks/useLoyverse';
+import { useFeaturedProducts } from '../hooks/useLoyverse';
 import { useTestimonials } from '../hooks/useTestimonials';
 import ProductGrid from '../components/ProductGrid';
 import Newsletter from '../components/Newsletter';
 
 const Home = () => {
-  const { products, loading, error, getFeaturedProducts } = useLoyverseProducts();
+  const { products: featuredProducts, loading, error } = useFeaturedProducts(6);
   const { testimonials, loading: testimonialsLoading } = useTestimonials();
-
-  const featuredProducts = getFeaturedProducts(6);
 
   const features = [
     {

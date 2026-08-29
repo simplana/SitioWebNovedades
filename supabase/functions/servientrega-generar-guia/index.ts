@@ -85,12 +85,26 @@ Deno.serve(async (req: Request) => {
     // Full address for the direccion field
     const direccion_destinatario = order.shipping_address || '';
 
-    // Extract distrito and provincia from the stored address parts.
-    // Stored format: "street, barrio, Provincia de X, Panama NN, CORREGIMIENTO, , PROVINCIA_CODE, Panamá"
-    // Indexes:          0       1         2                3            4          5       6           7
+    // Normaliza un texto al formato que exige la matriz de Servientrega:
+    // MAYÚSCULAS, sin acentos, sin Ñ, y sin el prefijo/sufijo "Provincia de" / "Province".
+    const normalizeSrv = (s: string | undefined): string =>
+      (s || '')
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/Ñ/g, 'N')
+        .replace(/^PROVINCIA DE /, '')
+        .replace(/ PROVINCE$/, '')
+        .trim();
+
+    // Formato actual del shipping_address (armado en el checkout):
+    //   "calle número, corregimiento, distrito, provincia, Panamá"
+    // Índices:   0           1            2         3          4
     const addressParts = order.shipping_address?.split(',').map((s: string) => s.trim()) || [];
-    const distrito_destinatario = addressParts[4] || order.shipping_details?.ciu_des || '';
-    const provincia_destinatario = addressParts[6] || order.shipping_details?.provincia_des || 'PANAMA';
+    const distrito_destinatario =
+      normalizeSrv(addressParts[1]) || normalizeSrv(order.shipping_details?.ciu_des) || '';
+    const provincia_destinatario =
+      normalizeSrv(addressParts[3]) || normalizeSrv(order.shipping_details?.provincia_des) || 'PANAMA';
 
     // Una sola guía por pedido = una sola pieza
     const piezas = 1;

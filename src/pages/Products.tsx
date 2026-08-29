@@ -1,115 +1,64 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductGrid from '../components/ProductGrid';
-import { useLoyverseProducts } from '../hooks/useLoyverse';
+import { useLoyverseProducts, useCategories, SortOption } from '../hooks/useLoyverse';
+
+const PRODUCTS_PER_PAGE = 50;
+const SEARCH_DEBOUNCE_MS = 300;
 
 const Products = () => {
-  const { products, loading, error, pagination, goToPage, nextPage, previousPage, getCategories } = useLoyverseProducts();
-
   const [selectedCategory, setSelectedCategory] = useState('Todos');
-  const [sortBy, setSortBy] = useState('name');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
-  const categories = getCategories();
+  const categories = useCategories();
 
-  // Filtrar y ordenar productos
-  const filteredProducts = useMemo(() => {
-    console.log('🔍 Productos disponibles:', products.length);
-    console.log('📦 Productos:', products);
-    
-    return products
-      .filter(product => {
-        const matchesCategory = selectedCategory === 'Todos' || product.category === selectedCategory;
-        const matchesSearch = !searchTerm || 
-          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (product.sku && product.sku.toLowerCase().includes(searchTerm.toLowerCase()));
-        
-        return matchesCategory && matchesSearch;
-      })
-      .sort((a, b) => {
-        switch (sortBy) {
-          case 'price-low':
-            return a.price - b.price;
-          case 'price-high':
-            return b.price - a.price;
-          case 'name':
-          default:
-            return a.name.localeCompare(b.name);
-        }
-      });
-  }, [products, selectedCategory, searchTerm, sortBy]);
+  // Debounce typing so we don't fire a query per keystroke.
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
-  console.log('✅ Productos filtrados:', filteredProducts.length);
+  // Any change to the filters invalidates the current page number.
+  useEffect(() => {
+    setPage(1);
+  }, [search, selectedCategory, sortBy]);
 
-  const handlePageClick = (page: number) => {
-    goToPage(page);
+  const { products, total, totalPages, loading, error } = useLoyverseProducts({
+    search,
+    category: selectedCategory,
+    sortBy,
+    page,
+    pageSize: PRODUCTS_PER_PAGE,
+  });
+
+  const isFiltering = Boolean(search) || selectedCategory !== 'Todos';
+
+  const handlePageClick = (nextPage: number) => {
+    setPage(nextPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const renderPaginationButtons = () => {
-    const buttons = [];
-    const currentPage = pagination.currentPage;
-    const totalPages = pagination.totalPages;
-    
-    // Previous button
-    if (pagination.hasPreviousPage) {
-      buttons.push(
-        <button
-          key="prev"
-          onClick={previousPage}
-          className="flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-50 hover:text-gray-700"
-        >
-          <ChevronLeft className="h-4 w-4 mr-1" />
-          Anterior
-        </button>
-      );
-    }
-    
-    // Page numbers
-    const startPage = Math.max(1, currentPage - 2);
-    const endPage = Math.min(totalPages, currentPage + 2);
-    
-    for (let i = startPage; i <= endPage; i++) {
-      buttons.push(
-        <button
-          key={i}
-          onClick={() => handlePageClick(i)}
-          className={`px-3 py-2 text-sm font-medium border ${
-            i === currentPage
-              ? 'text-gold bg-light-gold border-gold'
-              : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50 hover:text-gray-700'
-          }`}
-        >
-          {i}
-        </button>
-      );
-    }
-    
-    // Show ellipsis if there are more pages
-    if (pagination.hasNextPage && currentPage < totalPages - 2) {
-      buttons.push(
-        <span key="ellipsis" className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300">
-          ...
-        </span>
-      );
-    }
-    
-    // Next button
-    if (pagination.hasNextPage) {
-      buttons.push(
-        <button
-          key="next"
-          onClick={nextPage}
-          className="flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-50 hover:text-gray-700"
-        >
-          Siguiente
-          <ChevronRight className="h-4 w-4 ml-1" />
-        </button>
-      );
-    }
-    
-    return buttons;
+  /** Page numbers with first/last always present and ellipses across the gaps. */
+  const getPageNumbers = () => {
+    const pages: (number | 'gap-left' | 'gap-right')[] = [];
+    const windowStart = Math.max(2, page - 2);
+    const windowEnd = Math.min(totalPages - 1, page + 2);
+
+    pages.push(1);
+    if (windowStart > 2) pages.push('gap-left');
+    for (let i = windowStart; i <= windowEnd; i++) pages.push(i);
+    if (windowEnd < totalPages - 1) pages.push('gap-right');
+    if (totalPages > 1) pages.push(totalPages);
+
+    return pages;
   };
+
+  const navButton =
+    'flex items-center px-3 py-2 text-sm font-medium border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500';
+
   return (
     <div className="pt-16 min-h-screen bg-divine-gradient">
       {/* Header */}
@@ -120,14 +69,14 @@ const Products = () => {
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
           </svg>
         </div>
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <h1 className="font-playfair text-4xl md:text-5xl font-bold mb-4 text-navy-devotion text-shadow-sacred">
             Artículos Religiosos
           </h1>
           <div className="w-32 h-1 bg-divine-gold mx-auto mb-6 rounded-full"></div>
           <p className="text-navy-devotion text-lg max-w-2xl mx-auto leading-relaxed opacity-90">
-            Explora nuestra colección de artículos religiosos católicos, 
+            Explora nuestra colección de artículos religiosos católicos,
             cuidadosamente seleccionados con amor para acompañar tu camino de fe y devoción.
           </p>
         </div>
@@ -143,8 +92,8 @@ const Products = () => {
               <input
                 type="text"
                 placeholder="Buscar artículos religiosos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-divine-gold border-opacity-30 rounded-full focus:ring-2 focus:ring-divine-gold focus:border-transparent bg-sacred-white shadow-sacred text-navy-devotion"
               />
             </div>
@@ -170,7 +119,7 @@ const Products = () => {
               <span className="text-navy-devotion font-medium">Ordenar:</span>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
                 className="border border-divine-gold border-opacity-30 rounded-full px-4 py-2 focus:ring-2 focus:ring-divine-gold focus:border-transparent bg-sacred-white shadow-sacred text-navy-devotion"
               >
                 <option value="name">Alfabético</option>
@@ -181,44 +130,70 @@ const Products = () => {
           </div>
         </div>
 
-        {/* Resultados */}
-        <div className="mb-6">
-          <p className="text-stone-prayer">
-            {filteredProducts.length} productos encontrados
-            {selectedCategory !== 'Todos' && ` en ${selectedCategory}`}
-            {searchTerm && ` para "${searchTerm}"`}
-            {!loading && pagination.totalPages > 1 && (
-              <span className="ml-2 text-sm text-dove-gray">
-                (Página {pagination.currentPage} de {pagination.hasNextPage ? `${pagination.currentPage}+` : pagination.currentPage})
-              </span>
-            )}
-          </p>
-          
-        </div>
-
-        {/* Grid de productos */}
-        <ProductGrid 
-          products={filteredProducts} 
-          loading={loading} 
-          error={error}
-        />
-        
-        {/* Pagination */}
-        {!loading && (pagination.hasNextPage || pagination.hasPreviousPage) && (
-          <div className="mt-12 flex justify-center">
-            <nav className="flex items-center" aria-label="Pagination">
-              {renderPaginationButtons()}
-            </nav>
+        {/* Resultados: solo al buscar o filtrar */}
+        {isFiltering && !loading && (
+          <div className="mb-6">
+            <p className="text-stone-prayer">
+              {total} {total === 1 ? 'resultado' : 'resultados'}
+              {selectedCategory !== 'Todos' && ` en ${selectedCategory}`}
+              {search && ` para "${search}"`}
+            </p>
           </div>
         )}
-        
-        {/* Loading indicator for pagination */}
-        {loading && pagination.currentPage > 1 && (
+
+        {/* Grid de productos */}
+        <ProductGrid
+          products={products}
+          loading={loading}
+          error={error}
+        />
+
+        {/* Pagination */}
+        {!loading && !error && totalPages > 1 && (
           <div className="mt-12 flex justify-center">
-            <div className="flex items-center space-x-2 text-stone-prayer bg-sacred-white bg-opacity-90 py-3 px-6 rounded-full shadow-sacred backdrop-blur-divine">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-divine-gold"></div>
-              <span>Cargando productos...</span>
-            </div>
+            <nav className="flex items-center" aria-label="Pagination">
+              <button
+                onClick={() => handlePageClick(page - 1)}
+                disabled={page <= 1}
+                className={`${navButton} rounded-l-lg`}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Anterior
+              </button>
+
+              {getPageNumbers().map((entry) =>
+                typeof entry === 'number' ? (
+                  <button
+                    key={entry}
+                    onClick={() => handlePageClick(entry)}
+                    aria-current={entry === page ? 'page' : undefined}
+                    className={`px-3 py-2 text-sm font-medium border ${
+                      entry === page
+                        ? 'text-gold bg-light-gold border-gold'
+                        : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50 hover:text-gray-700'
+                    }`}
+                  >
+                    {entry}
+                  </button>
+                ) : (
+                  <span
+                    key={entry}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300"
+                  >
+                    …
+                  </span>
+                )
+              )}
+
+              <button
+                onClick={() => handlePageClick(page + 1)}
+                disabled={page >= totalPages}
+                className={`${navButton} rounded-r-lg`}
+              >
+                Siguiente
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </button>
+            </nav>
           </div>
         )}
       </div>

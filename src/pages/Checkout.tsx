@@ -9,6 +9,7 @@ import PagueloFacilButton from '../components/PagueloFacilButton';
 import PagueloFacilPaymentCard from '../components/PagueloFacilPaymentCard';
 import CheckoutMap from '../components/CheckoutMap';
 import { supabase } from '../lib/supabase';
+import { checkLiveStock } from '../hooks/useLoyverse';
 import { getProvinceNames, getCorregimientosByProvince } from '../utils/panamaLocations';
 
 const Checkout = () => {
@@ -340,10 +341,50 @@ const Checkout = () => {
     setStep('payment');
   };
 
+  /**
+   * The catalog is served from a cache that can be up to 15 minutes old, so
+   * confirm real Loyverse stock before charging anyone. Returns an error message
+   * when something is short, or null when the order is safe to place.
+   */
+  const findStockProblem = async (): Promise<string | null> => {
+    const trackedItems = items.filter(item => item.loyverse_variant_id);
+    if (trackedItems.length === 0) return null;
+
+    const stock = await checkLiveStock(
+      trackedItems.map(item => item.loyverse_variant_id as string)
+    );
+
+    // A failed lookup must not block a legitimate sale.
+    if (!stock) return null;
+
+    const short = trackedItems
+      .filter(item => {
+        const available = stock[item.loyverse_variant_id as string];
+        return typeof available === 'number' && available < item.quantity;
+      })
+      .map(item => {
+        const available = stock[item.loyverse_variant_id as string];
+        return available <= 0
+          ? `${item.name} (agotado)`
+          : `${item.name} (solo quedan ${available})`;
+      });
+
+    if (short.length === 0) return null;
+
+    return `Algunos artículos ya no tienen suficiente inventario: ${short.join(', ')}. ` +
+      `Por favor ajusta las cantidades en tu carrito.`;
+  };
+
   const handleCompleteOrder = async () => {
     try {
+      const stockProblem = await findStockProblem();
+      if (stockProblem) {
+        alert(stockProblem);
+        return;
+      }
+
       // Crear mensaje de WhatsApp con todos los detalles
-      const itemsList = items.map(item => 
+      const itemsList = items.map(item =>
         `• ${item.name} (${item.sku}) - Cantidad: ${item.quantity} - $${(item.price * item.quantity).toFixed(2)}`
       ).join('\n');
       if (paymentMethod === 'paguelo_facil') {

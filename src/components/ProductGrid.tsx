@@ -10,13 +10,6 @@ interface ProductGridProps {
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({ products, loading, error }) => {
-  console.log('🎨 ProductGrid renderizado:', { 
-    productsCount: products.length, 
-    loading, 
-    error,
-    products: products.slice(0, 2) // Solo mostrar los primeros 2 para debug
-  });
-
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -42,19 +35,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, loading, error }) =
           <div className="bg-red-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
             <BookOpen className="h-8 w-8 text-red-600" />
           </div>
-          <h3 className="text-xl font-semibold mb-4">Error al cargar productos</h3>
-          <p className="text-sm mb-4 text-red-700 bg-red-50 p-3 rounded-lg">{error}</p>
-          
-          {error.includes('Authentication') && (
-            <div className="bg-blue-50 p-4 rounded-lg text-left">
-              <h4 className="font-semibold text-blue-800 mb-2">💡 Soluciones:</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Configura tu <code>VITE_LOYVERSE_ACCESS_TOKEN</code> en el archivo .env</li>
-                <li>• O completa el proceso OAuth2 en el panel de Admin</li>
-                <li>• Verifica que tu token tenga permisos ITEMS_READ</li>
-              </ul>
-            </div>
-          )}
+          <h3 className="text-xl font-semibold mb-4">La tienda no está disponible</h3>
+          <p className="text-sm">
+            No pudimos cargar los artículos en este momento. Por favor vuelve a
+            intentarlo en unos minutos.
+          </p>
         </div>
       </div>
     );
