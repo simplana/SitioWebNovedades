@@ -76,8 +76,8 @@ Deno.serve(async (req: Request) => {
 
     const senderInfo = credentials || {
       nombre_remite: 'Novedades Católicas',
-      direccion_remite: 'Panama',
-      distrito_remite: '24 DE DICIEMBRE',
+      direccion_remite: 'Boulevard Plaza, Rotonda de Centennial',
+      distrito_remite: 'ANCON',
       provincia_remite: 'PANAMA',
       telefono_remite: ''
     };
@@ -91,12 +91,11 @@ Deno.serve(async (req: Request) => {
       (s || '')
         .toUpperCase()
         .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
+        .replace(/[\u0300-\u036f]/g, '')
         .replace(/Ñ/g, 'N')
         .replace(/^PROVINCIA DE /, '')
         .replace(/ PROVINCE$/, '')
         .trim();
-
     // Formato actual del shipping_address (armado en el checkout):
     //   "calle número, corregimiento, distrito, provincia, Panamá"
     // Índices:   0           1            2         3          4
@@ -105,6 +104,15 @@ Deno.serve(async (req: Request) => {
       normalizeSrv(addressParts[1]) || normalizeSrv(order.shipping_details?.ciu_des) || '';
     const provincia_destinatario =
       normalizeSrv(addressParts[3]) || normalizeSrv(order.shipping_details?.provincia_des) || 'PANAMA';
+
+    console.log('🏠 Parseo de dirección destinatario:', {
+      shipping_address: order.shipping_address,
+      addressParts,
+      distrito_destinatario,
+      provincia_destinatario,
+      ciu_des_respaldo: order.shipping_details?.ciu_des,
+      provincia_des_respaldo: order.shipping_details?.provincia_des,
+    });
 
     // Una sola guía por pedido = una sola pieza
     const piezas = 1;
